@@ -1,8 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { useMutation } from "@apollo/client";
-import { LOGIN_USER, REGISTER_USER } from "@/graphql/mutations/auth";
 import {
   setAuthToken,
   removeAuthToken,
@@ -22,6 +20,16 @@ export interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function safeJson(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return { message: text.slice(0, 300) };
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -29,9 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading: true,
     error: null,
   });
-
-  const [loginMutation] = useMutation(LOGIN_USER);
-  const [registerMutation] = useMutation(REGISTER_USER);
 
   useEffect(() => {
     const storedUser = getStoredUser();
@@ -47,22 +52,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (credentials: LoginCredentials) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      const { data } = await loginMutation({
-        variables: {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           username: credentials.username,
           password: credentials.password,
-        },
+        }),
       });
+      const data = await safeJson(res);
 
-      const { authToken, user } = data.login;
+      if (!res.ok) {
+        throw new Error(typeof data.message === "string" ? data.message : "Login failed");
+      }
+
+      const authToken = typeof data.authToken === "string" ? data.authToken : "";
+      const user = data.user as {
+        databaseId?: number;
+        firstName?: string;
+        lastName?: string;
+        name?: string;
+        email?: string;
+        avatar?: { url?: string };
+        roles?: { nodes?: Array<{ name: string }> };
+      } | undefined;
+
+      if (!authToken || !user?.email) {
+        throw new Error("Login returned an unexpected response from WordPress.");
+      }
+
       const authUser: AuthUser = {
-        id: user.databaseId,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        displayName: user.displayName,
+        id: user.databaseId ?? 0,
+        firstName: user.firstName ?? "",
+        lastName: user.lastName ?? "",
+        displayName: user.name || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email,
         email: user.email,
         avatar: user.avatar?.url || "",
-        roles: user.roles.nodes.map((r: { name: string }) => r.name),
+        roles: user.roles?.nodes?.map((r: { name: string }) => r.name) ?? [],
         registeredAt: new Date().toISOString(),
         token: authToken,
       };
@@ -78,27 +104,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setState((prev) => ({ ...prev, isLoading: false, error: message }));
       throw err;
     }
-  }, [loginMutation]);
+  }, []);
 
   const register = useCallback(async (data: RegisterData) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      await registerMutation({
-        variables: {
-          username: data.email,
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           email: data.email,
           password: data.password,
           firstName: data.firstName,
           lastName: data.lastName,
-        },
+          phone: data.phone,
+        }),
       });
+      const result = await safeJson(res);
+      if (!res.ok) {
+        throw new Error(typeof result.message === "string" ? result.message : "Registration failed");
+      }
       await login({ username: data.email, password: data.password });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Registration failed";
       setState((prev) => ({ ...prev, isLoading: false, error: message }));
       throw err;
     }
-  }, [registerMutation, login]);
+  }, [login]);
 
   const logout = useCallback(() => {
     removeAuthToken();

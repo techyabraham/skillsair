@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import useSWR from "swr";
 import { cn } from "@/lib/utils";
-import type { CourseFilters } from "@/types/course";
+import type { CourseCategory, CourseFilters } from "@/types/course";
 
 const LEVELS = [
   { value: "beginner", label: "Beginner" },
@@ -16,18 +17,13 @@ const DURATIONS = [
   { value: "long", label: "20+ hours" },
 ];
 
-const CATEGORIES = [
-  { value: "web-development", label: "Web Development" },
-  { value: "data-science", label: "Data Science" },
-  { value: "ui-ux-design", label: "UI/UX Design" },
-  { value: "business", label: "Business" },
-  { value: "cybersecurity", label: "Cybersecurity" },
-  { value: "digital-marketing", label: "Digital Marketing" },
-  { value: "cloud-computing", label: "Cloud Computing" },
-  { value: "product-management", label: "Product Management" },
-];
-
 const RATINGS = [4, 3, 2];
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+interface CategoriesResponse {
+  categories: CourseCategory[];
+}
 
 interface CourseSidebarProps {
   filters: CourseFilters;
@@ -74,6 +70,8 @@ export function CourseSidebar({
   isMobile = false,
   onClose,
 }: CourseSidebarProps) {
+  const { data } = useSWR<CategoriesResponse>("/api/categories", fetcher);
+  const categories = data?.categories || [];
   const hasFilters =
     filters.category || filters.level || filters.duration || filters.rating;
 
@@ -103,21 +101,24 @@ export function CourseSidebar({
       {/* Category */}
       <FilterSection title="Category">
         <div className="space-y-2">
-          {CATEGORIES.map((cat) => (
-            <label key={cat.value} className="flex items-center gap-2.5 cursor-pointer group">
+          {categories.map((cat) => (
+            <label key={cat.slug} className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="radio"
                 name="category"
-                value={cat.value}
-                checked={filters.category === cat.value}
+                value={cat.slug}
+                checked={filters.category === cat.slug}
                 onChange={(e) => onFilterChange({ category: e.target.value, page: 1 })}
                 className="w-4 h-4 text-primary-800 border-neutral-300 focus:ring-primary-800/30"
               />
               <span className="text-sm text-neutral-600 group-hover:text-neutral-900 transition-colors">
-                {cat.label}
+                {cat.name}
               </span>
             </label>
           ))}
+          {categories.length === 0 && (
+            <p className="text-sm text-neutral-400">No categories available.</p>
+          )}
         </div>
       </FilterSection>
 

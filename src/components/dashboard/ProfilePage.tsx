@@ -2,16 +2,15 @@
 
 import React, { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
-import { useMutation } from "@apollo/client";
-import { UPDATE_USER } from "@/graphql/mutations/auth";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar } from "@/components/ui/Avatar";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { wpApi } from "@/lib/api";
+import { updateStoredUser } from "@/lib/auth";
 
 const profileSchema = z.object({
   firstName: z.string().min(2, "First name is required"),
@@ -52,8 +51,9 @@ export function ProfilePage() {
   const { user, refreshUser } = useAuth();
   const { addToast } = useToast();
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [updateUser, { loading: updating }] = useMutation(UPDATE_USER);
 
   const {
     register: regProfile,
@@ -80,30 +80,46 @@ export function ProfilePage() {
 
   const onProfileSubmit = async (data: ProfileFormData) => {
     if (!user) return;
+    setUpdating(true);
     try {
-      await updateUser({
-        variables: {
-          id: String(user.id),
-          firstName: data.firstName,
-          lastName: data.lastName,
-          displayName: data.displayName,
-          description: data.bio,
-        },
+      const updated = await wpApi.updateProfile(user.id, {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        displayName: data.displayName,
+        email: data.email,
+        phone: data.phone,
+        bio: data.bio,
+        timezone: data.timezone,
       });
+      updateStoredUser(updated);
       refreshUser();
       addToast({ type: "success", title: "Profile updated successfully!" });
-    } catch {
-      addToast({ type: "error", title: "Failed to update profile", message: "Please try again." });
+    } catch (err) {
+      addToast({
+        type: "error",
+        title: "Failed to update profile",
+        message: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setUpdating(false);
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onPasswordSubmit = async (_formData: PasswordFormData) => {
+  const onPasswordSubmit = async (formData: PasswordFormData) => {
+    if (!user) return;
+    setChangingPassword(true);
     try {
+      await wpApi.changePassword(user.id, user.email, formData);
       addToast({ type: "success", title: "Password changed successfully!" });
       resetPwd();
-    } catch {
-      addToast({ type: "error", title: "Failed to change password" });
+    } catch (err) {
+      addToast({
+        type: "error",
+        title: "Failed to change password",
+        message: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -114,7 +130,10 @@ export function ProfilePage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      await wpApi.uploadAvatar(formData);
+      const uploaded = await wpApi.uploadAvatar(formData);
+      if (uploaded.url) {
+        updateStoredUser({ avatar: uploaded.url });
+      }
       refreshUser();
       addToast({ type: "success", title: "Avatar updated!" });
     } catch {
@@ -257,7 +276,7 @@ export function ProfilePage() {
         </div>
 
         <div className="flex justify-end mt-5">
-          <Button type="submit" variant="primary" size="md">
+          <Button type="submit" variant="primary" size="md" loading={changingPassword}>
             Update Password
           </Button>
         </div>

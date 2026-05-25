@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { CheckoutPage } from "@/components/checkout/CheckoutPage";
 import { Header } from "@/components/layout/Header";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export const metadata: Metadata = {
   title: "Checkout",
@@ -10,11 +10,13 @@ export const metadata: Metadata = {
 
 export default function CheckoutRoute() {
   return (
-    <AuthGuard>
+    <>
       <Header />
       <main className="pt-20">
-        <CheckoutPage />
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-6 h-6 border-2 border-primary-800 border-t-transparent rounded-full animate-spin" /></div>}>
+          <CheckoutPage />
+        </Suspense>
       </main>
-    </AuthGuard>
+    </>
   );
 }

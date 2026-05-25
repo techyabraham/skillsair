@@ -10,13 +10,12 @@ export const LOGIN_USER = gql`
       }
     ) {
       authToken
-      refreshToken
       user {
         id
         databaseId
         firstName
         lastName
-        displayName
+        name
         email
         avatar {
           url

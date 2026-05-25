@@ -1,0 +1,46 @@
+
+> skillsair@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 4.5s
+ ✓ Compiled /api/auth/login in 365ms (56 modules)
+ POST /api/auth/login 200 in 8414ms
+ ✓ Compiled /api/students/[id]/courses in 209ms (59 modules)
+ ✓ Compiled (61 modules)
+ GET /api/students/269/stats 200 in 3071ms
+ GET /api/students/269/courses 200 in 5190ms
+ GET /api/students/2288/courses 200 in 2426ms
+ ○ Compiling / ...
+ ✓ Compiled / in 14.5s (2024 modules)
+ ✓ Compiled in 4.4s (1001 modules)
+ GET / 200 in 19148ms
+ ✓ Compiled in 922ms (987 modules)
+ ○ Compiling /api/categories ...
+ ✓ Compiled /api/categories in 2.8s (1052 modules)
+ ✓ Compiled (1054 modules)
+ ○ Compiling /login ...
+ GET /api/courses?per_page=6&sort=newest 200 in 8502ms
+ GET /api/categories 200 in 8550ms
+ ✓ Compiled /_not-found in 7.8s (2219 modules)
+ GET /images/avatar-placeholder.jpg 404 in 6392ms
+ ○ Compiling /api/auth/login ...
+ ✓ Compiled /api/auth/login in 622ms (1146 modules)
+ POST /api/auth/login 200 in 8999ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1686ms (2243 modules)
+ ○ Compiling /dashboard/courses ...
+ ✓ Compiled /dashboard/courses in 782ms (2250 modules)
+ POST /api/auth/login 200 in 7002ms
+ ○ Compiling /api/students/[id]/courses ...
+ ✓ Compiled /api/students/[id]/courses in 555ms (1167 modules)
+ GET /api/students/269/courses 200 in 6063ms
+ ○ Compiling /dashboard/courses/[slug]/learn ...
+ ✓ Compiled /dashboard/courses/[slug]/learn in 3.3s (2260 modules)
+ ○ Compiling /dashboard/certificates ...
+ ✓ Compiled /dashboard/certificates in 1509ms (2264 modules)
+ GET /api/students/269/courses 200 in 4515ms

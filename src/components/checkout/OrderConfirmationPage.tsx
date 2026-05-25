@@ -4,25 +4,42 @@ import React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { motion } from "framer-motion";
-import { wooApi } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { Badge } from "@/components/ui/Badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatPrice } from "@/lib/utils";
 import type { Order } from "@/types/order";
 
 interface OrderConfirmationPageProps {
   orderId: number;
 }
 
+interface VerificationResponse {
+  paid: boolean;
+  status: string;
+  message?: string;
+}
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export function OrderConfirmationPage({ orderId }: OrderConfirmationPageProps) {
-  const { data: order, isLoading } = useSWR<Order>(
-    orderId ? `/order/${orderId}` : null,
-    () => wooApi.getOrder(orderId),
+  const searchParams = useSearchParams();
+  const reference = searchParams.get("reference");
+
+  const { data: verification, isLoading: verifying } = useSWR<VerificationResponse>(
+    reference ? `/api/paystack/verify?reference=${encodeURIComponent(reference)}&orderId=${orderId}` : null,
+    fetcher,
     { revalidateOnFocus: false }
   );
 
-  if (isLoading) {
+  const { data: order, isLoading } = useSWR<Order>(
+    orderId ? `/api/orders/${orderId}` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  if (isLoading || verifying) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Spinner size="lg" />
@@ -52,6 +69,12 @@ export function OrderConfirmationPage({ orderId }: OrderConfirmationPageProps) {
           </p>
         </motion.div>
 
+        {verification && !verification.paid && (
+          <div className="mb-6 rounded-2xl border border-warning bg-warning-light p-4 text-sm text-warning-dark">
+            {verification.message || "Payment is still pending. If you completed payment, refresh this page in a moment."}
+          </div>
+        )}
+
         {order && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -64,27 +87,29 @@ export function OrderConfirmationPage({ orderId }: OrderConfirmationPageProps) {
                 <p className="text-sm text-neutral-400">Order Number</p>
                 <p className="text-lg font-bold text-neutral-900">#{order.id}</p>
               </div>
-              <Badge variant="success">Confirmed</Badge>
+              <Badge variant={order.status === "completed" ? "success" : "warning"}>
+                {order.status === "completed" ? "Confirmed" : order.status}
+              </Badge>
             </div>
 
             <div className="space-y-3 mb-5">
               {order.lineItems.map((item) => (
                 <div key={item.id} className="flex justify-between text-sm">
                   <span className="text-neutral-700">{item.name}</span>
-                  <span className="font-medium text-neutral-900">{item.total}</span>
+                  <span className="font-medium text-neutral-900">{formatPrice(parseFloat(item.total))}</span>
                 </div>
               ))}
             </div>
 
             <div className="border-t border-neutral-100 pt-4 space-y-2">
               <div className="flex justify-between text-sm text-neutral-500">
-                <span>Subtotal</span><span>{order.subtotal}</span>
+                <span>Subtotal</span><span>{formatPrice(parseFloat(order.subtotal))}</span>
               </div>
               <div className="flex justify-between text-sm text-neutral-500">
-                <span>Tax</span><span>{order.totalTax}</span>
+                <span>Tax</span><span>{formatPrice(parseFloat(order.totalTax))}</span>
               </div>
               <div className="flex justify-between font-bold text-neutral-900 pt-2 border-t border-neutral-100">
-                <span>Total</span><span>{order.total}</span>
+                <span>Total</span><span>{formatPrice(parseFloat(order.total))}</span>
               </div>
             </div>
 

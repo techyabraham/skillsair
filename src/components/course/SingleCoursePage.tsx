@@ -3,9 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useQuery } from "@apollo/client";
 import { motion } from "framer-motion";
-import { GET_COURSE } from "@/graphql/queries/courses";
 import { CurriculumAccordion } from "./CurriculumAccordion";
 import { StarRating } from "@/components/ui/StarRating";
 import { LevelBadge } from "@/components/ui/Badge";
@@ -13,8 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/components/ui/Toast";
-import { tutorApi } from "@/lib/api";
+import { useCourse } from "@/hooks/useCourses";
 import {
   formatPrice,
   formatDate,
@@ -27,121 +24,14 @@ interface SingleCoursePageProps {
   slug: string;
 }
 
-function mapGqlToCourse(data: Record<string, unknown>): Course {
-  const course = data as {
-    id: string;
-    databaseId: number;
-    title: string;
-    slug: string;
-    content: string;
-    excerpt: string;
-    modified: string;
-    date: string;
-    featuredImage: { node: { sourceUrl: string } } | null;
-    courseData: {
-      price: number;
-      regularPrice: number;
-      salePrice?: number;
-      isFree: boolean;
-      level: string;
-      duration: number;
-      totalLessons: number;
-      totalStudents: number;
-      totalSections: number;
-      language: string;
-      requirements: string[];
-      outcomes: string[];
-      targetAudience: string[];
-      videoHours: number;
-      articles: number;
-      downloadableResources: number;
-      fullLifetimeAccess: boolean;
-      certificate: boolean;
-      mobileAccess: boolean;
-    };
-    rating: {
-      average: number;
-      count: number;
-      breakdown: { oneStar: number; twoStar: number; threeStar: number; fourStar: number; fiveStar: number };
-    };
-    author: {
-      node: {
-        id: string;
-        databaseId: number;
-        name: string;
-        description: string;
-        avatar: { url: string } | null;
-        instructorData: { totalStudents: number; totalCourses: number; rating: number } | null;
-      };
-    };
-    categories: { nodes: { id: string; name: string; slug: string }[] };
-    tags: { nodes: { id: string; name: string; slug: string }[] };
-  };
-
-  return {
-    id: course.databaseId,
-    title: course.title,
-    slug: course.slug,
-    description: course.content || "",
-    excerpt: course.excerpt || "",
-    thumbnail: course.featuredImage?.node?.sourceUrl || "",
-    price: course.courseData?.price ?? 0,
-    regularPrice: course.courseData?.regularPrice ?? 0,
-    salePrice: course.courseData?.salePrice,
-    isFree: course.courseData?.isFree ?? false,
-    level: (course.courseData?.level as Course["level"]) ?? "beginner",
-    status: "publish",
-    language: course.courseData?.language ?? "English",
-    duration: course.courseData?.duration ?? 0,
-    totalLessons: course.courseData?.totalLessons ?? 0,
-    totalStudents: course.courseData?.totalStudents ?? 0,
-    totalSections: course.courseData?.totalSections ?? 0,
-    rating: {
-      average: course.rating?.average ?? 0,
-      count: course.rating?.count ?? 0,
-      breakdown: {},
-    },
-    instructor: {
-      id: course.author.node.databaseId,
-      name: course.author.node.name,
-      avatar: course.author.node.avatar?.url ?? "",
-      bio: course.author.node.description ?? "",
-      totalStudents: course.author.node.instructorData?.totalStudents ?? 0,
-      totalCourses: course.author.node.instructorData?.totalCourses ?? 0,
-      rating: course.author.node.instructorData?.rating ?? 0,
-      slug: "",
-    },
-    categories: course.categories.nodes.map((c) => ({ id: 0, name: c.name, slug: c.slug, count: 0 })),
-    tags: course.tags.nodes.map((t) => ({ id: 0, name: t.name, slug: t.slug })),
-    curriculum: [],
-    requirements: course.courseData?.requirements ?? [],
-    outcomes: course.courseData?.outcomes ?? [],
-    targetAudience: course.courseData?.targetAudience ?? [],
-    includes: {
-      videoHours: course.courseData?.videoHours ?? 0,
-      articles: course.courseData?.articles ?? 0,
-      downloadableResources: course.courseData?.downloadableResources ?? 0,
-      fullLifetimeAccess: course.courseData?.fullLifetimeAccess ?? true,
-      certificate: course.courseData?.certificate ?? true,
-      mobileAccess: course.courseData?.mobileAccess ?? true,
-    },
-    lastUpdated: course.modified ?? "",
-    createdAt: course.date ?? "",
-    reviews: [],
-  };
-}
-
 export function SingleCoursePage({ slug }: SingleCoursePageProps) {
   const { isAuthenticated } = useAuth();
-  const { addToast } = useToast();
-  const [enrolling, setEnrolling] = useState(false);
+  const enrolling = false;
   const [activeTab, setActiveTab] = useState<"overview" | "curriculum" | "instructor" | "reviews">("overview");
 
-  const { data, loading, error } = useQuery(GET_COURSE, {
-    variables: { slug },
-  });
+  const { course, isLoading, error } = useCourse(slug);
 
-  if (error) {
+  if (error && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -154,23 +44,8 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
     );
   }
 
-  const course = data?.course ? mapGqlToCourse(data.course as Record<string, unknown>) : null;
-
-  const handleEnroll = async () => {
-    if (!isAuthenticated) {
-      window.location.href = `/login?next=/courses/${slug}`;
-      return;
-    }
-    if (!course) return;
-    setEnrolling(true);
-    try {
-      await tutorApi.enrollCourse(course.id);
-      addToast({ type: "success", title: "Enrolled successfully!", message: "Head to your dashboard to start learning." });
-    } catch {
-      addToast({ type: "error", title: "Enrollment failed", message: "Please try again or contact support." });
-    } finally {
-      setEnrolling(false);
-    }
+  const handleEnroll = () => {
+    window.location.href = `/checkout?course=${slug}`;
   };
 
   const TABS = [
@@ -187,7 +62,7 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
         <div className="container-wide">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              {loading ? (
+              {isLoading ? (
                 <div className="space-y-4">
                   <Skeleton rounded className="h-6 w-32" />
                   <Skeleton rounded className="h-10 w-full" />
@@ -280,7 +155,7 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
         <div className="grid lg:grid-cols-3 gap-10">
           {/* Left */}
           <div className="lg:col-span-2 space-y-10">
-            {loading ? (
+            {isLoading ? (
               <div className="space-y-6">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} rounded className="h-32 w-full" />
@@ -412,7 +287,7 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
           {/* Right: Sticky Enroll Sidebar */}
           <div className="hidden lg:block">
             <div className="sticky top-24">
-              {loading ? (
+              {isLoading ? (
                 <div className="rounded-2xl border border-neutral-200 overflow-hidden">
                   <Skeleton className="h-48 w-full" />
                   <div className="p-6 space-y-4">

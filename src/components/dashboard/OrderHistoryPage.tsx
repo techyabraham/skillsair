@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { wooApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatPrice } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/types/order";
 
 const statusConfig: Record<OrderStatus, { label: string; variant: "success" | "warning" | "error" | "neutral" | "primary" }> = {
@@ -78,7 +78,7 @@ export function OrderHistoryPage() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <p className="text-sm font-semibold text-neutral-900">
-                          {order.currency} {parseFloat(order.total).toFixed(2)}
+                          {formatPrice(parseFloat(order.total), order.currency || "NGN")}
                         </p>
                       </td>
                     </tr>

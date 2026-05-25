@@ -10,7 +10,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onRightIconClick?: () => void;
 }
 
-export function Input({
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Input({
   label,
   error,
   hint,
@@ -20,7 +20,7 @@ export function Input({
   className,
   id,
   ...props
-}: InputProps) {
+}, ref) {
   const inputId = id || `input-${Math.random().toString(36).slice(2)}`;
 
   return (
@@ -38,6 +38,7 @@ export function Input({
           </div>
         )}
         <input
+          ref={ref}
           id={inputId}
           className={cn(
             "w-full px-4 py-3 rounded-xl border bg-white text-neutral-900 placeholder-neutral-400 text-sm transition-all duration-200",
@@ -78,7 +79,7 @@ export function Input({
       )}
     </div>
   );
-}
+});
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
@@ -86,7 +87,10 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
   hint?: string;
 }
 
-export function Textarea({ label, error, hint, className, id, ...props }: TextareaProps) {
+export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
+  { label, error, hint, className, id, ...props },
+  ref
+) {
   const textareaId = id || `textarea-${Math.random().toString(36).slice(2)}`;
   return (
     <div className="w-full">
@@ -97,6 +101,7 @@ export function Textarea({ label, error, hint, className, id, ...props }: Textar
         </label>
       )}
       <textarea
+        ref={ref}
         id={textareaId}
         className={cn(
           "w-full px-4 py-3 rounded-xl border bg-white text-neutral-900 placeholder-neutral-400 text-sm transition-all duration-200 resize-none",
@@ -111,4 +116,4 @@ export function Textarea({ label, error, hint, className, id, ...props }: Textar
       {hint && !error && <p className="mt-1.5 text-xs text-neutral-400">{hint}</p>}
     </div>
   );
-}
+});

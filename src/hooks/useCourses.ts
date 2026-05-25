@@ -36,10 +36,10 @@ export function useCourses(filters: CourseFilters = {}) {
   };
 }
 
-export function useCourse(id: number | null) {
+export function useCourse(slug: string | null) {
   const { data, error, isLoading } = useSWR<Course>(
-    id ? `/courses/${id}` : null,
-    () => tutorApi.getCourse(id!),
+    slug ? `/courses/${slug}` : null,
+    () => tutorApi.getCourse(slug!),
     { revalidateOnFocus: false }
   );
   return { course: data, isLoading, error };

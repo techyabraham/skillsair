@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useCourses } from "@/hooks/useCourses";
 import { CourseGrid } from "@/components/course/CourseGrid";
 import { CourseSidebar } from "@/components/course/CourseSidebar";
@@ -17,7 +18,9 @@ const SORT_OPTIONS = [
 ];
 
 export default function CoursesPage() {
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<CourseFilters>({
+    category: searchParams.get("category") || undefined,
     page: 1,
     perPage: 12,
     sort: "popular",

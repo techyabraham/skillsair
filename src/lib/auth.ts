@@ -49,6 +49,21 @@ export function setStoredUser(user: AuthUser, persistent = false): void {
   }
 }
 
+export function updateStoredUser(updates: Partial<AuthUser>): AuthUser | null {
+  if (typeof window === "undefined") return null;
+  const current = getStoredUser();
+  if (!current) return null;
+  const next = { ...current, ...updates };
+  const serialized = JSON.stringify(next);
+  if (sessionStorage.getItem(USER_KEY)) {
+    sessionStorage.setItem(USER_KEY, serialized);
+  }
+  if (localStorage.getItem(USER_KEY)) {
+    localStorage.setItem(USER_KEY, serialized);
+  }
+  return next;
+}
+
 export function isTokenExpired(): boolean {
   if (typeof window === "undefined") return true;
   const expiry =

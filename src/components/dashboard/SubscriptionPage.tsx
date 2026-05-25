@@ -7,7 +7,7 @@ import { wooApi } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatPrice } from "@/lib/utils";
 import type { Subscription } from "@/types/order";
 import Link from "next/link";
 
@@ -47,7 +47,7 @@ export function SubscriptionPage() {
               </div>
 
               <div className="text-3xl font-bold mb-1">
-                {active.total}
+                {formatPrice(parseFloat(active.total))}
                 <span className="text-white/60 text-base font-normal ml-1">
                   / {active.billingPeriod}
                 </span>

@@ -8,7 +8,7 @@ import type {
   EnrolledCourse,
 } from "@/types/course";
 import type { Order, Subscription, WooProduct } from "@/types/order";
-import type { StudentStats } from "@/types/user";
+import type { PasswordChangeData, ProfileUpdateData, StudentStats, User } from "@/types/user";
 
 const TUTOR_API = process.env.NEXT_PUBLIC_TUTOR_API || "https://api.skillsair.com/wp-json/tutor/v1";
 const WP_API = process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json";
@@ -47,18 +47,23 @@ export const tutorApi = {
   async getCourses(filters: CourseFilters = {}): Promise<CoursesResponse> {
     const params = new URLSearchParams();
     if (filters.search) params.set("search", filters.search);
-    if (filters.category) params.set("category", filters.category);
-    if (filters.level) params.set("level", filters.level);
     if (filters.page) params.set("page", String(filters.page));
     if (filters.perPage) params.set("per_page", String(filters.perPage));
-    if (filters.sort) params.set("orderby", filters.sort);
+    if (filters.sort) params.set("sort", filters.sort);
+    if (filters.category) params.set("category", filters.category);
 
-    const url = `${TUTOR_API}/courses?${params.toString()}`;
-    return apiFetch<CoursesResponse>(url);
+    const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const url = `${base}/api/courses?${params.toString()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to fetch courses");
+    return res.json() as Promise<CoursesResponse>;
   },
 
-  async getCourse(id: number): Promise<Course> {
-    return apiFetch<Course>(`${TUTOR_API}/courses/${id}`);
+  async getCourse(slug: string): Promise<Course> {
+    const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${base}/api/courses/${slug}`);
+    if (!res.ok) throw new Error("Course not found");
+    return res.json() as Promise<Course>;
   },
 
   async getCurriculum(courseId: number): Promise<CourseSection[]> {
@@ -70,7 +75,10 @@ export const tutorApi = {
   },
 
   async getStudentProgress(studentId: number): Promise<EnrolledCourse[]> {
-    return apiFetch<EnrolledCourse[]>(`${TUTOR_API}/students/${studentId}/progress`);
+    const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${base}/api/students/${studentId}/courses`);
+    if (!res.ok) throw new Error("Failed to fetch enrolled courses");
+    return res.json() as Promise<EnrolledCourse[]>;
   },
 
   async getCertificates(studentId: number): Promise<Certificate[]> {
@@ -87,7 +95,10 @@ export const tutorApi = {
   },
 
   async getStudentStats(studentId: number): Promise<StudentStats> {
-    return apiFetch<StudentStats>(`${TUTOR_API}/students/${studentId}/stats`);
+    const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${base}/api/students/${studentId}/stats`);
+    if (!res.ok) throw new Error("Failed to fetch student stats");
+    return res.json() as Promise<StudentStats>;
   },
 };
 
@@ -127,15 +138,42 @@ export const wooApi = {
 
 export const wpApi = {
   async subscribeNewsletter(email: string): Promise<{ success: boolean }> {
-    return apiFetch(`${WP_API}/wp/v2/newsletter`, {
+    return apiFetch("/api/newsletter", {
       method: "POST",
       body: JSON.stringify({ email }),
     });
   },
 
+  async updateProfile(userId: number, data: ProfileUpdateData): Promise<User> {
+    const token = getAuthToken();
+    return apiFetch<User>("/api/profile", {
+      method: "PATCH",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: JSON.stringify({ id: userId, ...data }),
+    });
+  },
+
+  async changePassword(
+    userId: number,
+    email: string,
+    data: PasswordChangeData
+  ): Promise<{ success: boolean }> {
+    const token = getAuthToken();
+    return apiFetch<{ success: boolean }>("/api/profile/password", {
+      method: "PATCH",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: JSON.stringify({
+        userId,
+        email,
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      }),
+    });
+  },
+
   async uploadAvatar(formData: FormData): Promise<{ url: string }> {
     const token = getAuthToken();
-    const response = await fetch(`${WP_API}/wp/v2/media`, {
+    const response = await fetch("/api/profile/avatar", {
       method: "POST",
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

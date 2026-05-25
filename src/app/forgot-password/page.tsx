@@ -3,10 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
-import { useMutation } from "@apollo/client";
-import { SEND_PASSWORD_RESET_EMAIL } from "@/graphql/mutations/auth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
@@ -18,18 +16,25 @@ type FormData = z.infer<typeof schema>;
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
-  const [sendReset, { loading }] = useMutation(SEND_PASSWORD_RESET_EMAIL);
+  const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
   const onSubmit = async (data: FormData) => {
+    setLoading(true);
     try {
-      await sendReset({ variables: { username: data.email } });
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
       setSent(true);
     } catch {
       setSent(true); // Show success even on error for security
+    } finally {
+      setLoading(false);
     }
   };
 

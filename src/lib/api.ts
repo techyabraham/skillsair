@@ -82,7 +82,10 @@ export const tutorApi = {
   },
 
   async getCertificates(studentId: number): Promise<Certificate[]> {
-    return apiFetch<Certificate[]>(`${TUTOR_API}/students/${studentId}/certificates`);
+    const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${base}/api/students/${studentId}/certificates`);
+    if (!res.ok) throw new Error("Failed to fetch certificates");
+    return res.json() as Promise<Certificate[]>;
   },
 
   async markLessonComplete(

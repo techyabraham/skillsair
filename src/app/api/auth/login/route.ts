@@ -253,7 +253,7 @@ async function loginViaCoreWordPress(username: string, password: string): Promis
     return {
       data: {
         authToken: Buffer.from(`${username}:${Date.now()}:${crypto.randomUUID()}`).toString("base64url"),
-        wordpressCookie: wpCookie,
+        wordpressCookie: wpCookies,
         user: await resolveUser(username, wpCookies),
       },
     };
@@ -351,7 +351,7 @@ export async function POST(req: NextRequest) {
     const { wordpressCookie, ...payload } = coreLogin.data;
     const response = NextResponse.json(payload);
     if (wordpressCookie) {
-      response.cookies.set("sa_wp_auth", wordpressCookie, {
+      response.cookies.set("sa_wp_auth", Buffer.from(wordpressCookie).toString("base64url"), {
         httpOnly: true,
         secure: true,
         sameSite: "lax",

@@ -71,12 +71,12 @@ export function HeroSection() {
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6">
               <span className="text-accent text-xs">✦</span>
               <span className="text-white/90 text-sm font-medium">
-                Nigeria&apos;s #1 Professional Learning Platform
+                Nigeria&apos;s Fastest Rising Professional Learning Platform
               </span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-heading font-bold text-white leading-[1.05] text-balance mb-6">
-              Master In-Demand{" "}
+              Master Job-Ready{" "}
               <span className="relative">
                 <span className="text-accent">Skills</span>
                 <svg
@@ -94,12 +94,16 @@ export function HeroSection() {
                   />
                 </svg>
               </span>{" "}
-              That Open Doors
+              Without Breaking The Bank
             </h1>
 
             <p className="text-white/70 text-lg leading-relaxed mb-8 max-w-lg">
-              Join over 50,000 professionals learning from industry experts. Get certified, build portfolio-ready projects, and land your dream career.
+              Get Immediate Access To Jobs After Completing Our Programmes
             </p>
+
+            {/*<p className="text-white/70 text-lg leading-relaxed mb-8 max-w-lg">
+              Join over 50,000 professionals learning from industry experts. Get certified, build portfolio-ready projects, and land your dream career.
+            </p>*/}
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 mb-10">
@@ -117,7 +121,7 @@ export function HeroSection() {
                   size="xl"
                   className="w-full sm:w-auto text-white hover:bg-white/10 border border-white/20"
                 >
-                  Start for Free
+                  Get Started
                 </Button>
               </Link>
             </div>

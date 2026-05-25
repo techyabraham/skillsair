@@ -41,6 +41,15 @@ function getNumber(record: JsonRecord, keys: string[], fallback = 0): number {
   return fallback;
 }
 
+function getRawString(record: JsonRecord, keys: string[], fallback = ""): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "number") return String(value);
+  }
+  return fallback;
+}
+
 function parseDurationMinutes(value: unknown): number {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
@@ -64,7 +73,7 @@ function extractItems(payload: unknown): unknown[] {
   if (Array.isArray(payload)) return payload;
   const record = asRecord(payload);
   if (!record) return [];
-  for (const key of ["data", "topics", "lessons", "contents", "items", "results"]) {
+  for (const key of ["data", "posts", "topics", "lessons", "contents", "items", "results"]) {
     const value = record[key];
     if (Array.isArray(value)) return value;
     const nested = asRecord(value);
@@ -106,27 +115,65 @@ function lessonType(record: JsonRecord): CourseLesson["type"] {
   return "video";
 }
 
+function videoSource(video: JsonRecord | null, record: JsonRecord): string {
+  const direct = getRawString(record, ["video_url", "videoUrl", "source_html5", "source_external_url", "source_youtube", "source_vimeo", "source_embedded", "source"]);
+  if (direct && direct !== "html5" && direct !== "external_url" && direct !== "youtube" && direct !== "vimeo" && direct !== "embedded") return direct;
+  if (!video) return "";
+  return getRawString(video, [
+    "source_html5",
+    "source_external_url",
+    "source_youtube",
+    "source_vimeo",
+    "source_embedded",
+    "source_shortcode",
+    "url",
+  ]);
+}
+
+function normalizeAttachments(value: unknown): CourseLesson["attachments"] {
+  if (!Array.isArray(value)) return [];
+  const attachments: NonNullable<CourseLesson["attachments"]> = [];
+  value.forEach((item, index) => {
+    const record = asRecord(item);
+    if (!record) return;
+    const url = getRawString(record, ["url", "file", "file_url", "source", "guid"]);
+    const title = getString(record, ["title", "name", "post_title"], `Material ${index + 1}`);
+    if (!url) return;
+    attachments.push({
+      id: getRawString(record, ["id", "ID"], String(index + 1)),
+      title,
+      url,
+      type: getString(record, ["type", "mime_type", "post_mime_type"]),
+    });
+  });
+  return attachments;
+}
+
 function normalizeLesson(item: unknown, index: number): CourseLesson | null {
   const record = asRecord(item);
   if (!record) return null;
   const id = getNumber(record, ["id", "ID", "lesson_id", "post_id"], index + 1);
-  const video = asRecord(record.video);
+  const videoItems = Array.isArray(record.video) ? record.video : [];
+  const video = asRecord(videoItems[0]) || asRecord(record.video);
   const content =
     typeof record.content === "string"
       ? record.content
       : typeof record.lesson_content === "string"
         ? record.lesson_content
+        : typeof record.post_content === "string"
+          ? record.post_content
         : undefined;
 
   return {
     id,
     title: getString(record, ["title", "post_title", "lesson_title", "name"], `Lesson ${index + 1}`),
     slug: getString(record, ["slug", "post_name"], String(id)),
-    duration: parseDurationMinutes(record.duration || record.runtime || video?.runtime),
+    duration: parseDurationMinutes(record.duration || record.runtime || record.playtime || video?.runtime || video?.duration_sec),
     type: lessonType(record),
     isPreview: Boolean(record.is_preview || record.preview || record.isPreview),
-    videoUrl: getString(record, ["video_url", "videoUrl", "source"], getString(video || {}, ["source"])),
+    videoUrl: videoSource(video, record),
     content,
+    attachments: normalizeAttachments(record.attachments),
   };
 }
 
@@ -138,12 +185,26 @@ function nestedLessons(record: JsonRecord): unknown[] {
   return [];
 }
 
+function byMenuOrder(a: unknown, b: unknown): number {
+  const left = asRecord(a);
+  const right = asRecord(b);
+  const menuDiff = getNumber(left || {}, ["menu_order", "order"], 0) - getNumber(right || {}, ["menu_order", "order"], 0);
+  if (menuDiff !== 0) return menuDiff;
+  const leftTitle = getRawString(left || {}, ["post_title", "title", "name"]);
+  const rightTitle = getRawString(right || {}, ["post_title", "title", "name"]);
+  const leftPrefix = Number(leftTitle.match(/^\s*(\d+)/)?.[1] || 0);
+  const rightPrefix = Number(rightTitle.match(/^\s*(\d+)/)?.[1] || 0);
+  if (leftPrefix && rightPrefix && leftPrefix !== rightPrefix) return leftPrefix - rightPrefix;
+  return getNumber(left || {}, ["ID", "id"], 0) - getNumber(right || {}, ["ID", "id"], 0);
+}
+
 function normalizeSections(payload: unknown): CourseSection[] {
   return extractItems(payload)
     .map((item, index) => {
       const record = asRecord(item);
       if (!record) return null;
       const lessons = nestedLessons(record)
+        .sort(byMenuOrder)
         .map(normalizeLesson)
         .filter((lesson): lesson is CourseLesson => Boolean(lesson));
       return {
@@ -194,10 +255,6 @@ export async function fetchTutorCurriculum(product: TutorProductLink): Promise<C
   const courseId = await findTutorCourseId(product);
   if (!courseId) return [];
 
-  const contents = await tutorFetch(`/course-contents/${courseId}`);
-  const fromContents = normalizeSections(contents);
-  if (fromContents.some((section) => section.lessons.length > 0)) return fromContents;
-
   const topics = extractItems(await tutorFetch("/topics", { course_id: String(courseId) }));
   const sections = await Promise.all(
     topics.map(async (topic, index) => {
@@ -205,6 +262,7 @@ export async function fetchTutorCurriculum(product: TutorProductLink): Promise<C
       if (!record) return null;
       const topicId = getNumber(record, ["id", "ID", "topic_id"], index + 1);
       const lessons = extractItems(await tutorFetch("/lessons", { topic_id: String(topicId) }))
+        .sort(byMenuOrder)
         .map(normalizeLesson)
         .filter((lesson): lesson is CourseLesson => Boolean(lesson));
 
@@ -217,5 +275,10 @@ export async function fetchTutorCurriculum(product: TutorProductLink): Promise<C
     })
   );
 
-  return sections.filter((section): section is CourseSection => Boolean(section));
+  const fromTopics = sections.filter((section): section is CourseSection => Boolean(section));
+  if (fromTopics.some((section) => section.lessons.some((lesson) => lesson.videoUrl || lesson.content || (lesson.attachments?.length || 0) > 0))) {
+    return fromTopics;
+  }
+
+  return normalizeSections(await tutorFetch(`/course-contents/${courseId}`));
 }

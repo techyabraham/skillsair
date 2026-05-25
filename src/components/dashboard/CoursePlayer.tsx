@@ -1,8 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
-import { useQuery } from "@apollo/client";
-import { GET_COURSE } from "@/graphql/queries/courses";
+import React, { useEffect, useState, useCallback } from "react";
 import { CurriculumAccordion } from "@/components/course/CurriculumAccordion";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +8,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import { tutorApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useCourse } from "@/hooks/useCourses";
 import type { CourseLesson } from "@/types/course";
 import Link from "next/link";
 
@@ -24,25 +23,30 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
   const [markingComplete, setMarkingComplete] = useState(false);
   const [completedLessons, setCompletedLessons] = useState<Set<number>>(new Set());
 
-  const { data, loading } = useQuery(GET_COURSE, { variables: { slug } });
-
-  const course = data?.course;
+  const { course, isLoading } = useCourse(slug);
   const curriculum = course?.curriculum ?? [];
   const totalLessons = curriculum.reduce(
     (acc: number, s: { lessons: CourseLesson[] }) => acc + s.lessons.length,
     0
   );
   const progress = totalLessons > 0 ? Math.round((completedLessons.size / totalLessons) * 100) : 0;
+  const allLessons = curriculum.flatMap((s: { lessons: CourseLesson[] }) => s.lessons);
+
+  useEffect(() => {
+    if (!activeLesson && allLessons.length > 0) {
+      setActiveLesson(allLessons[0]);
+    }
+  }, [activeLesson, allLessons]);
 
   const handleLessonClick = useCallback((lesson: CourseLesson) => {
     setActiveLesson(lesson);
   }, []);
 
   const handleMarkComplete = async () => {
-    if (!activeLesson || !course?.databaseId) return;
+    if (!activeLesson || !course?.id) return;
     setMarkingComplete(true);
     try {
-      await tutorApi.markLessonComplete(course.databaseId, activeLesson.id);
+      await tutorApi.markLessonComplete(course.id, activeLesson.id);
       setCompletedLessons((prev) => new Set(Array.from(prev).concat(activeLesson.id)));
       addToast({ type: "success", title: "Lesson completed!", message: "Great job! Keep going." });
 
@@ -68,12 +72,11 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
     if (next) setActiveLesson(next);
   };
 
-  const allLessons = curriculum.flatMap((s: { lessons: CourseLesson[] }) => s.lessons);
   const currentIdx = activeLesson
     ? allLessons.findIndex((l: CourseLesson) => l.id === activeLesson.id)
     : -1;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Spinner size="lg" />
@@ -122,13 +125,26 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
           {/* Video player */}
           <div className="bg-black aspect-video w-full max-h-[calc(100vh-200px)] flex items-center justify-center">
             {activeLesson?.videoUrl ? (
-              <video
-                key={activeLesson.id}
-                src={activeLesson.videoUrl}
-                controls
-                className="w-full h-full"
-                aria-label={`Video: ${activeLesson.title}`}
-              />
+              isEmbed(activeLesson.videoUrl) ? (
+                <iframe
+                  key={activeLesson.id}
+                  src={activeLesson.videoUrl}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={`Video: ${activeLesson.title}`}
+                />
+              ) : (
+                <video
+                  key={activeLesson.id}
+                  src={playableVideoUrl(activeLesson.videoUrl)}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-full"
+                  aria-label={`Video: ${activeLesson.title}`}
+                />
+              )
             ) : (
               <div className="text-center text-white/40">
                 <svg className="w-16 h-16 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -197,13 +213,36 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
           </div>
 
           {/* Lesson Content */}
-          {activeLesson?.content && (
+          {activeLesson && (
             <div className="bg-white px-6 py-6 flex-1 overflow-auto">
               <h2 className="text-lg font-heading font-semibold text-neutral-900 mb-4">{activeLesson.title}</h2>
-              <div
-                className="prose prose-sm max-w-none text-neutral-600"
-                dangerouslySetInnerHTML={{ __html: activeLesson.content }}
-              />
+              {activeLesson.content ? (
+                <div
+                  className="prose prose-sm max-w-none text-neutral-600"
+                  dangerouslySetInnerHTML={{ __html: activeLesson.content }}
+                />
+              ) : (
+                <p className="text-sm text-neutral-500">No written lesson notes were added for this lesson.</p>
+              )}
+              {activeLesson.attachments && activeLesson.attachments.length > 0 && (
+                <div className="mt-6 border-t border-neutral-100 pt-5">
+                  <h3 className="text-sm font-semibold text-neutral-900 mb-3">Lesson materials</h3>
+                  <div className="space-y-2">
+                    {activeLesson.attachments.map((attachment) => (
+                      <a
+                        key={attachment.id}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-700 hover:border-primary-200 hover:text-primary-800 transition-colors"
+                      >
+                        <span className="truncate">{attachment.title}</span>
+                        <span className="text-xs font-medium">Open</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -239,4 +278,15 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
       </div>
     </div>
   );
+}
+
+function isEmbed(url: string): boolean {
+  return /youtube\.com|youtu\.be|vimeo\.com/.test(url) || url.trim().startsWith("<iframe");
+}
+
+function playableVideoUrl(url: string): string {
+  if (/\/wp-admin\/admin-ajax\.php/.test(url) && url.includes("igd_stream")) {
+    return `/api/media/tutor-video?url=${encodeURIComponent(url)}`;
+  }
+  return url;
 }

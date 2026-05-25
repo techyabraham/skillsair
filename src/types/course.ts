@@ -28,6 +28,12 @@ export interface CourseLesson {
   isCompleted?: boolean;
   videoUrl?: string;
   content?: string;
+  attachments?: Array<{
+    id: number | string;
+    title: string;
+    url: string;
+    type?: string;
+  }>;
 }
 
 export interface CourseSection {

@@ -353,7 +353,7 @@ export async function POST(req: NextRequest) {
     if (wordpressCookie) {
       response.cookies.set("sa_wp_auth", Buffer.from(wordpressCookie).toString("base64url"), {
         httpOnly: true,
-        secure: true,
+        secure: req.nextUrl.protocol === "https:",
         sameSite: "lax",
         path: "/",
         maxAge: 14 * 24 * 60 * 60,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { Suspense, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useCourses } from "@/hooks/useCourses";
 import { CourseGrid } from "@/components/course/CourseGrid";
@@ -17,7 +17,7 @@ const SORT_OPTIONS = [
   { value: "price-desc", label: "Price: High to Low" },
 ];
 
-export default function CoursesPage() {
+function CoursesContent() {
   const searchParams = useSearchParams();
   const [filters, setFilters] = useState<CourseFilters>({
     category: searchParams.get("category") || undefined,
@@ -162,5 +162,13 @@ export default function CoursesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CoursesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
+      <CoursesContent />
+    </Suspense>
   );
 }

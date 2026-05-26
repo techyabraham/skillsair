@@ -30,6 +30,34 @@ async function safeJson(res: Response): Promise<Record<string, unknown>> {
   }
 }
 
+function toAuthUser(data: Record<string, unknown>, fallbackToken: string): AuthUser {
+  const user = data.user as {
+    databaseId?: number;
+    firstName?: string;
+    lastName?: string;
+    name?: string;
+    email?: string;
+    avatar?: { url?: string };
+    roles?: { nodes?: Array<{ name: string }> };
+  } | undefined;
+
+  if (!user?.email) {
+    throw new Error("WordPress returned an unexpected user response.");
+  }
+
+  return {
+    id: user.databaseId ?? 0,
+    firstName: user.firstName ?? "",
+    lastName: user.lastName ?? "",
+    displayName: user.name || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email,
+    email: user.email,
+    avatar: user.avatar?.url || "",
+    roles: user.roles?.nodes?.map((r: { name: string }) => r.name) ?? [],
+    registeredAt: new Date().toISOString(),
+    token: typeof data.authToken === "string" ? data.authToken : fallbackToken,
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -47,6 +75,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading: false,
       error: null,
     });
+
+    if (authenticated && storedUser) {
+      fetch("/api/auth/me")
+        .then(async (res) => {
+          if (!res.ok) return null;
+          return safeJson(res);
+        })
+        .then((data) => {
+          if (!data) return;
+          const refreshedUser = toAuthUser(data, storedUser.token);
+          const persistent = Boolean(localStorage.getItem("sa_user"));
+          setStoredUser(refreshedUser, persistent);
+          setState({ user: refreshedUser, isAuthenticated: true, isLoading: false, error: null });
+        })
+        .catch(() => undefined);
+    }
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
@@ -67,31 +111,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const authToken = typeof data.authToken === "string" ? data.authToken : "";
-      const user = data.user as {
-        databaseId?: number;
-        firstName?: string;
-        lastName?: string;
-        name?: string;
-        email?: string;
-        avatar?: { url?: string };
-        roles?: { nodes?: Array<{ name: string }> };
-      } | undefined;
-
-      if (!authToken || !user?.email) {
+      if (!authToken) {
         throw new Error("Login returned an unexpected response from WordPress.");
       }
-
-      const authUser: AuthUser = {
-        id: user.databaseId ?? 0,
-        firstName: user.firstName ?? "",
-        lastName: user.lastName ?? "",
-        displayName: user.name || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email,
-        email: user.email,
-        avatar: user.avatar?.url || "",
-        roles: user.roles?.nodes?.map((r: { name: string }) => r.name) ?? [],
-        registeredAt: new Date().toISOString(),
-        token: authToken,
-      };
+      const authUser = toAuthUser(data, authToken);
 
       const persistent = credentials.rememberMe ?? false;
       setAuthToken(authToken, persistent);

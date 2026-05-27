@@ -61,8 +61,14 @@ export function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
 
   const courseSlug = searchParams.get("course");
+  const certificateCourseSlug = searchParams.get("certificate");
+  const productSlug = certificateCourseSlug ? "course-certificate-2" : courseSlug;
   const { data: course } = useSWR<Course>(
-    courseSlug ? `/api/courses/${courseSlug}` : null,
+    productSlug ? `/api/courses/${productSlug}` : null,
+    fetcher
+  );
+  const { data: certificateCourse } = useSWR<Course>(
+    certificateCourseSlug ? `/api/courses/${certificateCourseSlug}` : null,
     fetcher
   );
 
@@ -82,10 +88,15 @@ export function CheckoutPage() {
 
   const price = course?.price ?? 0;
   const total = price;
+  const isCertificateCheckout = Boolean(certificateCourseSlug);
+  const summaryTitle = isCertificateCheckout
+    ? `Certificate - ${certificateCourse?.title || "Course"}`
+    : course?.title;
+  const summarySubtitle = isCertificateCheckout ? "Certificate processing fee" : "Monthly subscription";
 
   const onSubmit: SubmitHandler<BillingFormData> = async (billing) => {
     if (!course) {
-      addToast({ type: "error", title: "No course selected" });
+      addToast({ type: "error", title: isCertificateCheckout ? "No certificate selected" : "No course selected" });
       return;
     }
     setPlacing(true);
@@ -96,7 +107,8 @@ export function CheckoutPage() {
         body: JSON.stringify({
           billing,
           productId: course.id,
-          courseSlug,
+          courseSlug: productSlug,
+          certificateCourseSlug,
           paymentMethod,
           paymentMethodTitle: PAYMENT_METHODS.find((p) => p.id === paymentMethod)?.label,
         }),
@@ -138,7 +150,7 @@ export function CheckoutPage() {
         {!user && (
           <p className="text-sm text-neutral-500 mb-8">
             Already have an account?{" "}
-            <a href={`/login?next=/checkout${courseSlug ? `?course=${courseSlug}` : ""}`} className="text-primary-800 font-medium hover:underline">
+            <a href={`/login?next=/checkout${certificateCourseSlug ? `?certificate=${certificateCourseSlug}` : courseSlug ? `?course=${courseSlug}` : ""}`} className="text-primary-800 font-medium hover:underline">
               Sign in
             </a>{" "}
             to auto-fill your details.
@@ -224,11 +236,11 @@ export function CheckoutPage() {
                     </div>
                   )}
                   <div>
-                    <p className="text-sm font-medium text-neutral-900 leading-snug">{course.title}</p>
-                    <p className="text-xs text-neutral-400 mt-1">Monthly subscription</p>
+                    <p className="text-sm font-medium text-neutral-900 leading-snug">{summaryTitle}</p>
+                    <p className="text-xs text-neutral-400 mt-1">{summarySubtitle}</p>
                   </div>
                 </div>
-              ) : courseSlug ? (
+              ) : productSlug ? (
                 <div className="h-16 bg-neutral-100 rounded-xl animate-pulse mb-5" />
               ) : (
                 <p className="text-sm text-neutral-400 mb-5">No course selected.</p>
@@ -236,8 +248,8 @@ export function CheckoutPage() {
 
               <div className="space-y-2 mb-5">
                 <div className="flex justify-between text-sm text-neutral-600">
-                  <span>Subscription</span>
-                  <span>{formatPrice(price)}/mo</span>
+                  <span>{isCertificateCheckout ? "Certificate" : "Subscription"}</span>
+                  <span>{isCertificateCheckout ? formatPrice(price) : `${formatPrice(price)}/mo`}</span>
                 </div>
               </div>
 

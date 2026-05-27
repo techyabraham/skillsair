@@ -19,6 +19,17 @@ interface WcOrder {
   line_items?: Array<{ product_id: number }>;
   payment_method?: string;
   payment_method_title?: string;
+  meta_data?: Array<{ key: string; value: unknown }>;
+}
+
+function orderMeta(order: WcOrder, key: string): string {
+  const value = order.meta_data?.find((meta) => meta.key === key)?.value;
+  return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
+function isCertificateOrder(order: WcOrder): boolean {
+  return orderMeta(order, "_skillsair_order_type") === "certificate" ||
+    Boolean(orderMeta(order, "_skillsair_certificate_course_slug"));
 }
 
 async function findCustomerId(email: string): Promise<number> {
@@ -192,12 +203,21 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const certificateOrder = isCertificateOrder(order);
+
   return NextResponse.json({
     paid: true,
     status: verification.data.status,
     orderId: order.id,
     reference,
-    subscription: await ensureMonthlySubscription(order),
-    enrollment: await enrollPaidCourse(order),
+    subscription: certificateOrder
+      ? { active: false, message: "Certificate order does not require a subscription." }
+      : await ensureMonthlySubscription(order),
+    enrollment: certificateOrder
+      ? { enrolled: false, message: "Certificate order does not require course enrollment." }
+      : await enrollPaidCourse(order),
+    certificate: certificateOrder
+      ? { purchased: true, courseSlug: orderMeta(order, "_skillsair_certificate_course_slug") }
+      : undefined,
   });
 }

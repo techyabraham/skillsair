@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   normalizeCourseSlug,
+  tutorHeaders,
+  tutorUrl,
   wcHeaders,
   wcUrl,
   type WcProduct,
@@ -16,12 +18,61 @@ const PAYSTACK_CHANNELS = {
 
 type PaymentMethod = keyof typeof PAYSTACK_CHANNELS;
 
+interface WcOrder {
+  meta_data?: Array<{ key: string; value: unknown }>;
+}
+
 function isPaymentMethod(value: unknown): value is PaymentMethod {
   return typeof value === "string" && value in PAYSTACK_CHANNELS;
 }
 
 function toKobo(amount: string | number): number {
   return Math.round(Number(amount) * 100);
+}
+
+function progress(value: unknown): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") return Number(value.replace("%", "")) || 0;
+  return 0;
+}
+
+function metaValue(order: WcOrder, key: string): string {
+  const value = order.meta_data?.find((meta) => meta.key === key)?.value;
+  return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
+async function hasCompletedCourse(customerId: number, courseSlug: string): Promise<boolean> {
+  const res = await fetch(tutorUrl(`/students/${customerId}/courses`), {
+    headers: tutorHeaders(),
+    cache: "no-store",
+  });
+  const payload = await res.json().catch(() => ({}));
+  const courses = Array.isArray(payload.data?.enrolled_courses) ? payload.data.enrolled_courses : [];
+  const normalizedSlug = normalizeCourseSlug(courseSlug);
+
+  return courses.some((course: Record<string, unknown>) =>
+    normalizeCourseSlug(String(course.post_name || course.slug || "")) === normalizedSlug &&
+    progress(course.course_completed_percentage) >= 100
+  );
+}
+
+async function hasPurchasedCertificate(customerId: number, courseSlug: string): Promise<boolean> {
+  const res = await fetch(wcUrl("/orders", {
+    customer: String(customerId),
+    status: "completed",
+    per_page: "100",
+  }), {
+    headers: wcHeaders(),
+    cache: "no-store",
+  });
+  const orders = await res.json().catch(() => []);
+  if (!Array.isArray(orders)) return false;
+  const normalizedSlug = normalizeCourseSlug(courseSlug);
+
+  return (orders as WcOrder[]).some((order) =>
+    metaValue(order, "_skillsair_order_type") === "certificate" &&
+    normalizeCourseSlug(metaValue(order, "_skillsair_certificate_course_slug")) === normalizedSlug
+  );
 }
 
 async function getHoneypotFields(): Promise<Record<string, string>> {
@@ -124,7 +175,7 @@ async function createCustomer(billing: Record<string, string>): Promise<number> 
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { billing, productId, courseSlug, paymentMethod, paymentMethodTitle } = body;
+  const { billing, productId, courseSlug, certificateCourseSlug, paymentMethod, paymentMethodTitle } = body;
 
   if (!billing?.email || (!productId && !courseSlug)) {
     return NextResponse.json({ message: "Missing billing email or product" }, { status: 400 });
@@ -161,6 +212,24 @@ export async function POST(req: NextRequest) {
     newAccount = customerId > 0;
   }
 
+  if (typeof certificateCourseSlug === "string" && certificateCourseSlug) {
+    if (!customerId) {
+      return NextResponse.json({ message: "Sign in before purchasing a certificate." }, { status: 401 });
+    }
+    if (!(await hasCompletedCourse(customerId, certificateCourseSlug))) {
+      return NextResponse.json(
+        { message: "Complete this course before purchasing its certificate." },
+        { status: 403 }
+      );
+    }
+    if (await hasPurchasedCertificate(customerId, certificateCourseSlug)) {
+      return NextResponse.json(
+        { message: "This certificate has already been purchased. Download it from your dashboard." },
+        { status: 409 }
+      );
+    }
+  }
+
   // Create the WooCommerce order
   const orderRes = await fetch(wcUrl("/orders"), {
     method: "POST",
@@ -182,6 +251,14 @@ export async function POST(req: NextRequest) {
         country: billing.country || "NG",
       },
       line_items: [{ product_id: product.id, quantity: 1 }],
+      meta_data: [
+        ...(typeof certificateCourseSlug === "string" && certificateCourseSlug
+          ? [
+              { key: "_skillsair_order_type", value: "certificate" },
+              { key: "_skillsair_certificate_course_slug", value: certificateCourseSlug },
+            ]
+          : [{ key: "_skillsair_order_type", value: "course" }]),
+      ],
     }),
   });
 
@@ -218,6 +295,8 @@ export async function POST(req: NextRequest) {
         customer_id: customerId,
         product_id: product.id,
         course_slug: product.slug,
+        certificate_course_slug: typeof certificateCourseSlug === "string" ? certificateCourseSlug : "",
+        order_type: typeof certificateCourseSlug === "string" && certificateCourseSlug ? "certificate" : "course",
         payment_method: selectedPaymentMethod,
         custom_fields: [
           {
@@ -246,6 +325,12 @@ export async function POST(req: NextRequest) {
       meta_data: [
         { key: "_paystack_reference", value: reference },
         { key: "_skillsair_payment_method", value: selectedPaymentMethod },
+        ...(typeof certificateCourseSlug === "string" && certificateCourseSlug
+          ? [
+              { key: "_skillsair_order_type", value: "certificate" },
+              { key: "_skillsair_certificate_course_slug", value: certificateCourseSlug },
+            ]
+          : []),
       ],
     }),
   });

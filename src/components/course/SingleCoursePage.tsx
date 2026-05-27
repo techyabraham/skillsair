@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import useSWR from "swr";
 import { CurriculumAccordion } from "./CurriculumAccordion";
 import { StarRating } from "@/components/ui/StarRating";
 import { LevelBadge } from "@/components/ui/Badge";
@@ -19,17 +20,74 @@ import {
   cn,
 } from "@/lib/utils";
 import type { Course } from "@/types/course";
+import type { Certificate, EnrolledCourse } from "@/types/course";
 
 interface SingleCoursePageProps {
   slug: string;
 }
 
+const fetcher = (url: string) => fetch(url).then((res) => {
+  if (!res.ok) throw new Error("Request failed");
+  return res.json();
+});
+
+function normalizeIdentity(value = ""): string {
+  return value.toLowerCase().replace(/&amp;/g, "and").replace(/[^a-z0-9]+/g, "");
+}
+
+function findEnrollment(course: Course | undefined, enrollments: EnrolledCourse[]): EnrolledCourse | null {
+  if (!course) return null;
+  return enrollments.find((item) =>
+    item.id === course.id ||
+    normalizeIdentity(item.slug) === normalizeIdentity(course.slug) ||
+    normalizeIdentity(item.title) === normalizeIdentity(course.title)
+  ) || null;
+}
+
+function findCertificate(
+  course: Course | undefined,
+  enrollment: EnrolledCourse | null,
+  certificates: Certificate[]
+): Certificate | null {
+  if (!course) return null;
+  return certificates.find((cert) =>
+    cert.courseId === course.id ||
+    cert.courseId === enrollment?.id ||
+    normalizeIdentity(cert.courseName) === normalizeIdentity(course.title) ||
+    normalizeIdentity(cert.courseName) === normalizeIdentity(enrollment?.title || "")
+  ) || null;
+}
+
 export function SingleCoursePage({ slug }: SingleCoursePageProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const enrolling = false;
   const [activeTab, setActiveTab] = useState<"overview" | "curriculum" | "instructor" | "reviews">("overview");
 
   const { course, isLoading, error } = useCourse(slug);
+  const { data: enrollments = [] } = useSWR<EnrolledCourse[]>(
+    isAuthenticated && user ? `/api/students/${user.id}/courses` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const { data: certificates = [] } = useSWR<Certificate[]>(
+    isAuthenticated && user ? `/api/students/${user.id}/certificates` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const enrollment = findEnrollment(course, enrollments);
+  const certificate = findCertificate(course, enrollment, certificates);
+  const progress = Math.min(100, Math.max(0, enrollment?.progress ?? 0));
+  const courseActionLabel = enrollment
+    ? progress >= 100
+      ? "Retake Course"
+      : progress > 0
+        ? "Continue Learning"
+        : "Start Learning"
+    : course?.isFree
+      ? "Enroll for Free"
+      : "Enroll Now";
+  const courseActionHref = enrollment ? `/dashboard/courses/${slug}/learn` : `/checkout?course=${slug}`;
+  const certificateHref = certificate?.certificateUrl || `/checkout?certificate=${slug}`;
 
   if (error && !isLoading) {
     return (
@@ -298,7 +356,18 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
                   </div>
                 </div>
               ) : course ? (
-                <EnrollSidebar course={course} onEnroll={handleEnroll} enrolling={enrolling} isAuthenticated={isAuthenticated} />
+                <EnrollSidebar
+                  course={course}
+                  onEnroll={handleEnroll}
+                  enrolling={enrolling}
+                  isAuthenticated={isAuthenticated}
+                  isEnrolled={Boolean(enrollment)}
+                  progress={progress}
+                  courseActionLabel={courseActionLabel}
+                  courseActionHref={courseActionHref}
+                  certificateHref={certificateHref}
+                  certificateObtained={Boolean(certificate)}
+                />
               ) : null}
             </div>
           </div>
@@ -317,9 +386,21 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
                 <span className="text-sm text-neutral-400 line-through ml-2">{formatPrice(course.price)}</span>
               )}
             </div>
-            <Button variant="accent" size="lg" onClick={handleEnroll} loading={enrolling} className="flex-1">
-              {course.isFree ? "Enroll for Free" : "Enroll Now"}
-            </Button>
+            <div className="flex flex-1 flex-col gap-2">
+              <Link href={courseActionHref} className="btn-accent text-center">
+                {courseActionLabel}
+              </Link>
+              {enrollment && progress >= 100 && (
+                <a
+                  href={certificateHref}
+                  target={certificate ? "_blank" : undefined}
+                  rel={certificate ? "noopener noreferrer" : undefined}
+                  className="btn-outline text-center"
+                >
+                  {certificate ? "Download Certificate" : "Get Certificate"}
+                </a>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -332,11 +413,23 @@ function EnrollSidebar({
   onEnroll,
   enrolling,
   isAuthenticated,
+  isEnrolled,
+  progress,
+  courseActionLabel,
+  courseActionHref,
+  certificateHref,
+  certificateObtained,
 }: {
   course: Course;
   onEnroll: () => void;
   enrolling: boolean;
   isAuthenticated: boolean;
+  isEnrolled: boolean;
+  progress: number;
+  courseActionLabel: string;
+  courseActionHref: string;
+  certificateHref: string;
+  certificateObtained: boolean;
 }) {
   const hasDiscount = course.salePrice && course.salePrice < course.price;
   const discountPercent = hasDiscount
@@ -406,9 +499,27 @@ function EnrollSidebar({
           <p className="text-xs text-error font-medium mb-4">⏰ Limited time offer!</p>
         )}
 
-        <Button variant="accent" size="lg" fullWidth onClick={onEnroll} loading={enrolling} className="mb-3">
-          {course.isFree ? "Enroll for Free" : "Enroll Now"}
-        </Button>
+        {isEnrolled ? (
+          <div className="mb-3 space-y-3">
+            <Link href={courseActionHref} className="btn-accent w-full">
+              {courseActionLabel}
+            </Link>
+            {progress >= 100 && (
+              <a
+                href={certificateHref}
+                target={certificateObtained ? "_blank" : undefined}
+                rel={certificateObtained ? "noopener noreferrer" : undefined}
+                className="btn-outline w-full"
+              >
+                {certificateObtained ? "Download Certificate" : "Get Certificate"}
+              </a>
+            )}
+          </div>
+        ) : (
+          <Button variant="accent" size="lg" fullWidth onClick={onEnroll} loading={enrolling} className="mb-3">
+            {course.isFree ? "Enroll for Free" : "Enroll Now"}
+          </Button>
+        )}
 
         {!isAuthenticated && (
           <p className="text-xs text-neutral-400 text-center mb-4">

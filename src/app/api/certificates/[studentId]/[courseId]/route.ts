@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { tutorHeaders, tutorUrl } from "@/lib/server-course-catalog";
+import { normalizeCourseSlug, tutorHeaders, tutorUrl, wcHeaders, wcUrl } from "@/lib/server-course-catalog";
+
+interface WcOrder {
+  meta_data?: Array<{ key: string; value: unknown }>;
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -13,6 +17,30 @@ function progress(value: unknown): number {
   if (typeof value === "number") return value;
   if (typeof value === "string") return Number(value.replace("%", "")) || 0;
   return 0;
+}
+
+function metaValue(order: WcOrder, key: string): string {
+  const value = order.meta_data?.find((meta) => meta.key === key)?.value;
+  return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
+async function hasPurchasedCertificate(studentId: number, courseSlug: string): Promise<boolean> {
+  const res = await fetch(wcUrl("/orders", {
+    customer: String(studentId),
+    status: "completed",
+    per_page: "100",
+  }), {
+    headers: wcHeaders(),
+    cache: "no-store",
+  });
+  const orders = await res.json().catch(() => []);
+  if (!Array.isArray(orders)) return false;
+  const normalizedSlug = normalizeCourseSlug(courseSlug);
+
+  return (orders as WcOrder[]).some((order) =>
+    metaValue(order, "_skillsair_order_type") === "certificate" &&
+    normalizeCourseSlug(metaValue(order, "_skillsair_certificate_course_slug")) === normalizedSlug
+  );
 }
 
 export async function GET(
@@ -34,6 +62,11 @@ export async function GET(
   const course = courses.find((item: Record<string, unknown>) => Number(item.ID || item.id || item.course_id) === courseId);
   if (!course || progress(course.course_completed_percentage) < 100) {
     return NextResponse.json({ message: "Certificate not found" }, { status: 404 });
+  }
+
+  const courseSlug = String(course.post_name || course.slug || "");
+  if (!(await hasPurchasedCertificate(studentId, courseSlug))) {
+    return NextResponse.json({ message: "Certificate has not been purchased" }, { status: 403 });
   }
 
   const courseName = escapeHtml(String(course.post_title || course.title || "Course"));

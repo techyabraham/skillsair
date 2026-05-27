@@ -6,7 +6,6 @@ import { CheckCircle2, Clock3, GraduationCap, Trophy } from "lucide-react";
 
 const ITEMS = [
   "High-Demand Courses, Industry-Relevant",
-  "The future won't wait. Gain skills that top companies are hiring for NOW - stay ahead, get certified, and secure your dream tech job before others do!",
   "Affordable Pricing, Maximum Value",
   "Flexible Learning - Study at Your Pace",
   "Verifiable Certification - Showcase Your Skills with Proof",

@@ -38,6 +38,7 @@ export function OrderConfirmationPage({ orderId }: OrderConfirmationPageProps) {
     fetcher,
     { revalidateOnFocus: false }
   );
+  const isCertificateOrder = order?.lineItems.some((item) => item.name.toLowerCase().includes("certificate")) ?? false;
 
   if (isLoading || verifying) {
     return (
@@ -65,7 +66,9 @@ export function OrderConfirmationPage({ orderId }: OrderConfirmationPageProps) {
             Order Confirmed! 🎉
           </h1>
           <p className="text-neutral-500">
-            Thank you for your purchase. Your courses are ready to access.
+            {isCertificateOrder
+              ? "Thank you for your purchase. Your certificate will be available in your dashboard."
+              : "Thank you for your purchase. Your courses are ready to access."}
           </p>
         </motion.div>
 
@@ -136,9 +139,9 @@ export function OrderConfirmationPage({ orderId }: OrderConfirmationPageProps) {
           transition={{ delay: 0.4, duration: 0.5 }}
           className="space-y-3"
         >
-          <Link href="/dashboard/courses" className="block">
+          <Link href={isCertificateOrder ? "/dashboard/certificates" : "/dashboard/courses"} className="block">
             <Button variant="accent" size="lg" fullWidth>
-              Start Learning Now →
+              {isCertificateOrder ? "View Certificate" : "Start Learning Now"}
             </Button>
           </Link>
           <Link href="/dashboard" className="block">

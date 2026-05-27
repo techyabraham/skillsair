@@ -3,69 +3,109 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 
-const STATS = [
-  { end: 1, suffix: "K+", label: "STUDENTS ENROLLED" },
-  { end: 1.5, suffix: "K", label: "CLASSES COMPLETED" },
-  { end: 100, suffix: "%", label: "SATISFACTION RATE" },
-  { end: 14, suffix: "", label: "JOB-READY COURSES" },
+interface CounterProps {
+  end: number;
+  suffix?: string;
+  prefix?: string;
+  duration?: number;
+  label: string;
+}
+
+const STATS: CounterProps[] = [
+  { end: 1,   suffix: "K+", label: "Students Enrolled",   duration: 1800 },
+  { end: 1.5, suffix: "K",  label: "Classes Completed",   duration: 2000 },
+  { end: 100, suffix: "%",  label: "Satisfaction Rate",   duration: 1600 },
+  { end: 14,  suffix: "",   label: "Job-Ready Courses",   duration: 1400 },
 ];
 
-function AnimatedNumber({ end, suffix }: { end: number; suffix: string }) {
+function Counter({ end, suffix = "", prefix = "", duration = 1800, label }: CounterProps) {
   const [value, setValue] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
+  const hasRun = useRef(false);
+  const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   useEffect(() => {
-    if (!inView) return;
-    const duration = 1200;
+    if (!inView || hasRun.current) return;
+    hasRun.current = true;
+
     const startTime = performance.now();
-    let frame = 0;
+    let raf: number;
 
     const tick = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Cubic ease-out
       const eased = 1 - Math.pow(1 - progress, 3);
       setValue(end * eased);
-      if (progress < 1) frame = requestAnimationFrame(tick);
+      if (progress < 1) raf = requestAnimationFrame(tick);
     };
 
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [end, inView]);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, end, duration]);
 
-  const display = end % 1 === 0 ? Math.round(value).toString() : value.toFixed(1);
+  const display =
+    end % 1 === 0 ? Math.round(value).toString() : value.toFixed(1);
 
   return (
-    <span ref={ref}>
-      {display}
-      {suffix}
-    </span>
+    <div ref={ref} className="text-center">
+      <p className="text-[44px] font-heading font-black leading-none tracking-tight text-white md:text-[64px]">
+        {prefix}
+        {display}
+        {suffix}
+      </p>
+      <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/55">
+        {label}
+      </p>
+    </div>
   );
 }
 
 export function StatsCounter() {
   return (
-    <section className="bg-neutral-50 py-14 md:py-18" aria-label="SkillsAir statistics">
-      <div className="container-wide">
+    <section
+      className="relative overflow-hidden py-14 md:py-20"
+      style={{
+        background:
+          "linear-gradient(135deg, #0d1b4b 0%, #1e3a8a 60%, #1d4ed8 100%)",
+      }}
+      aria-label="SkillsAir statistics"
+    >
+      {/* Glow */}
+      <div
+        className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/10 blur-3xl"
+        aria-hidden="true"
+      />
+
+      <div className="container-wide relative">
         <motion.div
-          className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-8 lg:grid-cols-4"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
-          variants={{ visible: { transition: { staggerChildren: 0.08 } }, hidden: {} }}
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.1 } },
+          }}
         >
-          {STATS.map((stat) => (
+          {STATS.map((stat, index) => (
             <motion.div
               key={stat.label}
               variants={{
-                hidden: { opacity: 0, y: 18 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.45 } },
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
               }}
-              className="rounded-2xl bg-white p-6 text-center shadow-card transition-all duration-300 hover:shadow-card-hover"
+              className="relative"
             >
-              <p className="text-3xl font-heading font-bold text-primary-800 md:text-5xl">
-                <AnimatedNumber end={stat.end} suffix={stat.suffix} />
-              </p>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">{stat.label}</p>
+              <Counter {...stat} />
+
+              {/* Vertical divider — desktop only, not on last item */}
+              {index < STATS.length - 1 && (
+                <div
+                  className="absolute right-0 top-1/2 hidden h-14 w-px -translate-y-1/2 bg-white/15 lg:block"
+                  aria-hidden="true"
+                />
+              )}
             </motion.div>
           ))}
         </motion.div>

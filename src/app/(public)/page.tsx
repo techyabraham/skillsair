@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { HeroSection } from "@/components/home/HeroSection";
-import { StatsSection } from "@/components/home/StatsSection";
-import { FeaturedCourses } from "@/components/home/FeaturedCourses";
-import { CategoriesSection } from "@/components/home/CategoriesSection";
-import { TestimonialsSection } from "@/components/home/TestimonialsSection";
-import { CtaBanner } from "@/components/home/CtaBanner";
 import { AICareerTestBanner } from "@/components/home/AICareerTestBanner";
+import { FeaturedCourses } from "@/components/home/FeaturedCourses";
 import { WhySkillsAir } from "@/components/home/WhySkillsAir";
 import { WhatYouWillGet } from "@/components/home/WhatYouWillGet";
 import { HowItWorks } from "@/components/home/HowItWorks";
+import { StatsSection } from "@/components/home/StatsSection";
+import { CategoriesSection } from "@/components/home/CategoriesSection";
+import { TestimonialsSection } from "@/components/home/TestimonialsSection";
+import { CtaBanner } from "@/components/home/CtaBanner";
 import { NoMoreExcuses } from "@/components/home/NoMoreExcuses";
 
 export const metadata: Metadata = {
@@ -21,13 +21,13 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
-      <AICareerTestBanner />
-      <WhySkillsAir />
-      <WhatYouWillGet />
-      <HowItWorks />
-      <StatsSection />
       <FeaturedCourses />
+      <HowItWorks />
       <CategoriesSection />
+      <AICareerTestBanner />
+      <WhatYouWillGet />
+      <WhySkillsAir />
+      <StatsSection />
       <TestimonialsSection />
       <CtaBanner />
       <NoMoreExcuses />

@@ -3,65 +3,132 @@
 import { motion } from "framer-motion";
 import { Eye, Target } from "lucide-react";
 
-const CARDS = [
+interface VMCard {
+  label: string;
+  body: string;
+  icon: React.ElementType;
+  barFrom: string;
+  barTo: string;
+  iconBg: string;
+  iconColor: string;
+  labelColor: string;
+}
+
+const CARDS: VMCard[] = [
   {
     label: "Our Vision",
     body: "To have Africans take a giant stake in the supply of quality tech talents around the world",
     icon: Eye,
-    className: "from-primary-800 to-primary-600",
+    barFrom: "#1e3a8a",
+    barTo: "#2563eb",
+    iconBg: "#eff6ff",
+    iconColor: "#1e3a8a",
+    labelColor: "#1e3a8a",
   },
   {
     label: "Our Mission",
     body: "We will make high quality tech skills affordable and accessible to all Africans",
     icon: Target,
-    className: "from-accent to-accent-700",
+    barFrom: "#f97316",
+    barTo: "#ea580c",
+    iconBg: "#fff7ed",
+    iconColor: "#f97316",
+    labelColor: "#ea580c",
   },
 ];
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 22 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, delay: i * 0.12, ease: "easeOut" as const },
+  }),
+};
+
 export function VisionMission() {
   return (
-    <section className="bg-white py-16 md:py-24" aria-labelledby="vision-mission-heading">
+    <section
+      className="bg-white py-16 md:py-24"
+      aria-labelledby="vision-mission-heading"
+    >
       <div className="container-wide">
+        {/* Header */}
         <motion.div
-          className="mb-10 text-center"
+          className="mb-12 text-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.5 }}
         >
-          <p className="text-sm font-semibold uppercase tracking-wide text-accent">Purpose</p>
-          <h2 id="vision-mission-heading" className="section-title mt-2">Vision and Mission</h2>
+          <div className="mb-3 inline-flex items-center gap-2">
+            <span className="h-px w-8 bg-accent" aria-hidden="true" />
+            <p className="text-xs font-bold uppercase tracking-[0.13em] text-accent">
+              Purpose
+            </p>
+            <span className="h-px w-8 bg-accent" aria-hidden="true" />
+          </div>
+          <h2
+            id="vision-mission-heading"
+            className="text-[28px] font-heading font-bold text-neutral-900 md:text-[40px]"
+          >
+            Vision &amp; Mission
+          </h2>
         </motion.div>
 
-        <motion.div
-          className="grid gap-6 md:grid-cols-2"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          variants={{ visible: { transition: { staggerChildren: 0.1 } }, hidden: {} }}
-        >
-          {CARDS.map((card) => {
+        {/* Cards */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {CARDS.map((card, i) => {
             const Icon = card.icon;
             return (
               <motion.div
                 key={card.label}
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-                }}
-                className={`rounded-[2rem] bg-gradient-to-br ${card.className} p-[1px] shadow-card-hover`}
+                custom={i}
+                variants={cardVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-80px" }}
+                className="group overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover"
               >
-                <div className="h-full rounded-[calc(2rem-1px)] bg-white/95 p-7 md:p-8">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neutral-900 text-white">
-                    <Icon className="h-6 w-6" aria-hidden="true" />
+                {/* Top accent bar */}
+                <div
+                  className="h-[4px] w-full"
+                  style={{
+                    background: `linear-gradient(90deg, ${card.barFrom}, ${card.barTo})`,
+                  }}
+                  aria-hidden="true"
+                />
+
+                <div className="p-8 md:p-10">
+                  {/* Icon */}
+                  <div
+                    className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl"
+                    style={{ backgroundColor: card.iconBg }}
+                    aria-hidden="true"
+                  >
+                    <Icon
+                      className="h-7 w-7"
+                      style={{ color: card.iconColor }}
+                    />
                   </div>
-                  <h3 className="mt-6 text-2xl font-heading font-bold text-neutral-900">{card.label}</h3>
-                  <p className="mt-4 text-base leading-relaxed text-neutral-600">{card.body}</p>
+
+                  {/* Label */}
+                  <p
+                    className="mb-3 text-xs font-bold uppercase tracking-[0.12em]"
+                    style={{ color: card.labelColor }}
+                  >
+                    {card.label}
+                  </p>
+
+                  {/* Body */}
+                  <p className="text-[22px] font-heading font-bold leading-[1.4] text-neutral-900">
+                    {card.body}
+                  </p>
                 </div>
               </motion.div>
             );
           })}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

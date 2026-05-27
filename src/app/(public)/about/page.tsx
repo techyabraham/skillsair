@@ -11,9 +11,10 @@ export const metadata: Metadata = {
   description:
     "SkillsAir provides job-ready tech courses at pocket-friendly rates. Our mission is to make high quality tech skills affordable and accessible to all Africans.",
   openGraph: {
-    title: "About SkillsAir",
+    title: "About SkillsAir — Job Ready Courses",
     description: "Affordable tech education for Africans.",
     url: "https://skillsair.com/about",
+    siteName: "SkillsAir",
   },
 };
 

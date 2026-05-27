@@ -5,13 +5,11 @@ import { FeaturedCourses } from "@/components/home/FeaturedCourses";
 import { CategoriesSection } from "@/components/home/CategoriesSection";
 import { TestimonialsSection } from "@/components/home/TestimonialsSection";
 import { CtaBanner } from "@/components/home/CtaBanner";
-import {
-  CareerQuizSection,
-  HowSkillsAirWorksSection,
-  InvestInYourselfSection,
-  WhatYouGetSection,
-  WhySkillsAirSection,
-} from "@/components/home/BrandContentSections";
+import { AICareerTestBanner } from "@/components/home/AICareerTestBanner";
+import { WhySkillsAir } from "@/components/home/WhySkillsAir";
+import { WhatYouWillGet } from "@/components/home/WhatYouWillGet";
+import { HowItWorks } from "@/components/home/HowItWorks";
+import { NoMoreExcuses } from "@/components/home/NoMoreExcuses";
 
 export const metadata: Metadata = {
   title: "SkillsAir — Learn Without Limits",
@@ -23,16 +21,16 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
-      <CareerQuizSection />
+      <AICareerTestBanner />
+      <WhySkillsAir />
+      <WhatYouWillGet />
+      <HowItWorks />
       <StatsSection />
-      <WhySkillsAirSection />
-      <WhatYouGetSection />
       <FeaturedCourses />
       <CategoriesSection />
-      <HowSkillsAirWorksSection />
       <TestimonialsSection />
-      <InvestInYourselfSection />
       <CtaBanner />
+      <NoMoreExcuses />
     </>
   );
 }

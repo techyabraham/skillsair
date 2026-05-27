@@ -1,26 +1,31 @@
 import type { Metadata } from "next";
-import {
-  AboutIntroSection,
-  AboutStatsSection,
-  CareerQuizSection,
-  WhatYouGetSection,
-  WhySkillsAirSection,
-} from "@/components/home/BrandContentSections";
+import { AboutHero } from "@/components/about/AboutHero";
+import { VisionMission } from "@/components/about/VisionMission";
+import { StatsCounter } from "@/components/about/StatsCounter";
+import { WhySkillsAir } from "@/components/home/WhySkillsAir";
+import { WhatYouWillGet } from "@/components/home/WhatYouWillGet";
+import { AICareerTestBanner } from "@/components/home/AICareerTestBanner";
 
 export const metadata: Metadata = {
-  title: "About SkillsAir",
+  title: "About SkillsAir — Affordable Tech Education for Africans",
   description:
-    "Learn how SkillsAir makes job-ready tech courses affordable and accessible for African learners.",
+    "SkillsAir provides job-ready tech courses at pocket-friendly rates. Our mission is to make high quality tech skills affordable and accessible to all Africans.",
+  openGraph: {
+    title: "About SkillsAir",
+    description: "Affordable tech education for Africans.",
+    url: "https://skillsair.com/about",
+  },
 };
 
 export default function AboutPage() {
   return (
     <>
-      <AboutIntroSection />
-      <AboutStatsSection />
-      <WhySkillsAirSection />
-      <WhatYouGetSection />
-      <CareerQuizSection />
+      <AboutHero />
+      <VisionMission />
+      <StatsCounter />
+      <WhySkillsAir />
+      <WhatYouWillGet />
+      <AICareerTestBanner />
     </>
   );
 }

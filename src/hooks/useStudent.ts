@@ -6,8 +6,10 @@ import type { EnrolledCourse, Certificate } from "@/types/course";
 import type { StudentStats } from "@/types/user";
 
 export function useEnrolledCourses(studentId: number | null) {
+  // Guard: 0 is falsy in JS — explicitly check > 0 to avoid silently skipping the fetch
+  const key = studentId != null && studentId > 0 ? `/students/${studentId}/progress` : null;
   const { data, error, isLoading, mutate } = useSWR<EnrolledCourse[]>(
-    studentId ? `/students/${studentId}/progress` : null,
+    key,
     () => tutorApi.getStudentProgress(studentId!),
     { revalidateOnFocus: false }
   );
@@ -15,8 +17,9 @@ export function useEnrolledCourses(studentId: number | null) {
 }
 
 export function useCertificates(studentId: number | null) {
+  const key = studentId != null && studentId > 0 ? `/students/${studentId}/certificates` : null;
   const { data, error, isLoading } = useSWR<Certificate[]>(
-    studentId ? `/students/${studentId}/certificates` : null,
+    key,
     () => tutorApi.getCertificates(studentId!),
     { revalidateOnFocus: false }
   );
@@ -24,8 +27,9 @@ export function useCertificates(studentId: number | null) {
 }
 
 export function useStudentStats(studentId: number | null) {
+  const key = studentId != null && studentId > 0 ? `/students/${studentId}/stats` : null;
   const { data, error, isLoading } = useSWR<StudentStats>(
-    studentId ? `/students/${studentId}/stats` : null,
+    key,
     () => tutorApi.getStudentStats(studentId!),
     { revalidateOnFocus: false }
   );

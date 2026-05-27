@@ -9,7 +9,6 @@ import {
   Cloud,
   Code2,
   Palette,
-  Video,
   BarChart3,
   TrendingUp,
   Briefcase,

@@ -132,6 +132,67 @@ function fallbackUser(username: string): LoginUser {
   };
 }
 
+/** Parse a JWT base64url payload without verifying the signature */
+function parseJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const json = Buffer.from(
+      parts[1].replace(/-/g, "+").replace(/_/g, "/"),
+      "base64"
+    ).toString("utf8");
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reliable user-ID resolver: call the JWT auth endpoint and parse the
+ * WordPress user ID from the token payload.  Works for every user — not just
+ * admins — and does not depend on cookie-based REST-API authentication (which
+ * requires X-WP-Nonce and therefore cannot be used from the server side).
+ */
+async function resolveUserViaJwt(username: string, password: string): Promise<LoginUser | null> {
+  try {
+    const res = await fetchWithTimeout(`${WP_API}/jwt-auth/v1/token`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ username, password }),
+    }, 12_000);
+    if (!res.ok) return null;
+    const data = await safeJson(res);
+    const token = typeof data.token === "string" ? data.token : "";
+    if (!token) return null;
+
+    // The JWT payload issued by the WP JWT Auth plugin contains:
+    // { "data": { "user": { "id": "42" } }, ... }
+    const payload = parseJwtPayload(token) as {
+      data?: { user?: { id?: string | number } };
+      sub?: string | number;
+    } | null;
+
+    const userId = Number(payload?.data?.user?.id ?? payload?.sub ?? 0);
+    if (!Number.isFinite(userId) || userId <= 0) return null;
+
+    return {
+      databaseId: userId,
+      firstName: "",
+      lastName: "",
+      name: typeof data.user_display_name === "string" ? data.user_display_name : username,
+      email: typeof data.user_email === "string" ? data.user_email : username,
+      avatar: { url: "" },
+      roles: { nodes: [] },
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Admin-only fallback: scrape /wp-admin/profile.php.
+ * Non-admin users receive a 302 redirect → this returns null for them.
+ */
 async function resolveUserFromProfile(cookie: string, username: string): Promise<LoginUser | null> {
   try {
     const res = await fetchWithTimeout(`${WP_ORIGIN}/wp-admin/profile.php`, {
@@ -163,11 +224,29 @@ async function resolveUserFromProfile(cookie: string, username: string): Promise
   }
 }
 
-async function resolveUser(username: string, cookie = ""): Promise<LoginUser> {
+/**
+ * Resolve the WordPress user for the given credentials.
+ *
+ * Resolution order:
+ *  1. JWT token parsing — works for ALL users (primary fix)
+ *  2. Profile-page scraping — works for admins only (kept for resilience)
+ *  3. WooCommerce customer lookup by e-mail (covers WC-checkout users)
+ *  4. WPGraphQL user search (last resort)
+ */
+async function resolveUser(username: string, password: string, cookie = ""): Promise<LoginUser> {
   const fallback = fallbackUser(username);
-  const profileUser = cookie ? await resolveUserFromProfile(cookie, username) : null;
-  if (profileUser) return profileUser;
 
+  // 1. JWT — most reliable; works for every user without session cookies or nonces
+  const jwtUser = await resolveUserViaJwt(username, password);
+  if (jwtUser) return jwtUser;
+
+  // 2. Profile page scraping (admin-only fallback)
+  if (cookie) {
+    const profileUser = await resolveUserFromProfile(cookie, username);
+    if (profileUser) return profileUser;
+  }
+
+  // 3. WooCommerce customer lookup (email logins for WC customers)
   if (username.includes("@")) {
     try {
       const res = await fetch(`${WP_API.replace(/\/$/, "")}/wc/v3/customers?email=${encodeURIComponent(username)}`, {
@@ -194,6 +273,7 @@ async function resolveUser(username: string, cookie = ""): Promise<LoginUser> {
     }
   }
 
+  // 4. WPGraphQL user search
   try {
     const res = await fetchWithTimeout(GRAPHQL_ENDPOINT, {
       method: "POST",
@@ -254,7 +334,8 @@ async function loginViaCoreWordPress(username: string, password: string): Promis
       data: {
         authToken: Buffer.from(`${username}:${Date.now()}:${crypto.randomUUID()}`).toString("base64url"),
         wordpressCookie: wpCookies,
-        user: await resolveUser(username, wpCookies),
+        // Pass the plaintext password so resolveUser can call the JWT endpoint
+        user: await resolveUser(username, password, wpCookies),
       },
     };
   } catch (err) {
@@ -313,11 +394,18 @@ async function loginViaJwtRest(username: string, password: string): Promise<Back
       };
     }
 
+    // Parse the JWT payload to get the WordPress user ID
+    const payload = parseJwtPayload(token) as {
+      data?: { user?: { id?: string | number } };
+      sub?: string | number;
+    } | null;
+    const userId = Number(payload?.data?.user?.id ?? payload?.sub ?? 0);
+
     return {
       data: {
         authToken: token,
         user: {
-          databaseId: 0,
+          databaseId: Number.isFinite(userId) && userId > 0 ? userId : 0,
           firstName: "",
           lastName: "",
           name: typeof data.user_display_name === "string" ? data.user_display_name : username,
@@ -351,7 +439,26 @@ export async function POST(req: NextRequest) {
     const { wordpressCookie, ...payload } = coreLogin.data;
     const response = NextResponse.json(payload);
     if (wordpressCookie) {
+      // WordPress session cookie (httpOnly — used by me/route.ts)
       response.cookies.set("sa_wp_auth", Buffer.from(wordpressCookie).toString("base64url"), {
+        httpOnly: true,
+        secure: req.nextUrl.protocol === "https:",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 14 * 24 * 60 * 60,
+      });
+    }
+    // Cache the resolved user info for the /api/auth/me endpoint so it can
+    // serve non-admin users without needing nonce-protected REST API access.
+    if (payload.user.databaseId > 0) {
+      const userCache = Buffer.from(JSON.stringify({
+        id: payload.user.databaseId,
+        email: payload.user.email,
+        name: payload.user.name,
+        firstName: payload.user.firstName,
+        lastName: payload.user.lastName,
+      })).toString("base64url");
+      response.cookies.set("sa_wp_cache", userCache, {
         httpOnly: true,
         secure: req.nextUrl.protocol === "https:",
         sameSite: "lax",

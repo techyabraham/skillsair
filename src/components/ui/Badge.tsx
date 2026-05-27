@@ -49,7 +49,7 @@ interface LevelBadgeProps {
 }
 
 const levelConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  beginner: { label: "Beginner", variant: "success" },
+  beginner: { label: "All Levels", variant: "neutral" },
   intermediate: { label: "Intermediate", variant: "warning" },
   advanced: { label: "Advanced", variant: "error" },
   all: { label: "All Levels", variant: "neutral" },

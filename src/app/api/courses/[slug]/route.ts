@@ -5,6 +5,7 @@ import {
   findTutorCourseForProduct,
   mapProductToCourse,
   normalizeCourseSlug,
+  wcHeaders,
   wcUrl,
   type WcProduct,
 } from "@/lib/server-course-catalog";
@@ -14,8 +15,11 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   const res = await fetch(
-    wcUrl("/products", { slug: normalizeCourseSlug(params.slug), type: "subscription", status: "publish" }),
-    { next: { revalidate: 60 } }
+    wcUrl("/products", { slug: normalizeCourseSlug(params.slug), status: "publish" }),
+    {
+      headers: wcHeaders(),
+      next: { revalidate: 60 },
+    }
   );
 
   if (!res.ok) {

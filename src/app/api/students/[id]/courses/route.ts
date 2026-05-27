@@ -53,7 +53,7 @@ export async function GET(
     ? (enrolledPayload.data.enrolled_courses as TutorCourseRecord[])
     : [];
   const [products, tutorCourses] = await Promise.all([
-    fetch(wcUrl("/products", { type: "subscription", status: "publish", per_page: "100" }), {
+    fetch(wcUrl("/products", { status: "publish", per_page: "100" }), {
       headers: wcHeaders(),
       next: { revalidate: 60 },
     }).then((res) => res.json() as Promise<WcProduct[]>).catch(() => []),

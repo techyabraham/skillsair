@@ -54,7 +54,6 @@ async function getHoneypotFields(): Promise<Record<string, string>> {
 async function fetchProductBySlug(slug: string): Promise<WcProduct | null> {
   const res = await fetch(wcUrl("/products", {
     slug: normalizeCourseSlug(slug),
-    type: "subscription",
     status: "publish",
   }), {
     headers: wcHeaders(),

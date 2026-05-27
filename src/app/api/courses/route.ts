@@ -4,6 +4,7 @@ import {
   findTutorCourseForProduct,
   isHiddenProduct,
   mapProductToCourse,
+  wcHeaders,
   wcUrl,
   type WcProduct,
 } from "@/lib/server-course-catalog";
@@ -24,7 +25,6 @@ export async function GET(req: NextRequest) {
   else if (sort === "price-desc") { orderby = "price"; order = "desc"; }
 
   const params: Record<string, string> = {
-    type: "subscription",
     status: "publish",
     page: category ? "1" : page,
     per_page: category ? "100" : perPage,
@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
   };
 
   const res = await fetch(wcUrl("/products", params), {
+    headers: wcHeaders(),
     next: { revalidate: 60 },
   });
 

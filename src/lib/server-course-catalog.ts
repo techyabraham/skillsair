@@ -18,7 +18,11 @@ const COURSE_SLUG_ALIASES: Record<string, string> = {
   "website-development": "website-development-full-stack",
 };
 
-const HIDDEN_PRODUCT_SLUGS = new Set(["website-development"]);
+const HIDDEN_PRODUCT_SLUGS = new Set([
+  "course-certificate",
+  "course-certificate-2",
+  "website-development",
+]);
 
 type JsonRecord = Record<string, unknown>;
 

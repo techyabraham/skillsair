@@ -111,6 +111,15 @@ function stripHtml(html = ""): string {
   return html.replace(/<[^>]+>/g, "").trim();
 }
 
+function cleanImageUrl(value = ""): string {
+  const decoded = value.replace(/&amp;/g, "&").trim();
+  const nestedHttps = decoded.lastIndexOf("/https://");
+  if (nestedHttps > -1) return decoded.slice(nestedHttps + 1);
+  const nestedHttp = decoded.lastIndexOf("/http://");
+  if (nestedHttp > -1) return decoded.slice(nestedHttp + 1);
+  return decoded;
+}
+
 function normalizeText(value = ""): string {
   return value.toLowerCase().replace(/&amp;/g, "and").replace(/[^a-z0-9]+/g, "");
 }
@@ -215,13 +224,15 @@ function wcCategories(product: WcProduct): CourseCategory[] {
 
 export function mapProductToCourse(product: WcProduct, tutorCourse?: TutorCourseRecord | null): Course {
   const tutorCategories = extractTutorCategories(tutorCourse);
+  const tutorThumbnail = typeof tutorCourse?.thumbnail_url === "string" ? tutorCourse.thumbnail_url : "";
+  const productThumbnail = cleanImageUrl(product.images[0]?.src || "");
   return {
     id: product.id,
     title: product.name,
     slug: product.slug,
     excerpt: stripHtml(product.short_description),
     description: stripHtml(product.description),
-    thumbnail: product.images[0]?.src || "",
+    thumbnail: productThumbnail || cleanImageUrl(tutorThumbnail),
     price: parseFloat(product.price) || 0,
     regularPrice: parseFloat(product.regular_price) || 0,
     salePrice: product.sale_price ? parseFloat(product.sale_price) : undefined,

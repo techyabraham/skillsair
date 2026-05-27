@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
 
   const params: Record<string, string> = {
     status: "publish",
-    page: category ? "1" : page,
-    per_page: category ? "100" : perPage,
+    page: "1",
+    per_page: "100",
     orderby,
     order,
     search,
@@ -44,21 +44,23 @@ export async function GET(req: NextRequest) {
 
   const products: WcProduct[] = await res.json();
   const tutorCourses = await fetchTutorCourses();
-  const courses = products
+  const allCourses = products
     .filter((product) => !isHiddenProduct(product))
     .map((product) => mapProductToCourse(product, findTutorCourseForProduct(product, tutorCourses)))
     .filter((course) => !category || course.categories.some((cat) => cat.slug === category));
 
-  const total = category
-    ? courses.length
-    : parseInt(res.headers.get("X-WP-Total") || String(courses.length));
-  const totalPages = category ? 1 : parseInt(res.headers.get("X-WP-TotalPages") || "1");
+  const pageNumber = Math.max(1, parseInt(page));
+  const pageSize = Math.max(1, parseInt(perPage));
+  const start = (pageNumber - 1) * pageSize;
+  const courses = allCourses.slice(start, start + pageSize);
+  const total = allCourses.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return NextResponse.json({
     courses,
     total,
     totalPages,
-    currentPage: parseInt(page),
-    perPage: parseInt(perPage),
+    currentPage: pageNumber,
+    perPage: pageSize,
   });
 }

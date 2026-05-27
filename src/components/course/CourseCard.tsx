@@ -12,6 +12,66 @@ interface CourseCardProps {
   className?: string;
 }
 
+function shouldBypassOptimizer(src: string): boolean {
+  return src.includes("drive.google.com") || src.includes("googleusercontent.com");
+}
+
+function CourseThumbnail({
+  src,
+  title,
+  className,
+  sizes,
+}: {
+  src: string;
+  title: string;
+  className?: string;
+  sizes: string;
+}) {
+  if (!src) {
+    return (
+      <div className={cn("flex h-full w-full items-center justify-center bg-hero-gradient text-center text-sm font-semibold text-white", className)}>
+        <span className="px-4">{title}</span>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={title}
+      fill
+      unoptimized={shouldBypassOptimizer(src)}
+      className={cn("object-cover", className)}
+      sizes={sizes}
+    />
+  );
+}
+
+function InstructorAvatar({ name, src }: { name: string; src: string }) {
+  if (!src) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-primary-50 text-[10px] font-bold text-primary-800">
+        {name
+          .split(" ")
+          .map((part) => part[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={name}
+      fill
+      className="object-cover"
+      sizes="20px"
+    />
+  );
+}
+
 export function CourseCard({ course, variant = "default", className }: CourseCardProps) {
   const hasDiscount = course.salePrice && course.salePrice < course.price;
 
@@ -19,11 +79,10 @@ export function CourseCard({ course, variant = "default", className }: CourseCar
     return (
       <Link href={`/courses/${course.slug}`} className={cn("group flex gap-4 bg-white rounded-2xl shadow-card hover:shadow-card-hover p-4 transition-all duration-300", className)}>
         <div className="relative w-32 h-24 rounded-xl overflow-hidden shrink-0">
-          <Image
-            src={course.thumbnail || "/images/course-placeholder.jpg"}
-            alt={course.title}
-            fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+          <CourseThumbnail
+            src={course.thumbnail}
+            title={course.title}
+            className="group-hover:scale-105 transition-transform duration-500"
             sizes="128px"
           />
         </div>
@@ -59,13 +118,7 @@ export function CourseCard({ course, variant = "default", className }: CourseCar
     return (
       <Link href={`/courses/${course.slug}`} className={cn("group flex items-center gap-3 hover:bg-neutral-50 rounded-xl p-2 transition-all duration-200", className)}>
         <div className="relative w-14 h-10 rounded-lg overflow-hidden shrink-0">
-          <Image
-            src={course.thumbnail || "/images/course-placeholder.jpg"}
-            alt={course.title}
-            fill
-            className="object-cover"
-            sizes="56px"
-          />
+          <CourseThumbnail src={course.thumbnail} title={course.title} sizes="56px" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-neutral-900 line-clamp-1 group-hover:text-primary-800 transition-colors">{course.title}</p>
@@ -79,11 +132,10 @@ export function CourseCard({ course, variant = "default", className }: CourseCar
     <Link href={`/courses/${course.slug}`} className={cn("group card flex flex-col", className)}>
       {/* Thumbnail */}
       <div className="relative h-48 overflow-hidden">
-        <Image
-          src={course.thumbnail || "/images/course-placeholder.jpg"}
-          alt={course.title}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+        <CourseThumbnail
+          src={course.thumbnail}
+          title={course.title}
+          className="group-hover:scale-105 transition-transform duration-500"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
         {hasDiscount && (
@@ -114,13 +166,7 @@ export function CourseCard({ course, variant = "default", className }: CourseCar
         {/* Instructor */}
         <div className="flex items-center gap-2 mb-3">
           <div className="relative w-5 h-5 rounded-full overflow-hidden shrink-0">
-            <Image
-              src={course.instructor.avatar || "/images/avatar-placeholder.jpg"}
-              alt={course.instructor.name}
-              fill
-              className="object-cover"
-              sizes="20px"
-            />
+            <InstructorAvatar name={course.instructor.name} src={course.instructor.avatar} />
           </div>
           <span className="text-xs text-neutral-500 truncate">{course.instructor.name}</span>
         </div>

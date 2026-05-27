@@ -5,6 +5,13 @@ import { FeaturedCourses } from "@/components/home/FeaturedCourses";
 import { CategoriesSection } from "@/components/home/CategoriesSection";
 import { TestimonialsSection } from "@/components/home/TestimonialsSection";
 import { CtaBanner } from "@/components/home/CtaBanner";
+import {
+  CareerQuizSection,
+  HowSkillsAirWorksSection,
+  InvestInYourselfSection,
+  WhatYouGetSection,
+  WhySkillsAirSection,
+} from "@/components/home/BrandContentSections";
 
 export const metadata: Metadata = {
   title: "SkillsAir — Learn Without Limits",
@@ -16,10 +23,15 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
+      <CareerQuizSection />
       <StatsSection />
+      <WhySkillsAirSection />
+      <WhatYouGetSection />
       <FeaturedCourses />
       <CategoriesSection />
+      <HowSkillsAirWorksSection />
       <TestimonialsSection />
+      <InvestInYourselfSection />
       <CtaBanner />
     </>
   );

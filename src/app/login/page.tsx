@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 
 export const metadata: Metadata = {
   title: "Sign In",
@@ -13,16 +14,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-neutral-50 flex flex-col">
       {/* Header */}
       <header className="py-4 px-6 bg-white border-b border-neutral-100">
-        <Link href="/" className="flex items-center gap-2 w-fit" aria-label="Return to home">
-          <div className="w-8 h-8 bg-hero-gradient rounded-xl flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-          </div>
-          <span className="text-lg font-heading font-bold text-primary-800">
-            Skills<span className="text-accent">Air</span>
-          </span>
-        </Link>
+        <Logo variant="on-light" size="sm" />
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">

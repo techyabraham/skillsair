@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/ui/Logo";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -65,21 +66,10 @@ export function Header() {
         <div className="container-wide">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="SkillsAir home">
-              <div className="w-8 h-8 md:w-10 md:h-10 bg-hero-gradient rounded-xl flex items-center justify-center shadow-button shrink-0">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <span
-                className={cn(
-                  "text-xl font-heading font-bold tracking-tight",
-                  scrolled || !isHeroPage ? "text-primary-800" : "text-white"
-                )}
-              >
-                Skills<span className="text-accent">Air</span>
-              </span>
-            </Link>
+            <Logo
+              variant={scrolled || !isHeroPage ? "on-light" : "on-dark"}
+              size="md"
+            />
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">

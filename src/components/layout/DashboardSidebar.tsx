@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar } from "@/components/ui/Avatar";
+import { Logo } from "@/components/ui/Logo";
 
 const sidebarLinks = [
   {
@@ -70,6 +71,11 @@ export function DashboardSidebar() {
 
   return (
     <aside className="w-64 bg-white border-r border-neutral-100 flex flex-col h-full">
+      {/* Logo */}
+      <div className="px-5 py-4 border-b border-neutral-100">
+        <Logo variant="on-light" size="sm" />
+      </div>
+
       {/* User */}
       <div className="p-6 border-b border-neutral-100">
         <div className="flex items-center gap-3">

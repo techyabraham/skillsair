@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { NewsletterForm } from "@/components/layout/NewsletterForm";
+import { Logo } from "@/components/ui/Logo";
 
 const footerLinks = {
   Platform: [
@@ -87,16 +88,9 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
           {/* Brand */}
           <div className="col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-4" aria-label="SkillsAir home">
-              <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <span className="text-xl font-heading font-bold">
-                Skills<span className="text-accent">Air</span>
-              </span>
-            </Link>
+            <div className="mb-5">
+              <Logo variant="on-dark" size="md" />
+            </div>
             <p className="text-white/50 text-sm leading-relaxed max-w-xs">
               Empowering professionals with world-class online education, hands-on projects, and industry-recognized certifications.
             </p>

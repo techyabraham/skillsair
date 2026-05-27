@@ -32,6 +32,15 @@ export const metadata: Metadata = {
     "Advance your career with world-class online courses. Learn from expert instructors, earn certificates, and join a community of 50,000+ learners.",
   keywords: ["online learning", "courses", "e-learning", "certificates", "skills"],
   authors: [{ name: "SkillsAir" }],
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icon.png", type: "image/png" },
+    ],
+    shortcut: "/icon.png",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",

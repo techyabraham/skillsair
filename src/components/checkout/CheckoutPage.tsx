@@ -32,7 +32,7 @@ const PAYMENT_METHODS = [
   {
     id: "bank_transfer",
     label: "Paystack Bank Transfer",
-    description: "Pay by transfer to a temporary Paystack account.",
+    description: "Pay by transfer to an automated bank account",
   },
   {
     id: "paystack",

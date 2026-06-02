@@ -175,27 +175,36 @@ export async function GET(
   let tutorSucceeded = false;
 
   try {
-    const enrolledRes = await fetch(tutorUrl(`/students/${studentId}/courses`), {
+    const tutorEndpoint = tutorUrl(`/students/${studentId}/courses`);
+    console.log("[DEBUG courses] Calling TutorLMS:", tutorEndpoint);
+    const enrolledRes = await fetch(tutorEndpoint, {
       headers: tutorHeaders(),
       cache: "no-store",
     });
+    console.log("[DEBUG courses] TutorLMS status:", enrolledRes.status);
     if (enrolledRes.ok) {
       const enrolledPayload = await enrolledRes.json().catch(() => ({}));
+      console.log("[DEBUG courses] TutorLMS raw payload keys:", Object.keys(enrolledPayload));
       const items = Array.isArray(enrolledPayload.data?.enrolled_courses)
         ? (enrolledPayload.data.enrolled_courses as TutorCourseRecord[])
         : [];
+      console.log("[DEBUG courses] TutorLMS enrolled_courses count:", items.length);
       enrolled = items;
       tutorSucceeded = true;
+    } else {
+      const errText = await enrolledRes.text().catch(() => "");
+      console.log("[DEBUG courses] TutorLMS error body:", errText.slice(0, 300));
     }
-  } catch {
-    // TutorLMS unreachable — fall through to WooCommerce orders
+  } catch (err) {
+    console.log("[DEBUG courses] TutorLMS exception:", err instanceof Error ? err.message : err);
   }
 
   // ── 2. WooCommerce orders fallback ──────────────────────────────────────────
-  // Use this when TutorLMS failed OR returned no courses.
-  // Covers users enrolled directly from the WordPress dashboard (no app checkout).
   if (!tutorSucceeded || enrolled.length === 0) {
-    return NextResponse.json(await getEnrolledCoursesFromOrders(studentId));
+    console.log("[DEBUG courses] Falling back to WooCommerce orders for studentId:", studentId);
+    const wcCourses = await getEnrolledCoursesFromOrders(studentId);
+    console.log("[DEBUG courses] WooCommerce fallback returned:", wcCourses.length, "courses");
+    return NextResponse.json(wcCourses);
   }
 
   // ── 3. Enrich TutorLMS results with WooCommerce product data ────────────────

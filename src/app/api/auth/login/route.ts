@@ -160,19 +160,25 @@ async function resolveUserViaJwt(username: string, password: string): Promise<Lo
       headers: authHeaders(),
       body: JSON.stringify({ username, password }),
     }, 12_000);
-    if (!res.ok) return null;
+    console.log("[DEBUG login] JWT endpoint status:", res.status);
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.log("[DEBUG login] JWT failed body:", errBody.slice(0, 300));
+      return null;
+    }
     const data = await safeJson(res);
     const token = typeof data.token === "string" ? data.token : "";
+    console.log("[DEBUG login] JWT token received:", token ? "YES" : "NO");
     if (!token) return null;
 
-    // The JWT payload issued by the WP JWT Auth plugin contains:
-    // { "data": { "user": { "id": "42" } }, ... }
     const payload = parseJwtPayload(token) as {
       data?: { user?: { id?: string | number } };
       sub?: string | number;
     } | null;
 
+    console.log("[DEBUG login] JWT payload data.user:", JSON.stringify(payload?.data?.user));
     const userId = Number(payload?.data?.user?.id ?? payload?.sub ?? 0);
+    console.log("[DEBUG login] JWT resolved userId:", userId);
     if (!Number.isFinite(userId) || userId <= 0) return null;
 
     return {
@@ -184,7 +190,8 @@ async function resolveUserViaJwt(username: string, password: string): Promise<Lo
       avatar: { url: "" },
       roles: { nodes: [] },
     };
-  } catch {
+  } catch (err) {
+    console.log("[DEBUG login] JWT exception:", err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -238,18 +245,28 @@ async function resolveUser(username: string, password: string, cookie = ""): Pro
 
   // 1. JWT — most reliable; works for every user without session cookies or nonces
   const jwtUser = await resolveUserViaJwt(username, password);
-  if (jwtUser) return jwtUser;
+  if (jwtUser) {
+    console.log("[DEBUG login] resolveUser: JWT succeeded, databaseId:", jwtUser.databaseId);
+    return jwtUser;
+  }
+  console.log("[DEBUG login] resolveUser: JWT returned null, trying profile page...");
 
   // 2. Profile page scraping (admin-only fallback)
   if (cookie) {
     const profileUser = await resolveUserFromProfile(cookie, username);
-    if (profileUser) return profileUser;
+    if (profileUser) {
+      console.log("[DEBUG login] resolveUser: profile page succeeded, databaseId:", profileUser.databaseId);
+      return profileUser;
+    }
+    console.log("[DEBUG login] resolveUser: profile page returned null, trying WooCommerce...");
   }
 
   // 3. WooCommerce customer lookup (email logins for WC customers)
   if (username.includes("@")) {
     try {
-      const res = await fetch(`${WP_API.replace(/\/$/, "")}/wc/v3/customers?email=${encodeURIComponent(username)}`, {
+      // role=all searches ALL WordPress users, not just WooCommerce customers.
+      // Without this, users enrolled directly from the WP dashboard are missed.
+      const res = await fetch(`${WP_API.replace(/\/$/, "")}/wc/v3/customers?email=${encodeURIComponent(username)}&role=all`, {
         headers: {
           Authorization: `Basic ${Buffer.from(`${WC_KEY}:${WC_SECRET}`).toString("base64")}`,
           Accept: "application/json",
@@ -257,7 +274,9 @@ async function resolveUser(username: string, password: string, cookie = ""): Pro
         cache: "no-store",
       });
       const customers = await res.json().catch(() => []);
+      console.log("[DEBUG login] resolveUser: WC customers found (role=all):", Array.isArray(customers) ? customers.length : "not array", Array.isArray(customers) && customers[0] ? `id=${customers[0].id}` : "");
       if (Array.isArray(customers) && typeof customers[0]?.id === "number") {
+        console.log("[DEBUG login] resolveUser: WC succeeded, databaseId:", customers[0].id);
         return {
           ...fallback,
           databaseId: customers[0].id,
@@ -268,8 +287,8 @@ async function resolveUser(username: string, password: string, cookie = ""): Pro
           avatar: { url: customers[0].avatar_url || "" },
         };
       }
-    } catch {
-      // Fall through to GraphQL lookup.
+    } catch (err) {
+      console.log("[DEBUG login] resolveUser: WC exception:", err instanceof Error ? err.message : err);
     }
   }
 
@@ -287,15 +306,18 @@ async function resolveUser(username: string, password: string, cookie = ""): Pro
     const user = (data.data as { users?: { nodes?: Array<{ databaseId?: number; name?: string }> } } | undefined)
       ?.users?.nodes?.[0];
     if (typeof user?.databaseId === "number") {
+      console.log("[DEBUG login] resolveUser: GraphQL succeeded, databaseId:", user.databaseId);
       return {
         ...fallback,
         databaseId: user.databaseId,
         name: user.name || username,
       };
     }
-  } catch {
-    // Keep the fallback user.
+    console.log("[DEBUG login] resolveUser: GraphQL returned no user");
+  } catch (err) {
+    console.log("[DEBUG login] resolveUser: GraphQL exception:", err instanceof Error ? err.message : err);
   }
+  console.log("[DEBUG login] resolveUser: ALL methods failed — returning databaseId: 0");
 
   return fallback;
 }

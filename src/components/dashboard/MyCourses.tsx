@@ -4,20 +4,26 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
-import { useEnrolledCourses } from "@/hooks/useStudent";
+import { useEnrolledCourses, useCertificates } from "@/hooks/useStudent";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { LevelBadge } from "@/components/ui/Badge";
 import { DashboardCourseSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { cn, formatDuration } from "@/lib/utils";
-import type { EnrolledCourse } from "@/types/course";
+import type { EnrolledCourse, Certificate } from "@/types/course";
 
 type CourseFilter = "all" | "in-progress" | "completed" | "not-started";
 
 export function MyCourses() {
   const { user } = useAuth();
   const { enrolledCourses, isLoading } = useEnrolledCourses(user?.id ?? null);
+  const { certificates } = useCertificates(user?.id ?? null);
   const [activeFilter, setActiveFilter] = useState<CourseFilter>("all");
+
+  // Build lookup: courseSlug → Certificate (for courses that have earned certs)
+  const certBySlug = new Map<string, Certificate>(
+    certificates.map((c) => [c.courseSlug, c])
+  );
 
   const filters: { value: CourseFilter; label: string }[] = [
     { value: "all", label: "All Courses" },
@@ -96,7 +102,11 @@ export function MyCourses() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map((course) => (
-            <CourseCard key={course.id} course={course} />
+            <CourseCard
+              key={course.id}
+              course={course}
+              certificate={certBySlug.get(course.slug)}
+            />
           ))}
         </div>
       )}
@@ -104,9 +114,16 @@ export function MyCourses() {
   );
 }
 
-function CourseCard({ course }: { course: EnrolledCourse }) {
+function CourseCard({
+  course,
+  certificate,
+}: {
+  course: EnrolledCourse;
+  certificate?: Certificate;
+}) {
   const isCompleted = course.progress === 100;
   const notStarted = course.progress === 0;
+  const hasCertificate = Boolean(certificate);
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden hover:shadow-card-hover transition-all duration-300 flex flex-col">
@@ -148,15 +165,48 @@ function CourseCard({ course }: { course: EnrolledCourse }) {
           </div>
         )}
 
-        <div className="mt-auto pt-3 border-t border-neutral-100 flex items-center justify-between">
-          <span className="text-xs text-neutral-400">
-            {isCompleted ? `Completed` : notStarted ? "Not started" : `${course.completedLessons.length} of ${course.totalLessons} lessons`}
-          </span>
-          <Link href={`/dashboard/courses/${course.slug}/learn`}>
-            <Button variant={notStarted ? "accent" : "primary"} size="sm">
-              {isCompleted ? "Review" : notStarted ? "Start" : "Continue"}
-            </Button>
-          </Link>
+        <div className="mt-auto pt-3 border-t border-neutral-100 space-y-2">
+          {/* Continue / Review row */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-neutral-400">
+              {isCompleted
+                ? "Completed"
+                : notStarted
+                ? "Not started"
+                : `${course.completedLessons.length} of ${course.totalLessons} lessons`}
+            </span>
+            <Link href={`/dashboard/courses/${course.slug}/learn`}>
+              <Button variant={notStarted ? "accent" : "primary"} size="sm">
+                {isCompleted ? "Retake Course" : notStarted ? "Start" : "Continue"}
+              </Button>
+            </Link>
+          </div>
+
+          {/* Certificate row — only for completed courses */}
+          {isCompleted && (
+            hasCertificate && certificate ? (
+              <a
+                href={certificate.certificateUrl}
+                download
+                className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl bg-success/10 border border-success/20 text-success text-xs font-semibold hover:bg-success/15 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Certificate
+              </a>
+            ) : (
+              <Link
+                href={`/checkout?type=certificate&course=${course.slug}&courseName=${encodeURIComponent(course.title)}`}
+                className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl bg-accent/10 border border-accent/20 text-accent text-xs font-semibold hover:bg-accent/15 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+                Get Certificate
+              </Link>
+            )
+          )}
         </div>
       </div>
     </div>

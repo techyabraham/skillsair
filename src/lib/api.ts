@@ -122,13 +122,17 @@ export const wooApi = {
   },
 
   async getOrders(customerId: number): Promise<Order[]> {
-    return apiFetch<Order[]>(wcUrl("/orders", { customer: String(customerId) }));
+    const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${base}/api/orders?customer=${customerId}`);
+    if (!res.ok) return [];
+    return res.json() as Promise<Order[]>;
   },
 
   async getSubscriptions(customerId: number): Promise<Subscription[]> {
-    return apiFetch<Subscription[]>(
-      wcUrl("/subscriptions", { customer: String(customerId) })
-    );
+    const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${base}/api/subscriptions?customer=${customerId}`);
+    if (!res.ok) return [];
+    return res.json() as Promise<Subscription[]>;
   },
 
   async applyCoupon(code: string): Promise<{ valid: boolean; discount: string }> {

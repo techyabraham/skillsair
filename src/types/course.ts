@@ -142,6 +142,7 @@ export interface EnrolledCourse extends Course {
 export interface Certificate {
   id: string;
   courseId: number;
+  courseSlug: string;
   courseName: string;
   courseThumbnail: string;
   studentName: string;

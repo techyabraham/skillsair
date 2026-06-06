@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Order, OrderLineItem, OrderStatus } from "@/types/order";
 
-const WC_API = "https://api.skillsair.com/wp-json/wc/v3";
+const WC_API = `${(process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json").replace(/\/$/, "")}/wc/v3`;
 const WC_KEY = process.env.WC_CONSUMER_KEY!;
 const WC_SECRET = process.env.WC_CONSUMER_SECRET!;
 

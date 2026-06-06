@@ -8,14 +8,20 @@ function decodeCookie(value: string): string {
   }
 }
 
+const WP_HOSTNAME = new URL(
+  process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json"
+).hostname;
+
 function streamUrl(raw: string): string | null {
   try {
     const url = new URL(raw);
-    if (!["skillsair.com", "api.skillsair.com"].includes(url.hostname)) return null;
+    // Allow the configured WP hostname and the bare apex domain
+    const apexDomain = WP_HOSTNAME.replace(/^[^.]+\./, "");
+    if (url.hostname !== WP_HOSTNAME && url.hostname !== apexDomain) return null;
     if (url.pathname !== "/wp-admin/admin-ajax.php") return null;
     if (url.searchParams.get("action") !== "igd_stream") return null;
     url.protocol = "https:";
-    url.hostname = "api.skillsair.com";
+    url.hostname = WP_HOSTNAME;
     return url.toString();
   } catch {
     return null;
@@ -37,7 +43,7 @@ export async function GET(req: NextRequest) {
     headers: {
       Cookie: decodeCookie(cookie),
       Range: req.headers.get("range") || "",
-      Referer: "https://api.skillsair.com/",
+      Referer: `https://${WP_HOSTNAME}/`,
       Accept: req.headers.get("accept") || "video/mp4,*/*",
       "User-Agent": req.headers.get("user-agent") || "SkillsAir-NextJS/1.0",
     },

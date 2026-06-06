@@ -1,7 +1,8 @@
 import type { Course, CourseCategory } from "@/types/course";
 
-const WC_API = "https://api.skillsair.com/wp-json/wc/v3";
-const TUTOR_API = process.env.NEXT_PUBLIC_TUTOR_API || "https://api.skillsair.com/wp-json/tutor/v1";
+const WP_BASE = (process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json").replace(/\/$/, "");
+const WC_API = `${WP_BASE}/wc/v3`;
+const TUTOR_API = process.env.NEXT_PUBLIC_TUTOR_API || `${WP_BASE}/tutor/v1`;
 
 const WC_KEY = process.env.WC_CONSUMER_KEY || "";
 const WC_SECRET = process.env.WC_CONSUMER_SECRET || "";

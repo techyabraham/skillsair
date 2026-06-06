@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const WC_API = "https://api.skillsair.com/wp-json/wc/v3";
+const WC_API = `${(process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json").replace(/\/$/, "")}/wc/v3`;
 const GRAPHQL_ENDPOINT = process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "https://api.skillsair.com/graphql";
 const WP_ORIGIN = new URL(process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json").origin;
 const WC_KEY = process.env.WC_CONSUMER_KEY!;

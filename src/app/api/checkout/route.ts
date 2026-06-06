@@ -77,7 +77,8 @@ async function hasPurchasedCertificate(customerId: number, courseSlug: string): 
 
 async function getHoneypotFields(): Promise<Record<string, string>> {
   try {
-    const res = await fetch("https://api.skillsair.com/wp-login.php?action=register", {
+    const wpOrigin = new URL(process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json").origin;
+    const res = await fetch(`${wpOrigin}/wp-login.php?action=register`, {
       headers: {
         Accept: "text/html",
         "User-Agent": "SkillsAir-NextJS/1.0",

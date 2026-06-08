@@ -48,6 +48,9 @@ export function DashboardOverview() {
   const { enrolledCourses, isLoading: coursesLoading } = useEnrolledCourses(user?.id ?? null);
 
   const inProgress = enrolledCourses.filter((c) => c.progress > 0 && c.progress < 100);
+  const notStarted = enrolledCourses.filter((c) => c.progress === 0);
+  // Show in-progress first; fall back to not-started so admin-enrolled users see their courses
+  const coursesToShow = inProgress.length > 0 ? inProgress : notStarted;
 
   const timeOfDay = () => {
     const h = new Date().getHours();
@@ -71,6 +74,8 @@ export function DashboardOverview() {
         <p className="text-neutral-500 mt-1">
           {inProgress.length > 0
             ? `You have ${inProgress.length} course${inProgress.length > 1 ? "s" : ""} in progress. Keep going!`
+            : enrolledCourses.length > 0
+            ? `You have ${enrolledCourses.length} course${enrolledCourses.length > 1 ? "s" : ""} enrolled. Ready to start?`
             : "Start your learning journey today."}
         </p>
       </motion.div>
@@ -96,11 +101,11 @@ export function DashboardOverview() {
         ))}
       </div>
 
-      {/* In Progress */}
+      {/* Enrolled Courses */}
       <section className="mb-10" aria-labelledby="in-progress-heading">
         <div className="flex items-center justify-between mb-5">
           <h2 id="in-progress-heading" className="text-lg font-heading font-semibold text-neutral-900">
-            Continue Learning
+            {inProgress.length > 0 ? "Continue Learning" : enrolledCourses.length > 0 ? "My Enrolled Courses" : "Continue Learning"}
           </h2>
           <Link href="/dashboard/courses" className="text-sm text-primary-800 font-medium hover:underline">
             View all
@@ -113,9 +118,9 @@ export function DashboardOverview() {
               <DashboardCourseSkeleton key={i} />
             ))}
           </div>
-        ) : inProgress.length > 0 ? (
+        ) : coursesToShow.length > 0 ? (
           <div className="space-y-3">
-            {inProgress.slice(0, 4).map((course) => (
+            {coursesToShow.slice(0, 4).map((course) => (
               <Link
                 key={course.id}
                 href={`/dashboard/courses/${course.slug}/learn`}
@@ -134,14 +139,20 @@ export function DashboardOverview() {
                   <p className="text-sm font-semibold text-neutral-900 truncate group-hover:text-primary-800 transition-colors">
                     {course.title}
                   </p>
-                  <div className="mt-2">
-                    <ProgressBar value={course.progress} size="xs" color="primary" />
-                  </div>
-                  <p className="text-xs text-neutral-400 mt-1">{course.progress}% complete</p>
+                  {course.progress > 0 ? (
+                    <>
+                      <div className="mt-2">
+                        <ProgressBar value={course.progress} size="xs" color="primary" />
+                      </div>
+                      <p className="text-xs text-neutral-400 mt-1">{course.progress}% complete</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-neutral-400 mt-1">Not started yet</p>
+                  )}
                 </div>
                 <div className="shrink-0">
                   <span className="text-xs font-medium text-primary-800 bg-primary-50 px-3 py-1.5 rounded-lg group-hover:bg-primary-800 group-hover:text-white transition-all">
-                    Continue →
+                    {course.progress > 0 ? "Continue →" : "Start →"}
                   </span>
                 </div>
               </Link>
@@ -150,7 +161,7 @@ export function DashboardOverview() {
         ) : (
           <div className="bg-white rounded-2xl border border-neutral-100 p-10 text-center">
             <div className="text-4xl mb-3">📚</div>
-            <p className="font-semibold text-neutral-700">No courses in progress</p>
+            <p className="font-semibold text-neutral-700">No courses enrolled yet</p>
             <p className="text-sm text-neutral-400 mt-1">Browse our catalog to find your next course</p>
             <Link href="/courses" className="mt-4 inline-block">
               <Button variant="accent" size="md">Browse Courses</Button>

@@ -170,40 +170,30 @@ export async function GET(
     return NextResponse.json({ message: "Invalid student ID" }, { status: 400 });
   }
 
-  // ── 1. Try TutorLMS ─────────────────────────────────────────────────────────
+  // ── 1. Try TutorLMS /courses?student_id=N ──────────────────────────────────
+  // The /students/{id}/courses endpoint has a PHP 500 bug on some server configs.
+  // The /courses?student_id={id} endpoint is more reliable and returns the same data.
   let enrolled: TutorCourseRecord[] = [];
   let tutorSucceeded = false;
 
   try {
-    const tutorEndpoint = tutorUrl(`/students/${studentId}/courses`);
-    console.log("[DEBUG courses] Calling TutorLMS:", tutorEndpoint);
-    const enrolledRes = await fetch(tutorEndpoint, {
-      headers: tutorHeaders(),
-      cache: "no-store",
-    });
-    console.log("[DEBUG courses] TutorLMS status:", enrolledRes.status);
+    const enrolledRes = await fetch(
+      tutorUrl("/courses", { student_id: String(studentId), per_page: "100" }),
+      { headers: tutorHeaders(), cache: "no-store" }
+    );
     if (enrolledRes.ok) {
       const enrolledPayload = await enrolledRes.json().catch(() => ({}));
-      console.log("[DEBUG courses] TutorLMS raw payload keys:", Object.keys(enrolledPayload));
-      const items = Array.isArray(enrolledPayload.data?.enrolled_courses)
-        ? (enrolledPayload.data.enrolled_courses as TutorCourseRecord[])
+      const items = Array.isArray(enrolledPayload.data?.posts)
+        ? (enrolledPayload.data.posts as TutorCourseRecord[])
         : [];
-      console.log("[DEBUG courses] TutorLMS enrolled_courses count:", items.length);
       enrolled = items;
-      tutorSucceeded = true;
-    } else {
-      const errText = await enrolledRes.text().catch(() => "");
-      console.log("[DEBUG courses] TutorLMS error body:", errText.slice(0, 300));
+      tutorSucceeded = items.length > 0;
     }
-  } catch (err) {
-    console.log("[DEBUG courses] TutorLMS exception:", err instanceof Error ? err.message : err);
-  }
+  } catch { /* fall through to WC orders */ }
 
   // ── 2. WooCommerce orders fallback ──────────────────────────────────────────
   if (!tutorSucceeded || enrolled.length === 0) {
-    console.log("[DEBUG courses] Falling back to WooCommerce orders for studentId:", studentId);
     const wcCourses = await getEnrolledCoursesFromOrders(studentId);
-    console.log("[DEBUG courses] WooCommerce fallback returned:", wcCourses.length, "courses");
     return NextResponse.json(wcCourses);
   }
 

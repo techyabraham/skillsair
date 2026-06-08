@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://api.skillsair.com/wp-json/tutor/v1/courses?student_id=2236&per_page=10\" -u \"key_c3e4646a926e6b0e4af82f56c692c5d3:secret_3d6dc7e00a52f52498388f79ad611ad61892118621c7448d021a4ece4ef1e237\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); posts=d.get\\('data',{}\\).get\\('posts',[]\\); print\\('Keys in first post:'\\); print\\(json.dumps\\(list\\(posts[0].keys\\(\\)\\), indent=2\\)\\) if posts else print\\('no posts'\\); print\\('Total in data:'\\); print\\(list\\(d.get\\('data',{}\\).keys\\(\\)\\)\\)\")",
+      "Bash(curl -s \"https://api.skillsair.com/wp-json/tutor/v1/courses?student_id=2236&per_page=100\" -u \"key_c3e4646a926e6b0e4af82f56c692c5d3:secret_3d6dc7e00a52f52498388f79ad611ad61892118621c7448d021a4ece4ef1e237\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); posts=d.get\\('data',{}\\).get\\('posts',[]\\); print\\(f'Enrolled courses: {len\\(posts\\)}'\\); [print\\(f'  - [{p[\\\\\"ID\\\\\"]}] {p[\\\\\"post_title\\\\\"]} \\({p[\\\\\"post_name\\\\\"]}\\)'\\) for p in posts]\")"
+    ]
+  }
+}

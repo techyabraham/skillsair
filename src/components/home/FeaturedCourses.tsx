@@ -9,10 +9,14 @@ import { CourseCardSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import type { CoursesResponse } from "@/types/course";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string): Promise<CoursesResponse> => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Courses are temporarily unavailable.");
+  return response.json() as Promise<CoursesResponse>;
+};
 
 export function FeaturedCourses() {
-  const { data, isLoading } = useSWR<CoursesResponse>(
+  const { data, error, isLoading, mutate } = useSWR<CoursesResponse>(
     "/api/courses?per_page=6&sort=newest",
     fetcher,
     { revalidateOnFocus: false }
@@ -45,6 +49,13 @@ export function FeaturedCourses() {
             {Array.from({ length: 6 }).map((_, i) => (
               <CourseCardSkeleton key={i} />
             ))}
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center">
+            <p className="text-sm text-neutral-500">Courses are temporarily unavailable.</p>
+            <button type="button" onClick={() => mutate()} className="mt-3 text-sm font-semibold text-primary-800 hover:underline">
+              Try again
+            </button>
           </div>
         ) : courses.length > 0 ? (
           <motion.div

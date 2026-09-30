@@ -2,32 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchTutorCurriculum, type TutorProductLink } from "@/lib/tutor-curriculum";
 import {
   fetchTutorCourses,
+  fetchPublishedProducts,
   findTutorCourseForProduct,
   mapProductToCourse,
   normalizeCourseSlug,
-  wcHeaders,
-  wcUrl,
-  type WcProduct,
 } from "@/lib/server-course-catalog";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
-  const res = await fetch(
-    wcUrl("/products", { slug: normalizeCourseSlug(params.slug), status: "publish" }),
-    {
-      headers: wcHeaders(),
-      next: { revalidate: 60 },
-    }
-  );
-
-  if (!res.ok) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const products = await fetchPublishedProducts({ slug: normalizeCourseSlug(params.slug) });
+  if (!products) {
+    return NextResponse.json({ message: "Course is temporarily unavailable." }, { status: 502 });
   }
-
-  const products = (await res.json()) as WcProduct[];
-  const p = Array.isArray(products) ? products[0] : products;
+  const p = products.find((product) => product.slug === normalizeCourseSlug(params.slug));
 
   if (!p) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

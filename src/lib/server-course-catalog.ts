@@ -56,6 +56,25 @@ export interface TutorCourseRecord extends JsonRecord {
   course_category?: unknown;
 }
 
+interface StoreProduct {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  short_description?: string;
+  prices?: {
+    price?: string;
+    regular_price?: string;
+    sale_price?: string;
+    currency_minor_unit?: number;
+  };
+  images?: Array<{ src: string }>;
+  categories?: Array<{ id: number; name: string; slug: string }>;
+  average_rating?: string;
+  review_count?: number;
+  is_purchasable?: boolean;
+}
+
 export function normalizeCourseSlug(slug: string): string {
   return COURSE_SLUG_ALIASES[slug] || slug;
 }
@@ -100,6 +119,66 @@ export function tutorUrl(path: string, params: Record<string, string> = {}): str
     if (value) url.searchParams.set(key, value);
   }
   return url.toString();
+}
+
+function storePrice(value: string | undefined, minorUnit: number): string {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? String(amount / 10 ** minorUnit) : "";
+}
+
+function mapStoreProduct(product: StoreProduct): WcProduct {
+  const prices = product.prices || {};
+  const minorUnit = prices.currency_minor_unit ?? 2;
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    description: product.description || "",
+    short_description: product.short_description || "",
+    price: storePrice(prices.price, minorUnit),
+    regular_price: storePrice(prices.regular_price, minorUnit),
+    sale_price: storePrice(prices.sale_price, minorUnit),
+    images: product.images || [],
+    categories: product.categories || [],
+    average_rating: product.average_rating || "0",
+    rating_count: product.review_count || 0,
+    total_sales: 0,
+    date_created: "",
+    date_modified: "",
+    purchasable: product.is_purchasable,
+    status: "publish",
+  };
+}
+
+export async function fetchPublishedProducts(params: Record<string, string> = {}): Promise<WcProduct[] | null> {
+  if (WC_KEY && WC_SECRET) {
+    try {
+      const res = await fetch(wcUrl("/products", { status: "publish", per_page: "100", ...params }), {
+        headers: wcHeaders(),
+        next: { revalidate: 60 },
+      });
+      const products: unknown = await res.json();
+      if (res.ok && Array.isArray(products)) return products as WcProduct[];
+      console.error("WooCommerce catalog request failed", res.status);
+    } catch (error) {
+      console.error("WooCommerce catalog request failed", error);
+    }
+  }
+
+  try {
+    const url = new URL(`${WP_BASE}/wc/store/v1/products`);
+    url.searchParams.set("per_page", "100");
+    for (const key of ["slug", "search"]) {
+      if (params[key]) url.searchParams.set(key, params[key]);
+    }
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    const products: unknown = await res.json();
+    if (res.ok && Array.isArray(products)) return (products as StoreProduct[]).map(mapStoreProduct);
+    console.error("Public WooCommerce Store catalog request failed", res.status);
+  } catch (error) {
+    console.error("Public WooCommerce Store catalog request failed", error);
+  }
+  return null;
 }
 
 function asRecord(value: unknown): JsonRecord | null {
@@ -156,10 +235,39 @@ export async function fetchTutorCourses(): Promise<TutorCourseRecord[]> {
       headers: tutorHeaders(),
       next: { revalidate: 60 },
     });
+    if (res.ok) {
+      const courses = extractItems(await res.json())
+        .map(asRecord)
+        .filter((item): item is TutorCourseRecord => Boolean(item));
+      if (courses.length) return courses;
+    }
+  } catch {
+    // Public WordPress courses still provide titles, images, and taxonomy terms.
+  }
+
+  try {
+    const res = await fetch(`${WP_BASE}/wp/v2/courses?per_page=100&_embed=1`, {
+      next: { revalidate: 60 },
+    });
     if (!res.ok) return [];
-    return extractItems(await res.json())
-      .map(asRecord)
-      .filter((item): item is TutorCourseRecord => Boolean(item));
+    const courses: unknown = await res.json();
+    if (!Array.isArray(courses)) return [];
+    return courses.map((item) => {
+      const course = asRecord(item) || {};
+      const embedded = asRecord(course._embedded);
+      const termGroups = embedded?.["wp:term"];
+      const media = embedded?.["wp:featuredmedia"];
+      const title = asRecord(course.title);
+      const terms = Array.isArray(termGroups) ? termGroups.flat().map(asRecord).filter((term): term is JsonRecord => Boolean(term)) : [];
+      const thumbnail = Array.isArray(media) ? asRecord(media[0]) : null;
+      return {
+        ID: getNumber(course, ["id"]),
+        post_name: String(course.slug || ""),
+        post_title: String(title?.rendered || ""),
+        course_category: terms.filter((term) => term.taxonomy === "course-category"),
+        thumbnail_url: typeof thumbnail?.source_url === "string" ? thumbnail.source_url : "",
+      };
+    });
   } catch {
     return [];
   }
@@ -187,7 +295,9 @@ export function categoriesFromTutorCourses(courses: TutorCourseRecord[]): Course
       const existing = bySlug.get(category.slug);
       bySlug.set(category.slug, {
         ...category,
-        count: existing ? Math.max(existing.count, category.count) : category.count,
+        count: category.count > 0
+          ? Math.max(existing?.count || 0, category.count)
+          : (existing?.count || 0) + 1,
       });
     }
   }

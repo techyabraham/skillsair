@@ -53,12 +53,12 @@ export async function GET(
 
   try {
     const res = await fetch(
-      tutorUrl("/courses", { student_id: String(studentId), per_page: "100" }),
+      tutorUrl(`/students/${studentId}/courses`),
       { headers: tutorHeaders(), cache: "no-store" }
     );
     if (res.ok) {
       const payload = await res.json().catch(() => ({}));
-      const courses = Array.isArray(payload.data?.posts) ? payload.data.posts : [];
+      const courses = Array.isArray(payload.data?.enrolled_courses) ? payload.data.enrolled_courses : [];
       if (courses.length > 0) {
         totalEnrolled = courses.length;
         totalCompleted = courses.filter((course: Record<string, unknown>) =>

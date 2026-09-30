@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   fetchTutorCourses,
+  fetchPublishedProducts,
   findTutorCourseForProduct,
   isHiddenProduct,
   mapProductToCourse,
-  wcHeaders,
-  wcUrl,
-  type WcProduct,
 } from "@/lib/server-course-catalog";
 
 export async function GET(req: NextRequest) {
@@ -24,33 +22,25 @@ export async function GET(req: NextRequest) {
   else if (sort === "price-asc") { orderby = "price"; order = "asc"; }
   else if (sort === "price-desc") { orderby = "price"; order = "desc"; }
 
-  const params: Record<string, string> = {
-    status: "publish",
-    page: "1",
-    per_page: "100",
-    orderby,
-    order,
-    search,
-  };
-
-  const res = await fetch(wcUrl("/products", params), {
-    headers: wcHeaders(),
-    next: { revalidate: 60 },
-  });
-
-  if (!res.ok) {
-    return NextResponse.json({ courses: [], total: 0, totalPages: 0, currentPage: 1 }, { status: 200 });
+  const products = await fetchPublishedProducts({ orderby, order, search });
+  if (!products) {
+    return NextResponse.json({ message: "Courses are temporarily unavailable." }, { status: 502 });
   }
-
-  const products: WcProduct[] = await res.json();
   const tutorCourses = await fetchTutorCourses();
   const allCourses = products
     .filter((product) => !isHiddenProduct(product))
     .map((product) => mapProductToCourse(product, findTutorCourseForProduct(product, tutorCourses)))
-    .filter((course) => !category || course.categories.some((cat) => cat.slug === category));
+    .filter((course) => !category || course.categories.some((cat) => cat.slug === category))
+    .sort((a, b) => {
+      if (sort === "price-asc") return a.price - b.price;
+      if (sort === "price-desc") return b.price - a.price;
+      if (sort === "popular") return b.totalStudents - a.totalStudents;
+      if (sort === "rating") return b.rating.average - a.rating.average;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
 
-  const pageNumber = Math.max(1, parseInt(page));
-  const pageSize = Math.max(1, parseInt(perPage));
+  const pageNumber = Math.max(1, Number(page) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(perPage) || 12));
   const start = (pageNumber - 1) * pageSize;
   const courses = allCourses.slice(start, start + pageSize);
   const total = allCourses.length;

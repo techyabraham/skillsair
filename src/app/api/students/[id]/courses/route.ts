@@ -170,21 +170,19 @@ export async function GET(
     return NextResponse.json({ message: "Invalid student ID" }, { status: 400 });
   }
 
-  // ── 1. Try TutorLMS /courses?student_id=N ──────────────────────────────────
-  // The /students/{id}/courses endpoint has a PHP 500 bug on some server configs.
-  // The /courses?student_id={id} endpoint is more reliable and returns the same data.
+  // ── 1. Try TutorLMS /students/{id}/courses ──────────────────────────────────
   let enrolled: TutorCourseRecord[] = [];
   let tutorSucceeded = false;
 
   try {
     const enrolledRes = await fetch(
-      tutorUrl("/courses", { student_id: String(studentId), per_page: "100" }),
+      tutorUrl(`/students/${studentId}/courses`),
       { headers: tutorHeaders(), cache: "no-store" }
     );
     if (enrolledRes.ok) {
       const enrolledPayload = await enrolledRes.json().catch(() => ({}));
-      const items = Array.isArray(enrolledPayload.data?.posts)
-        ? (enrolledPayload.data.posts as TutorCourseRecord[])
+      const items = Array.isArray(enrolledPayload.data?.enrolled_courses)
+        ? (enrolledPayload.data.enrolled_courses as TutorCourseRecord[])
         : [];
       enrolled = items;
       tutorSucceeded = items.length > 0;

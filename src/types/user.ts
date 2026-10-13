@@ -13,8 +13,7 @@ export interface User {
   lastLogin?: string;
 }
 
-export interface AuthUser extends User {
-}
+export type AuthUser = User;
 
 export interface StudentStats {
   totalEnrolled: number;

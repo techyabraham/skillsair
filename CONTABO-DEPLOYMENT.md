@@ -5,7 +5,7 @@ The frontend and backend are separate Node services. The frontend keeps its same
 ```mermaid
 flowchart LR
   Browser --> Frontend[Next.js frontend\nskillsair.com]
-  Frontend --> Backend[Payload API\napi.skillsair.com]
+  Frontend --> Backend[Payload API\nkiwi.skillsair.com]
   Backend --> Postgres[(PostgreSQL)]
   Backend --> Redis[(Redis)]
   Backend --> R2[(Cloudflare R2)]
@@ -17,13 +17,13 @@ flowchart LR
 Deploy the backend, database, and Redis first. Keep PostgreSQL and Redis private to the Coolify network; only the frontend and API should have public domains.
 
 1. Create a PostgreSQL service and a Redis service in Coolify. Use their internal hostnames in the backend connection strings.
-2. Create an application from the `skillsair-backend` repository. Select its `Dockerfile`, expose port `3001`, and assign `api.skillsair.com`. Set its environment variables using that repository's `.env.example`.
-3. Set backend URLs and origins to `BACKEND_URL=https://api.skillsair.com`, `FRONTEND_URL=https://skillsair.com`, and `CORS_ORIGINS=https://skillsair.com,https://www.skillsair.com`. Use `DATABASE_URI` and `REDIS_URL` with the private service hostnames.
+2. Create an application from the `skillsair-backend` repository. Select its `Dockerfile`, expose port `3001`, and assign `kiwi.skillsair.com`. Set its environment variables using that repository's `.env.example`.
+3. Set backend URLs and origins to `BACKEND_URL=https://kiwi.skillsair.com`, `FRONTEND_URL=https://skillsair.com`, and `CORS_ORIGINS=https://skillsair.com,https://www.skillsair.com`. Use `DATABASE_URI` and `REDIS_URL` with the private service hostnames.
 4. Set the backend secrets and integrations: `PAYLOAD_SECRET`, `JWT_SECRET`, Paystack keys and webhook secret, Resend credentials, R2 credentials, and Google Drive service-account credentials. Use strong, separate secrets for Payload and JWT.
 5. Set `CERTIFICATE_PRICE_NGN=10000` to match the frontend certificate checkout price.
-6. Wait for the backend health check at `https://api.skillsair.com/health` to return `{"status":"ok"}`.
+6. Wait for the backend health check at `https://kiwi.skillsair.com/health` to return `{"status":"ok"}`.
 7. Create a separate Coolify application from the `skillsair` frontend repository. Select its `Dockerfile`, expose port `3000`, and assign `skillsair.com` (and `www.skillsair.com` if desired).
-8. Set frontend runtime variables `SKILLSAIR_BACKEND_URL=https://api.skillsair.com` and `NEXT_PUBLIC_SITE_URL=https://skillsair.com`, then deploy.
+8. Set frontend runtime variables `SKILLSAIR_BACKEND_URL=https://kiwi.skillsair.com` and `NEXT_PUBLIC_SITE_URL=https://skillsair.com`, then deploy.
 
 The frontend Dockerfile builds Next.js standalone output. Coolify runs that production build inside the image build. The local `npm run build` command has not been run as part of this integration.
 
@@ -31,7 +31,7 @@ The included `docker-compose.yml` can run the frontend container by itself. The 
 
 ## Paystack
 
-Configure the Paystack webhook to call `https://api.skillsair.com/api/payments/webhook`. The frontend sends the selected payment option to the backend: bank-transfer checkout is restricted to Paystack's `bank_transfer` channel; the standard Paystack option leaves the provider's enabled channels available. The callback returns to `https://skillsair.com/payments/callback`, where the frontend asks the backend to verify the reference before showing the order.
+Configure the Paystack webhook to call `https://kiwi.skillsair.com/api/payments/webhook`. The frontend sends the selected payment option to the backend: bank-transfer checkout is restricted to Paystack's `bank_transfer` channel; the standard Paystack option leaves the provider's enabled channels available. The callback returns to `https://skillsair.com/payments/callback`, where the frontend asks the backend to verify the reference before showing the order.
 
 ## Data cutover
 
@@ -44,4 +44,3 @@ Before switching DNS or announcing the new app, verify:
 - An imported account can see its enrollments and course outline.
 - A test Paystack transaction reaches the callback, verifies successfully, and creates access in the backend.
 - A completed course can purchase a certificate and the certificate PDF opens from its stored media URL.
-

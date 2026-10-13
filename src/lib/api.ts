@@ -139,7 +139,8 @@ export const wooApi = {
     return res.json() as Promise<Subscription[]>;
   },
 
-  async applyCoupon(_code: string): Promise<{ valid: boolean; discount: string }> {
+  async applyCoupon(code: string): Promise<{ valid: boolean; discount: string }> {
+    if (!code.trim()) throw new Error("Enter a coupon code.");
     throw new Error("Coupon validation is not configured in the SkillsAir backend yet.");
   },
 };

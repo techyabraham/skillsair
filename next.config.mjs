@@ -11,6 +11,10 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "kiwi.skillsair.com",
+      },
+      {
+        protocol: "https",
         hostname: "media.skillsair.com",
       },
       {

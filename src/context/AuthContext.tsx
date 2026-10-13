@@ -2,12 +2,10 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import {
-  setAuthToken,
+  clearLegacyAuthTokens,
   removeAuthToken,
   getStoredUser,
   setStoredUser,
-  setTokenExpiry,
-  isAuthenticated as checkAuth,
 } from "@/lib/auth";
 import type { AuthUser, AuthState, LoginCredentials, RegisterData } from "@/types/user";
 
@@ -30,7 +28,7 @@ async function safeJson(res: Response): Promise<Record<string, unknown>> {
   }
 }
 
-function toAuthUser(data: Record<string, unknown>, fallbackToken: string): AuthUser {
+function toAuthUser(data: Record<string, unknown>): AuthUser {
   const user = data.user as {
     databaseId?: number;
     firstName?: string;
@@ -42,7 +40,7 @@ function toAuthUser(data: Record<string, unknown>, fallbackToken: string): AuthU
   } | undefined;
 
   if (!user?.email) {
-    throw new Error("WordPress returned an unexpected user response.");
+    throw new Error("SkillsAir returned an unexpected user response.");
   }
 
   return {
@@ -54,7 +52,6 @@ function toAuthUser(data: Record<string, unknown>, fallbackToken: string): AuthU
     avatar: user.avatar?.url || "",
     roles: user.roles?.nodes?.map((r: { name: string }) => r.name) ?? [],
     registeredAt: new Date().toISOString(),
-    token: typeof data.authToken === "string" ? data.authToken : fallbackToken,
   };
 }
 
@@ -67,30 +64,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    const storedUser = getStoredUser();
-    const authenticated = checkAuth();
-    setState({
-      user: authenticated && storedUser ? storedUser : null,
-      isAuthenticated: authenticated && !!storedUser,
-      isLoading: false,
-      error: null,
-    });
-
-    if (authenticated && storedUser) {
-      fetch("/api/auth/me")
-        .then(async (res) => {
-          if (!res.ok) return null;
-          return safeJson(res);
-        })
-        .then((data) => {
-          if (!data) return;
-          const refreshedUser = toAuthUser(data, storedUser.token);
-          const persistent = Boolean(localStorage.getItem("sa_user"));
-          setStoredUser(refreshedUser, persistent);
-          setState({ user: refreshedUser, isAuthenticated: true, isLoading: false, error: null });
-        })
-        .catch(() => undefined);
-    }
+    clearLegacyAuthTokens();
+    let cancelled = false;
+    const persistent = Boolean(localStorage.getItem("sa_user"));
+    const syncUser = async () => {
+      try {
+        let response = await fetch("/api/auth/me", { cache: "no-store" });
+        if (response.status === 401) {
+          const refreshed = await fetch("/api/auth/refresh", { method: "POST" });
+          if (refreshed.ok) response = await fetch("/api/auth/me", { cache: "no-store" });
+        }
+        if (!response.ok) throw new Error("Session expired");
+        const data = await safeJson(response);
+        const user = toAuthUser(data);
+        if (cancelled) return;
+        setStoredUser(user, persistent);
+        setState({ user, isAuthenticated: true, isLoading: false, error: null });
+      } catch {
+        if (cancelled) return;
+        removeAuthToken();
+        setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+      }
+    };
+    void syncUser();
+    return () => { cancelled = true; };
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
@@ -102,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           username: credentials.username,
           password: credentials.password,
+          rememberMe: credentials.rememberMe ?? false,
         }),
       });
       const data = await safeJson(res);
@@ -110,16 +108,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(typeof data.message === "string" ? data.message : "Login failed");
       }
 
-      const authToken = typeof data.authToken === "string" ? data.authToken : "";
-      if (!authToken) {
-        throw new Error("Login returned an unexpected response from WordPress.");
-      }
-      const authUser = toAuthUser(data, authToken);
+      const authUser = toAuthUser(data);
 
       const persistent = credentials.rememberMe ?? false;
-      setAuthToken(authToken, persistent);
       setStoredUser(authUser, persistent);
-      setTokenExpiry(7 * 24 * 60 * 60 * 1000, persistent);
 
       setState({ user: authUser, isAuthenticated: true, isLoading: false, error: null });
     } catch (err) {
@@ -147,26 +139,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) {
         throw new Error(typeof result.message === "string" ? result.message : "Registration failed");
       }
-      await login({ username: data.email, password: data.password });
+      const authUser = toAuthUser(result);
+      setStoredUser(authUser);
+      setState({ user: authUser, isAuthenticated: true, isLoading: false, error: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Registration failed";
       setState((prev) => ({ ...prev, isLoading: false, error: message }));
       throw err;
     }
-  }, [login]);
+  }, []);
 
   const logout = useCallback(() => {
+    void fetch("/api/auth/logout", { method: "POST" });
     removeAuthToken();
     setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
   }, []);
 
   const refreshUser = useCallback(() => {
     const storedUser = getStoredUser();
-    const authenticated = checkAuth();
     setState((prev) => ({
       ...prev,
-      user: authenticated && storedUser ? storedUser : null,
-      isAuthenticated: authenticated && !!storedUser,
+      user: storedUser,
+      isAuthenticated: !!storedUser,
     }));
   }, []);
 

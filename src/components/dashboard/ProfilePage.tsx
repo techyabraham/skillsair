@@ -6,7 +6,7 @@ import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar } from "@/components/ui/Avatar";
-import { Input, Textarea } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { wpApi } from "@/lib/api";
@@ -15,17 +15,20 @@ import { updateStoredUser } from "@/lib/auth";
 const profileSchema = z.object({
   firstName: z.string().min(2, "First name is required"),
   lastName: z.string().min(2, "Last name is required"),
-  displayName: z.string().min(2, "Display name is required"),
   email: z.string().email("Enter a valid email"),
   phone: z.string().optional(),
-  bio: z.string().max(500, "Bio max 500 characters").optional(),
-  timezone: z.string().optional(),
 });
 
 const passwordSchema = z
   .object({
     currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Must contain at least one special character"),
     confirmPassword: z.string(),
   })
   .refine((d) => d.newPassword === d.confirmPassword, {
@@ -35,17 +38,6 @@ const passwordSchema = z
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
-
-const TIMEZONES = [
-  "Africa/Lagos",
-  "Africa/Accra",
-  "Africa/Nairobi",
-  "Africa/Cairo",
-  "Europe/London",
-  "America/New_York",
-  "America/Los_Angeles",
-  "Asia/Dubai",
-];
 
 export function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -64,10 +56,8 @@ export function ProfilePage() {
     defaultValues: {
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
-      displayName: user?.displayName || "",
       email: user?.email || "",
-      bio: user?.bio || "",
-      timezone: user?.timezone || "Africa/Lagos",
+      phone: user?.phone || "",
     },
   });
 
@@ -85,11 +75,9 @@ export function ProfilePage() {
       const updated = await wpApi.updateProfile(user.id, {
         firstName: data.firstName,
         lastName: data.lastName,
-        displayName: data.displayName,
+        displayName: `${data.firstName} ${data.lastName}`.trim(),
         email: data.email,
         phone: data.phone,
-        bio: data.bio,
-        timezone: data.timezone,
       });
       updateStoredUser(updated);
       refreshUser();
@@ -199,46 +187,18 @@ export function ProfilePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <Input
-            label="Display Name"
-            error={profileErrors.displayName?.message}
-            {...regProfile("displayName")}
-          />
-          <Input
             label="Email Address"
             type="email"
             error={profileErrors.email?.message}
             {...regProfile("email")}
           />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <Input
             label="Phone Number"
             type="tel"
             hint="Optional"
             {...regProfile("phone")}
           />
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">Timezone</label>
-            <select
-              className="input-field"
-              {...regProfile("timezone")}
-            >
-              {TIMEZONES.map((tz) => (
-                <option key={tz} value={tz}>{tz}</option>
-              ))}
-            </select>
-          </div>
         </div>
-
-        <Textarea
-          label="Bio"
-          rows={4}
-          placeholder="Tell us about yourself..."
-          hint="Max 500 characters"
-          error={profileErrors.bio?.message}
-          {...regProfile("bio")}
-        />
 
         <div className="flex justify-end mt-5">
           <Button type="submit" variant="primary" size="md" loading={updating}>

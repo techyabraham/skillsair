@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Email or username is required"),
+  username: z.string().email("Enter a valid email address"),
   password: z.string().min(1, "Password is required"),
   rememberMe: z.boolean().optional(),
 });
@@ -52,8 +52,8 @@ export function LoginForm() {
       )}
 
       <Input
-        label="Email or Username"
-        type="text"
+        label="Email address"
+        type="email"
         autoComplete="username"
         placeholder="you@example.com"
         error={errors.username?.message}

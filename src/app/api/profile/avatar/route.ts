@@ -1,30 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const WP_API = process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json";
+import { backendFetch, backendToken } from "@/lib/backend-api";
 
 export async function POST(req: NextRequest) {
-  const authorization = req.headers.get("authorization");
-  if (!authorization?.startsWith("Bearer ")) {
-    return NextResponse.json({ message: "You must be signed in to upload an avatar" }, { status: 401 });
-  }
-
+  if (!backendToken(req)) return NextResponse.json({ message: "You must be signed in to upload an avatar" }, { status: 401 });
   const formData = await req.formData();
-  const res = await fetch(`${WP_API}/wp/v2/media`, {
-    method: "POST",
-    headers: { Authorization: authorization },
-    body: formData,
-  });
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    return NextResponse.json(
-      { message: data.message || "Avatar upload failed" },
-      { status: res.status }
-    );
+  const upstream = await backendFetch(req, "profile/avatar", { method: "POST", body: formData });
+  const payload = await upstream.json().catch(() => ({}));
+  if (!upstream.ok) {
+    const message = (payload as { error?: { message?: string }; message?: string }).error?.message
+      || (payload as { message?: string }).message
+      || "Avatar upload failed";
+    return NextResponse.json({ message }, { status: upstream.status });
   }
-
-  return NextResponse.json({
-    id: data.id,
-    url: data.source_url || data.guid?.rendered || "",
-  });
+  return NextResponse.json((payload as { data?: unknown }).data ?? payload);
 }

@@ -1,109 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
-import { wcHeaders, wcUrl } from "@/lib/server-course-catalog";
-import type { Order, OrderLineItem, OrderStatus } from "@/types/order";
+import { backendFetch, backendPayload } from "@/lib/backend-api";
+import type { Order } from "@/types/order";
 
-interface WooLineItem {
+interface BackendOrder {
   id: number;
-  product_id: number;
-  name: string;
-  quantity: number;
-  subtotal: string;
-  total: string;
-  price: number;
-  image?: { src?: string };
-  slug?: string;
+  reference?: string;
+  status?: string;
+  currency?: string;
+  amount?: number;
+  type?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  paidAt?: string;
+  paystackTransactionId?: string;
+  user?: { id?: number; email?: string; firstName?: string; lastName?: string } | number;
+  course?: { id?: number; title?: string; slug?: string; thumbnail?: { url?: string } } | number;
 }
+interface PayloadList { docs?: BackendOrder[] }
 
-interface WooOrder {
-  id: number;
-  order_key: string;
-  status: OrderStatus;
-  currency: string;
-  date_created: string;
-  date_completed?: string | null;
-  total: string;
-  total_tax: string;
-  discount_total: string;
-  payment_method: string;
-  payment_method_title: string;
-  transaction_id?: string;
-  customer_id: number;
-  billing: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-    address_1: string;
-    address_2?: string;
-    city: string;
-    state: string;
-    postcode: string;
-    country: string;
-  };
-  line_items: WooLineItem[];
-  coupon_lines: Array<{ id: number; code: string; discount: string }>;
-}
-
-function mapOrder(o: WooOrder): Order {
-  const lineItems: OrderLineItem[] = o.line_items.map((item) => ({
-    id: item.id,
-    productId: item.product_id,
-    name: item.name,
-    quantity: item.quantity,
-    subtotal: item.subtotal,
-    total: item.total,
-    price: item.price,
-    image: item.image?.src,
-    slug: item.slug,
-  }));
+function mapOrder(item: BackendOrder): Order {
+  const user = typeof item.user === "object" && item.user ? item.user : {};
+  const course = typeof item.course === "object" && item.course ? item.course : {};
+  const total = Number(item.amount || 0).toFixed(2);
   return {
-    id: o.id,
-    orderKey: o.order_key,
-    status: o.status,
-    currency: o.currency,
-    dateCreated: o.date_created,
-    dateCompleted: o.date_completed || undefined,
-    total: o.total,
-    subtotal: lineItems.reduce((s, i) => s + Number(i.subtotal || 0), 0).toFixed(2),
-    totalTax: o.total_tax,
-    discountTotal: o.discount_total,
-    lineItems,
-    billing: {
-      firstName: o.billing.first_name,
-      lastName: o.billing.last_name,
-      email: o.billing.email,
-      phone: o.billing.phone,
-      address1: o.billing.address_1,
-      address2: o.billing.address_2,
-      city: o.billing.city,
-      state: o.billing.state,
-      postcode: o.billing.postcode,
-      country: o.billing.country,
-    },
-    paymentMethod: o.payment_method,
-    paymentMethodTitle: o.payment_method_title,
-    transactionId: o.transaction_id,
-    customerId: o.customer_id,
-    couponLines: o.coupon_lines,
+    id: item.id,
+    orderKey: item.reference || String(item.id),
+    status: item.status === "success" ? "completed" : item.status === "failed" ? "failed" : item.status === "refunded" ? "refunded" : "pending",
+    currency: item.currency || "NGN",
+    dateCreated: item.createdAt || "",
+    dateCompleted: item.paidAt,
+    total,
+    subtotal: total,
+    totalTax: "0.00",
+    discountTotal: "0.00",
+    lineItems: [{ id: item.id, productId: Number(course.id || 0), name: course.title || (item.type === "certificate" ? "Course certificate" : "Course access"), quantity: 1, subtotal: total, total, price: Number(item.amount || 0), image: course.thumbnail?.url, slug: course.slug }],
+    billing: { firstName: user.firstName || "", lastName: user.lastName || "", email: user.email || "", phone: "", address1: "", city: "", state: "", postcode: "", country: "NG" },
+    paymentMethod: "paystack",
+    paymentMethodTitle: "Paystack",
+    transactionId: item.paystackTransactionId,
+    customerId: Number(user.id ?? (typeof item.user === "number" ? item.user : 0)),
+    couponLines: [],
   };
 }
 
 export async function GET(req: NextRequest) {
-  const customerId = req.nextUrl.searchParams.get("customer");
-  if (!customerId || !Number.isFinite(Number(customerId))) {
-    return NextResponse.json({ message: "Valid customer ID required" }, { status: 400 });
+  const customer = req.nextUrl.searchParams.get("customer");
+  if (!customer || !/^\d+$/.test(customer)) return NextResponse.json({ message: "Valid customer ID required" }, { status: 400 });
+  const query = new URLSearchParams({ depth: "2", limit: "1000", sort: "-createdAt", "where[user][equals]": customer });
+  const response = await backendFetch(req, `orders?${query}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    return NextResponse.json({ message: body?.error?.message || "Unable to load orders." }, { status: response.status });
   }
-
-  try {
-    const res = await fetch(
-      wcUrl("/orders", { customer: customerId, per_page: "100" }),
-      { headers: wcHeaders(), cache: "no-store" }
-    );
-    if (!res.ok) return NextResponse.json([]);
-    const raw = await res.json().catch(() => []);
-    if (!Array.isArray(raw)) return NextResponse.json([]);
-    return NextResponse.json(raw.map(mapOrder));
-  } catch {
-    return NextResponse.json([]);
-  }
+  const payload = await backendPayload<PayloadList>(response);
+  return NextResponse.json((payload.docs || []).map(mapOrder));
 }

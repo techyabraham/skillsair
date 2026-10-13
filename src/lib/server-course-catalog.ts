@@ -1,6 +1,7 @@
 import type { Course, CourseCategory } from "@/types/course";
 
 const WP_BASE = (process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json").replace(/\/$/, "");
+const PUBLIC_WP_BASE = "https://api.skillsair.com/wp-json";
 const WC_API = `${WP_BASE}/wc/v3`;
 const TUTOR_API = process.env.NEXT_PUBLIC_TUTOR_API || `${WP_BASE}/tutor/v1`;
 
@@ -166,7 +167,7 @@ export async function fetchPublishedProducts(params: Record<string, string> = {}
   }
 
   try {
-    const url = new URL(`${WP_BASE}/wc/store/v1/products`);
+    const url = new URL(`${PUBLIC_WP_BASE}/wc/store/v1/products`);
     url.searchParams.set("per_page", "100");
     for (const key of ["slug", "search"]) {
       if (params[key]) url.searchParams.set(key, params[key]);
@@ -246,7 +247,7 @@ export async function fetchTutorCourses(): Promise<TutorCourseRecord[]> {
   }
 
   try {
-    const res = await fetch(`${WP_BASE}/wp/v2/courses?per_page=100&_embed=1`, {
+    const res = await fetch(`${PUBLIC_WP_BASE}/wp/v2/courses?per_page=100&_embed=1`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return [];

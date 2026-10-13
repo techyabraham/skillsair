@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   poweredByHeader: false,
   compress: true,
   images: {
@@ -7,6 +8,10 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "api.skillsair.com",
+      },
+      {
+        protocol: "https",
+        hostname: "media.skillsair.com",
       },
       {
         protocol: "https",

@@ -1,111 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Order, OrderLineItem, OrderStatus } from "@/types/order";
+import { backendFetch, backendPayload } from "@/lib/backend-api";
+import type { Order } from "@/types/order";
 
-const WC_API = `${(process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json").replace(/\/$/, "")}/wc/v3`;
-const WC_KEY = process.env.WC_CONSUMER_KEY!;
-const WC_SECRET = process.env.WC_CONSUMER_SECRET!;
+interface BackendOrder {
+  id: number; reference?: string; status?: string; currency?: string; amount?: number; type?: string;
+  createdAt?: string; paidAt?: string; paystackTransactionId?: string;
+  user?: { id?: number; email?: string; firstName?: string; lastName?: string } | number;
+  course?: { id?: number; title?: string; slug?: string; thumbnail?: { url?: string } } | number;
+}
 
-interface WooOrder {
-  id: number;
-  order_key: string;
-  status: OrderStatus;
-  currency: string;
-  date_created: string;
-  date_completed?: string | null;
-  total: string;
-  total_tax: string;
-  discount_total: string;
-  payment_method: string;
-  payment_method_title: string;
-  transaction_id?: string;
-  customer_id: number;
-  billing: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-    address_1: string;
-    address_2?: string;
-    city: string;
-    state: string;
-    postcode: string;
-    country: string;
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const response = await backendFetch(req, `orders/${encodeURIComponent(params.id)}?depth=2`);
+  if (!response.ok) return NextResponse.json({ message: "Order not found" }, { status: response.status });
+  const item = await backendPayload<BackendOrder>(response);
+  const user = typeof item.user === "object" && item.user ? item.user : {};
+  const course = typeof item.course === "object" && item.course ? item.course : {};
+  const total = Number(item.amount || 0).toFixed(2);
+  const order: Order = {
+    id: item.id, orderKey: item.reference || String(item.id),
+    status: item.status === "success" ? "completed" : item.status === "failed" ? "failed" : item.status === "refunded" ? "refunded" : "pending",
+    currency: item.currency || "NGN", dateCreated: item.createdAt || "", dateCompleted: item.paidAt,
+    total, subtotal: total, totalTax: "0.00", discountTotal: "0.00",
+    lineItems: [{ id: item.id, productId: Number(course.id || 0), name: course.title || (item.type === "certificate" ? "Course certificate" : "Course access"), quantity: 1, subtotal: total, total, price: Number(item.amount || 0), image: course.thumbnail?.url, slug: course.slug }],
+    billing: { firstName: user.firstName || "", lastName: user.lastName || "", email: user.email || "", phone: "", address1: "", city: "", state: "", postcode: "", country: "NG" },
+    paymentMethod: "paystack", paymentMethodTitle: "Paystack", transactionId: item.paystackTransactionId,
+    customerId: Number(user.id ?? (typeof item.user === "number" ? item.user : 0)), couponLines: [],
   };
-  line_items: Array<{
-    id: number;
-    product_id: number;
-    name: string;
-    quantity: number;
-    subtotal: string;
-    total: string;
-    price: number;
-    image?: { src?: string };
-    slug?: string;
-  }>;
-  coupon_lines: Array<{ id: number; code: string; discount: string }>;
-}
-
-function wcUrl(path: string): string {
-  const url = new URL(`${WC_API}${path}`);
-  url.searchParams.set("consumer_key", WC_KEY);
-  url.searchParams.set("consumer_secret", WC_SECRET);
-  return url.toString();
-}
-
-function mapOrder(order: WooOrder): Order {
-  const lineItems: OrderLineItem[] = order.line_items.map((item) => ({
-    id: item.id,
-    productId: item.product_id,
-    name: item.name,
-    quantity: item.quantity,
-    subtotal: item.subtotal,
-    total: item.total,
-    price: item.price,
-    image: item.image?.src,
-    slug: item.slug,
-  }));
-
-  return {
-    id: order.id,
-    orderKey: order.order_key,
-    status: order.status,
-    currency: order.currency,
-    dateCreated: order.date_created,
-    dateCompleted: order.date_completed || undefined,
-    total: order.total,
-    subtotal: lineItems
-      .reduce((sum, item) => sum + Number(item.subtotal || 0), 0)
-      .toFixed(2),
-    totalTax: order.total_tax,
-    discountTotal: order.discount_total,
-    lineItems,
-    billing: {
-      firstName: order.billing.first_name,
-      lastName: order.billing.last_name,
-      email: order.billing.email,
-      phone: order.billing.phone,
-      address1: order.billing.address_1,
-      address2: order.billing.address_2,
-      city: order.billing.city,
-      state: order.billing.state,
-      postcode: order.billing.postcode,
-      country: order.billing.country,
-    },
-    paymentMethod: order.payment_method,
-    paymentMethodTitle: order.payment_method_title,
-    transactionId: order.transaction_id,
-    customerId: order.customer_id,
-    couponLines: order.coupon_lines,
-  };
-}
-
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const res = await fetch(wcUrl(`/orders/${params.id}`), { cache: "no-store" });
-  const order = await res.json();
-
-  if (!res.ok) {
-    return NextResponse.json({ message: order.message || "Order not found" }, { status: res.status });
-  }
-
-  return NextResponse.json(mapOrder(order));
+  return NextResponse.json(order);
 }

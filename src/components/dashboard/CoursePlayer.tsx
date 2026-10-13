@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { CurriculumAccordion } from "@/components/course/CurriculumAccordion";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Button } from "@/components/ui/Button";
@@ -9,6 +9,8 @@ import { useToast } from "@/components/ui/Toast";
 import { tutorApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useCourse } from "@/hooks/useCourses";
+import { useAuth } from "@/hooks/useAuth";
+import { useEnrolledCourses } from "@/hooks/useStudent";
 import type { CourseLesson } from "@/types/course";
 import Link from "next/link";
 
@@ -22,8 +24,13 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
   const [activeLesson, setActiveLesson] = useState<CourseLesson | null>(null);
   const [markingComplete, setMarkingComplete] = useState(false);
   const [completedLessons, setCompletedLessons] = useState<Set<number>>(new Set());
+  const [watchedSeconds, setWatchedSeconds] = useState(0);
+  const lastVideoTime = useRef<{ lessonId: number; time: number } | null>(null);
 
   const { course, isLoading } = useCourse(slug);
+  const { user } = useAuth();
+  const { enrolledCourses } = useEnrolledCourses(user?.id ?? null);
+  const enrolledCourse = enrolledCourses.find((item) => item.id === course?.id || item.slug === slug);
   const curriculum = course?.curriculum ?? [];
   const totalLessons = curriculum.reduce(
     (acc: number, s: { lessons: CourseLesson[] }) => acc + s.lessons.length,
@@ -38,6 +45,15 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
     }
   }, [activeLesson, allLessons]);
 
+  useEffect(() => {
+    setWatchedSeconds(0);
+    lastVideoTime.current = null;
+  }, [activeLesson?.id]);
+
+  useEffect(() => {
+    if (enrolledCourse) setCompletedLessons(new Set(enrolledCourse.completedLessons));
+  }, [enrolledCourse]);
+
   const handleLessonClick = useCallback((lesson: CourseLesson) => {
     setActiveLesson(lesson);
   }, []);
@@ -46,7 +62,7 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
     if (!activeLesson || !course?.id) return;
     setMarkingComplete(true);
     try {
-      await tutorApi.markLessonComplete(course.id, activeLesson.id);
+      await tutorApi.markLessonComplete(course.id, activeLesson.id, watchedSeconds);
       setCompletedLessons((prev) => new Set(Array.from(prev).concat(activeLesson.id)));
       addToast({ type: "success", title: "Lesson completed!", message: "Great job! Keep going." });
 
@@ -61,6 +77,18 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
     } finally {
       setMarkingComplete(false);
     }
+  };
+
+  const trackVideoTime = (event: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = event.currentTarget;
+    const previous = lastVideoTime.current;
+    if (previous && previous.lessonId === activeLesson?.id && !video.paused) {
+      const elapsed = video.currentTime - previous.time;
+      if (elapsed > 0 && elapsed <= 2.5) {
+        setWatchedSeconds((seconds) => seconds + elapsed);
+      }
+    }
+    lastVideoTime.current = { lessonId: activeLesson?.id ?? 0, time: video.currentTime };
   };
 
   const navigateLesson = (direction: "prev" | "next") => {
@@ -143,6 +171,8 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                   preload="metadata"
                   className="w-full h-full"
                   aria-label={`Video: ${activeLesson.title}`}
+                  onTimeUpdate={trackVideoTime}
+                  onSeeking={() => { lastVideoTime.current = null; }}
                 />
               )
             ) : (

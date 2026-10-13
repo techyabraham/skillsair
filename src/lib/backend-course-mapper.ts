@@ -1,0 +1,161 @@
+import type { Course, CourseCategory, CourseLesson, CourseSection } from "@/types/course";
+
+type RecordValue = Record<string, unknown>;
+
+function record(value: unknown): RecordValue {
+  return value && typeof value === "object" ? value as RecordValue : {};
+}
+
+function relationId(value: unknown): number {
+  const rel = record(value);
+  const id = typeof value === "object" && value !== null ? rel.id : value;
+  return Number(id) || 0;
+}
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function richText(value: unknown): string {
+  if (typeof value === "string") return value;
+  const pieces: string[] = [];
+  const visit = (node: unknown) => {
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const current = record(node);
+    if (typeof current.text === "string") pieces.push(current.text);
+    if (current.children) visit(current.children);
+  };
+  visit(value);
+  return pieces.join(" ").replace(/\s+/g, " ").trim();
+}
+
+function mediaUrl(value: unknown): string {
+  return text(record(value).url);
+}
+
+function mapCategory(value: unknown): CourseCategory {
+  const category = record(value);
+  return {
+    id: relationId(category),
+    name: text(category.name),
+    slug: text(category.slug),
+    count: Number(category.courseCount || 0),
+    description: text(category.description),
+  };
+}
+
+function mapLesson(value: unknown): CourseLesson {
+  const lesson = record(value);
+  const id = relationId(lesson);
+  const attachments = Array.isArray(lesson.attachments) ? lesson.attachments : [];
+  return {
+    id,
+    title: text(lesson.title),
+    slug: text(lesson.slug),
+    duration: Number(lesson.duration || 0),
+    type: text(lesson.content) ? "text" : "video",
+    isPreview: Boolean(lesson.isFree),
+    isCompleted: Boolean(lesson.isCompleted),
+    videoUrl: text(lesson.driveFileId) ? `/api/media/lesson/${id}` : "",
+    content: richText(lesson.content)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .split(/\n{2,}/)
+      .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+      .join(""),
+    attachments: attachments.map((attachment) => {
+      const file = record(attachment);
+      return {
+        id: relationId(file),
+        title: text(file.alt) || text(file.filename) || "Course material",
+        url: mediaUrl(file),
+        type: text(file.mimeType),
+      };
+    }),
+  };
+}
+
+function mapSection(value: unknown): CourseSection {
+  const section = record(value);
+  const lessons = (Array.isArray(section.lessons) ? [...section.lessons] : [])
+    .sort((a, b) => Number(record(a).order || 0) - Number(record(b).order || 0))
+    .map(mapLesson)
+  return {
+    id: relationId(section),
+    title: text(section.title),
+    lessons,
+    totalDuration: lessons.reduce((sum, lesson) => sum + lesson.duration, 0),
+  };
+}
+
+export function mapBackendCourse(value: unknown): Course {
+  const course = record(value);
+  const instructor = record(course.instructor);
+  const sections = (Array.isArray(course.sections) ? [...course.sections] : [])
+    .sort((a, b) => Number(record(a).order || 0) - Number(record(b).order || 0))
+    .map(mapSection)
+  const categories = (Array.isArray(course.categories) ? course.categories : [])
+    .map(mapCategory)
+    .filter((category) => category.name && category.slug);
+  const requirements = (Array.isArray(course.requirements) ? course.requirements : [])
+    .map((item) => text(record(item).requirement) || text(item))
+    .filter(Boolean);
+  const outcomes = (Array.isArray(course.objectives) ? course.objectives : [])
+    .map((item) => text(record(item).objective) || text(item))
+    .filter(Boolean);
+  const durationSeconds = Number(course.totalDuration || sections.reduce((sum, section) => sum + section.totalDuration, 0));
+  const price = Number(course.price || 0);
+
+  return {
+    id: relationId(course),
+    title: text(course.title),
+    slug: text(course.slug),
+    excerpt: text(course.shortDescription) || richText(course.description),
+    description: richText(course.description),
+    thumbnail: mediaUrl(course.thumbnail),
+    price,
+    regularPrice: price,
+    isFree: price <= 0,
+    level: course.level === "beginner" || course.level === "intermediate" || course.level === "advanced"
+      ? course.level
+      : "all",
+    status: course.status === "published" ? "publish" : "draft",
+    language: "English",
+    duration: Math.round(durationSeconds / 3600),
+    totalLessons: Number(course.totalLessons || sections.reduce((sum, section) => sum + section.lessons.length, 0)),
+    totalStudents: Number(course.totalStudents || 0),
+    totalSections: sections.length,
+    rating: { average: Number(course.averageRating || 0), count: Number(course.reviewCount || 0), breakdown: {} },
+    instructor: {
+      id: relationId(instructor),
+      name: `${text(instructor.firstName)} ${text(instructor.lastName)}`.trim() || text(instructor.email) || "SkillsAir Instructor",
+      avatar: mediaUrl(instructor.avatar),
+      bio: text(instructor.bio),
+      totalStudents: 0,
+      totalCourses: 0,
+      rating: 0,
+      slug: text(instructor.slug),
+    },
+    categories,
+    tags: [],
+    curriculum: sections,
+    requirements,
+    outcomes,
+    targetAudience: [],
+    includes: {
+      videoHours: Math.round(durationSeconds / 3600),
+      articles: sections.flatMap((section) => section.lessons).filter((lesson) => lesson.type === "text").length,
+      downloadableResources: sections.flatMap((section) => section.lessons).reduce((sum, lesson) => sum + (lesson.attachments?.length || 0), 0),
+      fullLifetimeAccess: false,
+      certificate: true,
+      mobileAccess: true,
+    },
+    lastUpdated: text(course.updatedAt),
+    createdAt: text(course.publishedAt) || text(course.createdAt),
+    reviews: [],
+  };
+}

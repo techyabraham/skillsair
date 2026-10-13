@@ -1,70 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const WP_API = process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json";
-
-interface ProfilePayload {
-  id?: number;
-  firstName?: string;
-  lastName?: string;
-  displayName?: string;
-  email?: string;
-  phone?: string;
-  bio?: string;
-  timezone?: string;
-}
-
-function authHeader(req: NextRequest): string | null {
-  const header = req.headers.get("authorization");
-  return header?.startsWith("Bearer ") ? header : null;
-}
+import { backendFetch, backendToken } from "@/lib/backend-api";
 
 export async function PATCH(req: NextRequest) {
-  const authorization = authHeader(req);
-  if (!authorization) {
-    return NextResponse.json({ message: "You must be signed in to update your profile" }, { status: 401 });
+  if (!backendToken(req)) return NextResponse.json({ message: "You must be signed in to update your profile" }, { status: 401 });
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+  const upstream = await backendFetch(req, "profile/update", { method: "PATCH", body: JSON.stringify(body) });
+  const payload = await upstream.json().catch(() => null);
+  if (!upstream.ok) {
+    const message = (payload as { error?: { message?: string }; message?: string } | null)?.error?.message
+      || (payload as { message?: string } | null)?.message
+      || "Profile update failed";
+    return NextResponse.json({ message }, { status: upstream.status });
   }
-
-  const body = (await req.json()) as ProfilePayload;
-  if (!body.id) {
-    return NextResponse.json({ message: "Missing user ID" }, { status: 400 });
+  const userId = req.cookies.get("sa_user_id")?.value;
+  if (!userId || !/^\d+$/.test(userId)) {
+    return NextResponse.json({ message: "Your session has expired. Please sign in again." }, { status: 401 });
   }
-
-  const res = await fetch(`${WP_API}/wp/v2/users/${body.id}`, {
-    method: "POST",
-    headers: {
-      Authorization: authorization,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      first_name: body.firstName,
-      last_name: body.lastName,
-      name: body.displayName,
-      email: body.email,
-      description: body.bio,
-      meta: {
-        phone: body.phone || "",
-        timezone: body.timezone || "",
-      },
-    }),
-  });
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    return NextResponse.json(
-      { message: data.message || "Profile update failed" },
-      { status: res.status }
-    );
+  const userResponse = await backendFetch(req, `users/${userId}?depth=1`);
+  if (!userResponse.ok) {
+    return NextResponse.json({ message: "Profile updated, but could not reload your account." }, { status: 502 });
   }
-
+  const userPayload = await userResponse.json().catch(() => null) as {
+    data?: { id?: number; firstName?: string; lastName?: string; email?: string; phone?: string; avatar?: { url?: string } | number; role?: string; createdAt?: string };
+    id?: number; firstName?: string; lastName?: string; email?: string; phone?: string; avatar?: { url?: string } | number; role?: string; createdAt?: string;
+  } | null;
+  const user = userPayload?.data ?? userPayload;
   return NextResponse.json({
-    id: data.id ?? body.id,
-    firstName: data.first_name ?? body.firstName ?? "",
-    lastName: data.last_name ?? body.lastName ?? "",
-    displayName: data.name ?? body.displayName ?? "",
-    email: data.email ?? body.email ?? "",
-    phone: data.meta?.phone ?? body.phone ?? "",
-    bio: data.description?.raw ?? data.description ?? body.bio ?? "",
-    timezone: data.meta?.timezone ?? body.timezone ?? "",
-    avatar: data.avatar_urls?.["96"] || data.avatar_urls?.["48"] || "",
+    id: user?.id ?? Number(userId),
+    firstName: user?.firstName ?? "",
+    lastName: user?.lastName ?? "",
+    displayName: `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || user?.email || "",
+    email: user?.email ?? "",
+    phone: user?.phone ?? "",
+    avatar: typeof user?.avatar === "object" ? user.avatar.url ?? "" : "",
+    roles: user?.role ? [user.role] : [],
+    registeredAt: user?.createdAt ?? new Date().toISOString(),
   });
 }

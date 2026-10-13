@@ -2,31 +2,13 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { useForm, type SubmitHandler } from "react-hook-form";
-import { zodResolver } from "@/lib/zodResolver";
-import { z } from "zod";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { useAuth } from "@/hooks/useAuth";
-import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/lib/utils";
 import type { Course } from "@/types/course";
-
-const billingSchema = z.object({
-  firstName: z.string().min(2, "Required"),
-  lastName: z.string().min(2, "Required"),
-  email: z.string().email("Valid email required"),
-  phone: z.string().min(6, "Valid phone required"),
-  address1: z.string().min(3, "Required"),
-  city: z.string().min(2, "Required"),
-  state: z.string().min(2, "Required"),
-  postcode: z.string().min(2, "Required"),
-  country: z.string().min(2, "Required"),
-});
-
-type BillingFormData = z.infer<typeof billingSchema>;
 
 const PAYMENT_METHODS = [
   {
@@ -62,7 +44,7 @@ export function CheckoutPage() {
 
   const courseSlug = searchParams.get("course");
   const certificateCourseSlug = searchParams.get("certificate");
-  const productSlug = certificateCourseSlug ? "course-certificate-2" : courseSlug;
+  const productSlug = certificateCourseSlug || courseSlug;
   const { data: course } = useSWR<Course>(
     productSlug ? `/api/courses/${productSlug}` : null,
     fetcher
@@ -72,29 +54,19 @@ export function CheckoutPage() {
     fetcher
   );
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<BillingFormData>({
-    resolver: zodResolver(billingSchema),
-    defaultValues: {
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      email: user?.email || "",
-      country: "NG",
-    },
-  });
-
-  const price = course?.price ?? 0;
-  const total = price;
   const isCertificateCheckout = Boolean(certificateCourseSlug);
+  const price = isCertificateCheckout ? 10000 : course?.price ?? 0;
+  const total = price;
   const summaryTitle = isCertificateCheckout
     ? `Certificate - ${certificateCourse?.title || "Course"}`
     : course?.title;
-  const summarySubtitle = isCertificateCheckout ? "Certificate processing fee" : "Monthly subscription";
+  const summarySubtitle = isCertificateCheckout ? "Certificate processing fee" : "Course enrollment";
 
-  const onSubmit: SubmitHandler<BillingFormData> = async (billing) => {
+  const onSubmit = async () => {
+    if (!user) {
+      addToast({ type: "error", title: "Sign in required", message: "Sign in before starting a payment." });
+      return;
+    }
     if (!course) {
       addToast({ type: "error", title: isCertificateCheckout ? "No certificate selected" : "No course selected" });
       return;
@@ -105,7 +77,6 @@ export function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          billing,
           productId: course.id,
           courseSlug: productSlug,
           certificateCourseSlug,
@@ -122,14 +93,6 @@ export function CheckoutPage() {
 
       if (!data.authorizationUrl) {
         throw new Error("Paystack did not return a payment link.");
-      }
-
-      if (data.newAccount) {
-        addToast({
-          type: "success",
-          title: "Account created!",
-          message: "Continue to Paystack to complete your payment.",
-        });
       }
 
       window.location.assign(data.authorizationUrl);
@@ -149,44 +112,27 @@ export function CheckoutPage() {
         <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-2">Checkout</h1>
         {!user && (
           <p className="text-sm text-neutral-500 mb-8">
-            Already have an account?{" "}
-            <a href={`/login?next=/checkout${certificateCourseSlug ? `?certificate=${certificateCourseSlug}` : courseSlug ? `?course=${courseSlug}` : ""}`} className="text-primary-800 font-medium hover:underline">
+            Sign in to your SkillsAir account before checkout.{" "}
+            <a href={`/login?next=${encodeURIComponent(`/checkout?${certificateCourseSlug ? `certificate=${certificateCourseSlug}` : `course=${courseSlug || ""}`}`)}`} className="text-primary-800 font-medium hover:underline">
               Sign in
-            </a>{" "}
-            to auto-fill your details.
+            </a>
           </p>
         )}
         {user && <p className="text-sm text-neutral-500 mb-8">Signed in as <span className="font-medium">{user.email}</span></p>}
 
         <div className="grid lg:grid-cols-3 gap-8 items-start">
-          {/* Left: Billing Form */}
+          {/* Left: Account and payment method */}
           <div className="lg:col-span-2 space-y-6">
-            <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} noValidate>
-              <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-                <h2 className="text-base font-semibold text-neutral-900 mb-5">Billing Details</h2>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <Input label="First Name" error={errors.firstName?.message} {...register("firstName")} />
-                  <Input label="Last Name" error={errors.lastName?.message} {...register("lastName")} />
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <Input label="Email Address" type="email" error={errors.email?.message} {...register("email")} />
-                  <Input label="Phone Number" type="tel" error={errors.phone?.message} {...register("phone")} />
-                </div>
-                <Input label="Street Address" error={errors.address1?.message} className="mb-4" {...register("address1")} />
-                <div className="grid grid-cols-3 gap-4">
-                  <Input label="City" error={errors.city?.message} {...register("city")} />
-                  <Input label="State" error={errors.state?.message} {...register("state")} />
-                  <Input label="Postcode" error={errors.postcode?.message} {...register("postcode")} />
-                </div>
-                {!user && (
-                  <p className="mt-4 text-xs text-neutral-400 bg-neutral-50 rounded-xl p-3">
-                    A SkillsAir account will be created with your email address so you can access your course.
-                  </p>
-                )}
-              </div>
+            {user && (
+              <section className="bg-white rounded-2xl border border-neutral-100 p-6">
+                <h2 className="text-base font-semibold text-neutral-900">Payment account</h2>
+                <p className="mt-2 text-sm text-neutral-600">Payment and course access will be associated with this account.</p>
+                <p className="mt-4 text-sm font-medium text-neutral-900">{user.displayName}</p>
+                <p className="text-sm text-neutral-500">{user.email}</p>
+              </section>
+            )}
 
-              {/* Payment Method */}
-              <div className="bg-white rounded-2xl border border-neutral-100 p-6 mt-6">
+              <section className="bg-white rounded-2xl border border-neutral-100 p-6">
                 <h2 className="text-base font-semibold text-neutral-900 mb-4">Payment Method</h2>
                 <div className="space-y-3">
                   {PAYMENT_METHODS.map((method) => (
@@ -213,8 +159,7 @@ export function CheckoutPage() {
                     </label>
                   ))}
                 </div>
-              </div>
-            </form>
+              </section>
           </div>
 
           {/* Right: Order Summary */}
@@ -248,8 +193,8 @@ export function CheckoutPage() {
 
               <div className="space-y-2 mb-5">
                 <div className="flex justify-between text-sm text-neutral-600">
-                  <span>{isCertificateCheckout ? "Certificate" : "Subscription"}</span>
-                  <span>{isCertificateCheckout ? formatPrice(price) : `${formatPrice(price)}/mo`}</span>
+                  <span>{isCertificateCheckout ? "Certificate" : "Course"}</span>
+                  <span>{formatPrice(price)}</span>
                 </div>
               </div>
 
@@ -261,16 +206,15 @@ export function CheckoutPage() {
               </div>
 
               <Button
-                form="checkout-form"
-                type="submit"
                 variant="accent"
                 size="lg"
                 fullWidth
                 loading={placing}
                 className="mt-5"
-                disabled={!course}
+                disabled={!course || !user}
+                onClick={onSubmit}
               >
-                Continue to Paystack - {formatPrice(total)}
+                {paymentMethod === "bank_transfer" ? "Continue with bank transfer" : "Continue to Paystack"} - {formatPrice(total)}
               </Button>
 
               <p className="text-xs text-neutral-400 text-center mt-3">

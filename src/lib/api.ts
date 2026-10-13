@@ -1,4 +1,3 @@
-import { getAuthToken } from "./auth";
 import type {
   Course,
   CoursesResponse,
@@ -10,37 +9,24 @@ import type {
 import type { Order, Subscription, WooProduct } from "@/types/order";
 import type { PasswordChangeData, ProfileUpdateData, StudentStats, User } from "@/types/user";
 
-const TUTOR_API = process.env.NEXT_PUBLIC_TUTOR_API || "https://api.skillsair.com/wp-json/tutor/v1";
-const WP_API = process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json";
-const WC_API = `${WP_API}/wc/v3`;
-
-const WC_CONSUMER_KEY = process.env.WC_CONSUMER_KEY || "";
-const WC_CONSUMER_SECRET = process.env.WC_CONSUMER_SECRET || "";
-
 async function apiFetch<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const token = getAuthToken();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string>),
   };
 
   const response = await fetch(url, { ...options, headers });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error((error as { message?: string }).message || `API Error: ${response.status}`);
+    const error = await response.json().catch(() => ({ message: response.statusText })) as {
+      message?: string;
+      error?: { message?: string };
+    };
+    throw new Error(error.error?.message || error.message || `API Error: ${response.status}`);
   }
 
-  return response.json() as Promise<T>;
-}
-
-function wcUrl(path: string, params: Record<string, string> = {}): string {
-  const url = new URL(`${WC_API}${path}`);
-  url.searchParams.set("consumer_key", WC_CONSUMER_KEY);
-  url.searchParams.set("consumer_secret", WC_CONSUMER_SECRET);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  return url.toString();
+  const payload = await response.json() as { success?: boolean; data?: T };
+  return payload?.success === true && "data" in payload ? payload.data as T : payload as T;
 }
 
 export const tutorApi = {
@@ -67,11 +53,11 @@ export const tutorApi = {
   },
 
   async getCurriculum(courseId: number): Promise<CourseSection[]> {
-    return apiFetch<CourseSection[]>(`${TUTOR_API}/courses/${courseId}/curriculum`);
+    return apiFetch<CourseSection[]>(`/api/learning/courses/${courseId}/curriculum`);
   },
 
   async enrollCourse(courseId: number): Promise<{ success: boolean; message: string }> {
-    return apiFetch(`${TUTOR_API}/courses/${courseId}/enroll`, { method: "POST" });
+    return apiFetch(`/api/learning/courses/${courseId}/enroll`, { method: "POST", body: JSON.stringify({}) });
   },
 
   async getStudentProgress(studentId: number): Promise<EnrolledCourse[]> {
@@ -90,10 +76,13 @@ export const tutorApi = {
 
   async markLessonComplete(
     courseId: number,
-    lessonId: number
+    lessonId: number,
+    watchedSeconds = 0,
+    isCompleted = true
   ): Promise<{ success: boolean }> {
-    return apiFetch(`${TUTOR_API}/courses/${courseId}/lessons/${lessonId}/complete`, {
+    return apiFetch(`/api/learning/courses/${courseId}/lessons/${lessonId}/progress`, {
       method: "POST",
+      body: JSON.stringify({ watchedSeconds, isCompleted }),
     });
   },
 
@@ -107,18 +96,33 @@ export const tutorApi = {
 
 export const wooApi = {
   async getProducts(params: Record<string, string> = {}): Promise<WooProduct[]> {
-    return apiFetch<WooProduct[]>(wcUrl("/products", params));
+    const query = new URLSearchParams(params);
+    const response = await apiFetch<CoursesResponse>(`/api/courses?${query.toString()}`);
+    return response.courses.map((course) => ({
+      id: course.id,
+      name: course.title,
+      slug: course.slug,
+      type: "course",
+      status: course.status === "publish" ? "publish" : "draft",
+      price: String(course.price),
+      regularPrice: String(course.regularPrice),
+      salePrice: course.salePrice === undefined ? undefined : String(course.salePrice),
+      description: course.description,
+      shortDescription: course.excerpt,
+      images: course.thumbnail ? [{ src: course.thumbnail, alt: course.title }] : [],
+      categories: course.categories.map(({ id, name, slug }) => ({ id, name, slug })),
+    }));
   },
 
   async createOrder(data: Record<string, unknown>): Promise<Order> {
-    return apiFetch<Order>(wcUrl("/orders"), {
+    return apiFetch<Order>("/api/checkout", {
       method: "POST",
       body: JSON.stringify(data),
     });
   },
 
   async getOrder(id: number): Promise<Order> {
-    return apiFetch<Order>(wcUrl(`/orders/${id}`));
+    return apiFetch<Order>(`/api/orders/${id}`);
   },
 
   async getOrders(customerId: number): Promise<Order[]> {
@@ -135,11 +139,8 @@ export const wooApi = {
     return res.json() as Promise<Subscription[]>;
   },
 
-  async applyCoupon(code: string): Promise<{ valid: boolean; discount: string }> {
-    return apiFetch(wcUrl("/coupons/validate"), {
-      method: "POST",
-      body: JSON.stringify({ code }),
-    });
+  async applyCoupon(_code: string): Promise<{ valid: boolean; discount: string }> {
+    throw new Error("Coupon validation is not configured in the SkillsAir backend yet.");
   },
 };
 
@@ -152,10 +153,8 @@ export const wpApi = {
   },
 
   async updateProfile(userId: number, data: ProfileUpdateData): Promise<User> {
-    const token = getAuthToken();
     return apiFetch<User>("/api/profile", {
       method: "PATCH",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: JSON.stringify({ id: userId, ...data }),
     });
   },
@@ -165,10 +164,8 @@ export const wpApi = {
     email: string,
     data: PasswordChangeData
   ): Promise<{ success: boolean }> {
-    const token = getAuthToken();
     return apiFetch<{ success: boolean }>("/api/profile/password", {
       method: "PATCH",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: JSON.stringify({
         userId,
         email,
@@ -179,12 +176,8 @@ export const wpApi = {
   },
 
   async uploadAvatar(formData: FormData): Promise<{ url: string }> {
-    const token = getAuthToken();
     const response = await fetch("/api/profile/avatar", {
       method: "POST",
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
       body: formData,
     });
     if (!response.ok) throw new Error("Upload failed");

@@ -1,53 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
-import { wcHeaders, wcUrl } from "@/lib/server-course-catalog";
+import { backendFetch, backendPayload } from "@/lib/backend-api";
 import type { Subscription } from "@/types/order";
 
-interface WooSub {
-  id: number;
-  status: string;
-  billing_period: string;
-  billing_interval: number;
-  start_date: string;
-  next_payment_date: string;
-  end_date?: string;
-  total: string;
-  payment_method: string;
-  payment_method_title: string;
-  line_items?: Array<{ name: string; product_id: number }>;
+interface BackendSubscription {
+  id: number; status?: string; currentPeriodStart?: string; currentPeriodEnd?: string;
+  user?: number | { id?: number }; plan?: number | { id?: number; name?: string; price?: number; interval?: string };
+  course?: number | { id?: number; title?: string };
 }
+interface PayloadList { docs?: BackendSubscription[] }
 
 export async function GET(req: NextRequest) {
-  const customerId = req.nextUrl.searchParams.get("customer");
-  if (!customerId || !Number.isFinite(Number(customerId))) {
-    return NextResponse.json({ message: "Valid customer ID required" }, { status: 400 });
+  const customer = req.nextUrl.searchParams.get("customer");
+  if (!customer || !/^\d+$/.test(customer)) return NextResponse.json({ message: "Valid customer ID required" }, { status: 400 });
+  const query = new URLSearchParams({ depth: "2", limit: "1000", sort: "-currentPeriodStart", "where[user][equals]": customer });
+  const response = await backendFetch(req, `subscriptions?${query}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    return NextResponse.json({ message: body?.error?.message || "Unable to load subscriptions." }, { status: response.status });
   }
-
-  try {
-    const res = await fetch(
-      wcUrl("/subscriptions", { customer: customerId, per_page: "100" }),
-      { headers: wcHeaders(), cache: "no-store" }
-    );
-    if (!res.ok) return NextResponse.json([]);
-    const raw = await res.json().catch(() => []);
-    if (!Array.isArray(raw)) return NextResponse.json([]);
-
-    const mapped: Subscription[] = raw.map((s: WooSub) => ({
-      id: s.id,
-      status: s.status as Subscription["status"],
-      planName: s.line_items?.[0]?.name || "Subscription",
-      planId: s.line_items?.[0]?.product_id || 0,
-      startDate: s.start_date,
-      nextPaymentDate: s.next_payment_date,
-      endDate: s.end_date || undefined,
-      total: s.total,
-      billingPeriod: (s.billing_period === "year" ? "year" : "month") as "month" | "year",
-      billingInterval: s.billing_interval,
-      paymentMethod: s.payment_method,
-      paymentMethodTitle: s.payment_method_title,
-    }));
-
-    return NextResponse.json(mapped);
-  } catch {
-    return NextResponse.json([]);
-  }
+  const payload = await backendPayload<PayloadList>(response);
+  const subscriptions: Subscription[] = (payload.docs || []).map((item) => {
+    const plan = typeof item.plan === "object" && item.plan ? item.plan : {};
+    const course = typeof item.course === "object" && item.course ? item.course : {};
+    return {
+      id: item.id,
+      status: item.status === "cancelled" || item.status === "expired" ? item.status : "active",
+      planName: plan.name || course.title || "Course subscription",
+      planId: Number(plan.id || item.plan || 0),
+      startDate: item.currentPeriodStart || "",
+      nextPaymentDate: item.currentPeriodEnd || "",
+      endDate: item.currentPeriodEnd,
+      total: Number(plan.price || 0).toFixed(2),
+      billingPeriod: plan.interval === "annually" ? "year" : "month",
+      billingInterval: 1,
+      paymentMethod: "paystack",
+      paymentMethodTitle: "Paystack",
+    };
+  });
+  return NextResponse.json(subscriptions);
 }

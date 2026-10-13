@@ -1,0 +1,13 @@
+services:
+  skillsair-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://skillsair.com}
+      SKILLSAIR_BACKEND_URL: ${SKILLSAIR_BACKEND_URL:?Set SKILLSAIR_BACKEND_URL to the backend HTTPS origin}
+    expose:
+      - "3000"

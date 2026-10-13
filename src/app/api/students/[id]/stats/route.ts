@@ -1,83 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { tutorHeaders, tutorUrl, wcHeaders, wcUrl } from "@/lib/server-course-catalog";
+import { backendFetch, backendPayload } from "@/lib/backend-api";
+import type { StudentStats } from "@/types/user";
 
-function progress(value: unknown): number {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") return Number(value.replace("%", "")) || 0;
-  return 0;
-}
+interface PayloadList<T> { docs?: T[] }
+interface Enrollment { status?: string; progressPercent?: number }
+interface Certificate { id: number }
+interface LessonProgress { watchedSeconds?: number; lastWatchedAt?: string }
 
-async function countEnrolledFromOrders(studentId: number): Promise<number> {
-  try {
-    const [completedRes, processingRes] = await Promise.all([
-      fetch(wcUrl("/orders", { customer: String(studentId), status: "completed", per_page: "100" }), {
-        headers: wcHeaders(), cache: "no-store",
-      }),
-      fetch(wcUrl("/orders", { customer: String(studentId), status: "processing", per_page: "100" }), {
-        headers: wcHeaders(), cache: "no-store",
-      }),
-    ]);
-
-    const allOrders: Array<{ line_items?: Array<{ product_id?: number }> }> = [
-      ...(completedRes.ok ? await completedRes.json().catch(() => []) : []),
-      ...(processingRes.ok ? await processingRes.json().catch(() => []) : []),
-    ];
-
-    if (!Array.isArray(allOrders) || allOrders.length === 0) return 0;
-
-    const productIds = new Set<number>();
-    for (const order of allOrders) {
-      for (const item of order.line_items || []) {
-        if (typeof item.product_id === "number" && item.product_id > 0) {
-          productIds.add(item.product_id);
-        }
-      }
-    }
-    return productIds.size;
-  } catch {
-    return 0;
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const [enrollmentRes, certificateRes, progressRes] = await Promise.all([
+    backendFetch(req, `enrollments?limit=1000&depth=0&where[student][equals]=${encodeURIComponent(params.id)}`),
+    backendFetch(req, `certificates?limit=1000&depth=0&where[student][equals]=${encodeURIComponent(params.id)}`),
+    backendFetch(req, `lesson-progress?limit=5000&depth=0&where[student][equals]=${encodeURIComponent(params.id)}`),
+  ]);
+  if (!enrollmentRes.ok || !certificateRes.ok || !progressRes.ok) {
+    return NextResponse.json({ message: "Unable to load your learning statistics." }, { status: 502 });
   }
-}
-
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const studentId = Number(params.id);
-  if (!Number.isFinite(studentId) || studentId <= 0) {
-    return NextResponse.json({ message: "Invalid student ID" }, { status: 400 });
+  const enrollments = await backendPayload<PayloadList<Enrollment>>(enrollmentRes);
+  const certificates = await backendPayload<PayloadList<Certificate>>(certificateRes);
+  const progress = await backendPayload<PayloadList<LessonProgress>>(progressRes);
+  const active = (enrollments.docs || []).filter((item) => item.status !== "refunded");
+  const activityDays = new Set((progress.docs || []).map((item) => item.lastWatchedAt?.slice(0, 10)).filter((day): day is string => Boolean(day)));
+  let currentStreak = 0;
+  const date = new Date();
+  if (!activityDays.has(date.toISOString().slice(0, 10))) date.setUTCDate(date.getUTCDate() - 1);
+  while (activityDays.has(date.toISOString().slice(0, 10))) {
+    currentStreak += 1;
+    date.setUTCDate(date.getUTCDate() - 1);
   }
-
-  let totalEnrolled = 0;
-  let totalCompleted = 0;
-
-  try {
-    const res = await fetch(
-      tutorUrl(`/students/${studentId}/courses`),
-      { headers: tutorHeaders(), cache: "no-store" }
-    );
-    if (res.ok) {
-      const payload = await res.json().catch(() => ({}));
-      const courses = Array.isArray(payload.data?.enrolled_courses) ? payload.data.enrolled_courses : [];
-      if (courses.length > 0) {
-        totalEnrolled = courses.length;
-        totalCompleted = courses.filter((course: Record<string, unknown>) =>
-          progress(course.course_completed_percentage) >= 100
-        ).length;
-      }
-    }
-  } catch { /* fall through to WC fallback */ }
-
-  // WooCommerce fallback: count unique purchased course products
-  if (totalEnrolled === 0) {
-    totalEnrolled = await countEnrolledFromOrders(studentId);
-  }
-
-  return NextResponse.json({
-    totalEnrolled,
-    totalCompleted,
-    totalCertificates: totalCompleted,
-    totalWatchedHours: 0,
-    currentStreak: 0,
-  });
+  const stats: StudentStats = {
+    totalEnrolled: active.length,
+    totalCompleted: active.filter((item) => item.status === "completed" || Number(item.progressPercent) >= 100).length,
+    totalCertificates: certificates.docs?.length || 0,
+    totalWatchedHours: Math.round((progress.docs || []).reduce((sum, item) => sum + Number(item.watchedSeconds || 0), 0) / 3600),
+    currentStreak,
+  };
+  return NextResponse.json(stats);
 }

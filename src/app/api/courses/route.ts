@@ -1,56 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  fetchTutorCourses,
-  fetchPublishedProducts,
-  findTutorCourseForProduct,
-  isHiddenProduct,
-  mapProductToCourse,
-} from "@/lib/server-course-catalog";
+import { backendFetch, backendPayload } from "@/lib/backend-api";
+import { mapBackendCourse } from "@/lib/backend-course-mapper";
+import type { Course } from "@/types/course";
+
+interface PayloadList {
+  docs?: unknown[];
+}
 
 export async function GET(req: NextRequest) {
-  const sp = req.nextUrl.searchParams;
-  const page = sp.get("page") || "1";
-  const perPage = sp.get("per_page") || "12";
-  const search = sp.get("search") || "";
-  const sort = sp.get("sort") || "newest";
-  const category = sp.get("category") || "";
-
-  let orderby = "date";
-  let order = "desc";
-  if (sort === "popular") { orderby = "popularity"; order = "desc"; }
-  else if (sort === "rating") { orderby = "rating"; order = "desc"; }
-  else if (sort === "price-asc") { orderby = "price"; order = "asc"; }
-  else if (sort === "price-desc") { orderby = "price"; order = "desc"; }
-
-  const products = await fetchPublishedProducts({ orderby, order, search });
-  if (!products) {
-    return NextResponse.json({ message: "Courses are temporarily unavailable." }, { status: 502 });
+  const params = new URLSearchParams({ limit: "100", depth: "2", "where[status][equals]": "published" });
+  const response = await backendFetch(req, `courses?${params}`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    return NextResponse.json(
+      { message: body?.error?.message || "Courses are temporarily unavailable." },
+      { status: response.status },
+    );
   }
-  const tutorCourses = await fetchTutorCourses();
-  const allCourses = products
-    .filter((product) => !isHiddenProduct(product))
-    .map((product) => mapProductToCourse(product, findTutorCourseForProduct(product, tutorCourses)))
-    .filter((course) => !category || course.categories.some((cat) => cat.slug === category))
-    .sort((a, b) => {
-      if (sort === "price-asc") return a.price - b.price;
-      if (sort === "price-desc") return b.price - a.price;
-      if (sort === "popular") return b.totalStudents - a.totalStudents;
-      if (sort === "rating") return b.rating.average - a.rating.average;
-      return b.createdAt.localeCompare(a.createdAt);
-    });
 
-  const pageNumber = Math.max(1, Number(page) || 1);
-  const pageSize = Math.min(100, Math.max(1, Number(perPage) || 12));
-  const start = (pageNumber - 1) * pageSize;
-  const courses = allCourses.slice(start, start + pageSize);
-  const total = allCourses.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const payload = await backendPayload<PayloadList>(response);
+  const search = req.nextUrl.searchParams.get("search")?.toLowerCase().trim() || "";
+  const category = req.nextUrl.searchParams.get("category") || "";
+  const sort = req.nextUrl.searchParams.get("sort") || "newest";
+  const page = Math.max(1, Number(req.nextUrl.searchParams.get("page")) || 1);
+  const perPage = Math.min(100, Math.max(1, Number(req.nextUrl.searchParams.get("per_page")) || 12));
 
+  const allCourses = (payload.docs || []).map(mapBackendCourse).filter((course) => {
+    const matchesSearch = !search || `${course.title} ${course.excerpt} ${course.description}`.toLowerCase().includes(search);
+    const matchesCategory = !category || course.categories.some((item) => item.slug === category);
+    return matchesSearch && matchesCategory;
+  }).sort((a, b) => {
+    if (sort === "price-asc") return a.price - b.price;
+    if (sort === "price-desc") return b.price - a.price;
+    if (sort === "popular") return b.totalStudents - a.totalStudents;
+    if (sort === "rating") return b.rating.average - a.rating.average;
+    return b.createdAt.localeCompare(a.createdAt);
+  });
+
+  const start = (page - 1) * perPage;
+  const courses: Course[] = allCourses.slice(start, start + perPage);
   return NextResponse.json({
     courses,
-    total,
-    totalPages,
-    currentPage: pageNumber,
-    perPage: pageSize,
+    total: allCourses.length,
+    totalPages: Math.max(1, Math.ceil(allCourses.length / perPage)),
+    currentPage: page,
+    perPage,
   });
 }

@@ -14,9 +14,6 @@ export interface User {
 }
 
 export interface AuthUser extends User {
-  token: string;
-  refreshToken?: string;
-  tokenExpiry?: number;
 }
 
 export interface StudentStats {

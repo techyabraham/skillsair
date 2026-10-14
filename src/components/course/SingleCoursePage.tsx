@@ -100,13 +100,23 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
   const certificateHref = certificate?.certificateUrl || `/checkout?certificate=${slug}`;
 
   if (error && !isLoading) {
+    const missingCourse = error.message.toLowerCase().includes("course not found");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-neutral-500">Course not found.</p>
-          <Link href="/courses" className="text-primary-800 font-medium mt-2 inline-block">
-            Browse all courses
-          </Link>
+          <p className="text-neutral-500">
+            {missingCourse ? "Course not found." : "We couldn’t load this course right now. Please try again shortly."}
+          </p>
+          <div className="mt-2 flex justify-center gap-4">
+            {!missingCourse && (
+              <button type="button" onClick={() => window.location.reload()} className="text-primary-800 font-medium">
+                Try again
+              </button>
+            )}
+            <Link href="/courses" className="text-primary-800 font-medium">
+              Browse all courses
+            </Link>
+          </div>
         </div>
       </div>
     );

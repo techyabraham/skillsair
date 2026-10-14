@@ -47,8 +47,14 @@ export const tutorApi = {
 
   async getCourse(slug: string): Promise<Course> {
     const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${base}/api/courses/${slug}`);
-    if (!res.ok) throw new Error("Course not found");
+    const res = await fetch(`${base}/api/courses/${encodeURIComponent(slug)}`);
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null) as {
+        message?: string;
+        error?: { message?: string };
+      } | null;
+      throw new Error(payload?.error?.message || payload?.message || `Unable to load course (${res.status}).`);
+    }
     return res.json() as Promise<Course>;
   },
 

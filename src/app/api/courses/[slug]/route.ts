@@ -20,8 +20,17 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   const courseId = Number((course as { id?: number }).id);
   const curriculumResponse = await backendFetch(req, `courses/${encodeURIComponent(String(courseId))}/curriculum`);
   if (!curriculumResponse.ok) {
+    // Keep course details available while an older backend is waiting for the
+    // custom curriculum endpoint deployment. Its embedded sections may still
+    // be populated by Payload's normal relationship depth.
+    if (curriculumResponse.status === 404) {
+      return NextResponse.json(mapBackendCourse(course));
+    }
     const body = await curriculumResponse.json().catch(() => null) as { error?: { message?: string }; message?: string } | null;
-    return NextResponse.json({ message: body?.error?.message || body?.message || "Unable to load course curriculum." }, { status: curriculumResponse.status });
+    return NextResponse.json(
+      { message: body?.error?.message || body?.message || "Unable to load course curriculum." },
+      { status: curriculumResponse.status },
+    );
   }
   const curriculumPayload = await backendPayload<{ sections?: unknown[] }>(curriculumResponse);
   return NextResponse.json(mapBackendCourse({

@@ -160,10 +160,6 @@ export const wooApi = {
     });
   },
 
-  async applyCoupon(code: string): Promise<{ valid: boolean; discount: string }> {
-    if (!code.trim()) throw new Error("Enter a coupon code.");
-    throw new Error("Coupon validation is not configured in the SkillsAir backend yet.");
-  },
 };
 
 export interface CourseQuiz {
@@ -173,7 +169,7 @@ export interface CourseQuiz {
   questions: Array<{ id: number; prompt: string; options: string[] }>;
 }
 
-export const wpApi = {
+export const backendApi = {
   async subscribeNewsletter(email: string): Promise<{ success: boolean }> {
     return apiFetch("/api/newsletter", {
       method: "POST",

@@ -494,6 +494,7 @@ function EnrollSidebar({
   certificateHref: string;
   certificateObtained: boolean;
 }) {
+  const [shareStatus, setShareStatus] = useState("");
   const hasDiscount = course.salePrice && course.salePrice < course.price;
   const discountPercent = hasDiscount
     ? Math.round(((course.price - course.salePrice!) / course.price) * 100)
@@ -507,6 +508,19 @@ function EnrollSidebar({
     { icon: "📱", label: "Mobile & desktop access" },
     { icon: "🏆", label: "Certificate of completion" },
   ];
+
+  const shareCourse = async () => {
+    const shareData = { title: course.title, text: course.excerpt, url: window.location.href };
+    try {
+      if (navigator.share) await navigator.share(shareData);
+      else {
+        await navigator.clipboard.writeText(shareData.url);
+        setShareStatus("Course link copied.");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name !== "AbortError") setShareStatus("Could not share this course.");
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-neutral-200 overflow-hidden shadow-card">
@@ -607,11 +621,8 @@ function EnrollSidebar({
 
         {/* Share */}
         <div className="mt-6 pt-5 border-t border-neutral-100 flex items-center justify-center gap-4">
-          <button className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors">Share</button>
-          <span className="text-neutral-200">|</span>
-          <button className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors">Gift this course</button>
-          <span className="text-neutral-200">|</span>
-          <button className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors">Apply coupon</button>
+          <button type="button" onClick={shareCourse} className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors">Share course</button>
+          {shareStatus && <span role="status" className="text-xs text-neutral-500">{shareStatus}</span>}
         </div>
       </div>
     </div>

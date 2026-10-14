@@ -40,7 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const quizzes = (payload.docs || []).map((quiz) => ({
     id: quiz.id,
     title: quiz.title || "Course quiz",
-    passingScore: Number(quiz.passingScore || 70),
+    passingScore: Number(quiz.passingScore ?? 70),
     questions: (quiz.questions || []).map((question) => ({
       id: question.id,
       prompt: question.prompt || "",

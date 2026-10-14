@@ -6,6 +6,12 @@ function record(value: unknown): RecordValue {
   return value && typeof value === "object" ? value as RecordValue : {};
 }
 
+function records(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  const docs = record(value).docs;
+  return Array.isArray(docs) ? docs : [];
+}
+
 function relationId(value: unknown): number {
   const rel = record(value);
   const id = typeof value === "object" && value !== null ? rel.id : value;
@@ -36,6 +42,33 @@ function mediaUrl(value: unknown): string {
   return text(record(value).url);
 }
 
+function legacyDriveId(value: unknown): string {
+  let id = "";
+  const visit = (node: unknown) => {
+    if (id) return;
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    const current = record(node);
+    const fields = record(current.fields);
+    if (typeof fields.url === "string") {
+      try {
+        const url = new URL(fields.url);
+        if (url.hostname === "api.skillsair.com" && url.pathname === "/wp-admin/admin-ajax.php" && url.searchParams.get("action") === "igd_stream") {
+          const candidate = url.searchParams.get("id") || "";
+          if (/^[A-Za-z0-9_-]{10,}$/.test(candidate)) id = candidate;
+        }
+      } catch {
+        return;
+      }
+    }
+    Object.values(current).forEach(visit);
+  };
+  visit(value);
+  return id;
+}
+
 function mapCategory(value: unknown): CourseCategory {
   const category = record(value);
   return {
@@ -50,17 +83,19 @@ function mapCategory(value: unknown): CourseCategory {
 function mapLesson(value: unknown): CourseLesson {
   const lesson = record(value);
   const id = relationId(lesson);
+  const lessonContent = richText(lesson.content);
+  const hasDriveVideo = Boolean(text(lesson.driveFileId) || legacyDriveId(lesson.content));
   const attachments = Array.isArray(lesson.attachments) ? lesson.attachments : [];
   return {
     id,
     title: text(lesson.title),
     slug: text(lesson.slug),
     duration: Number(lesson.duration || 0),
-    type: text(lesson.content) ? "text" : "video",
+    type: hasDriveVideo ? "video" : lessonContent ? "text" : "video",
     isPreview: Boolean(lesson.isFree),
     isCompleted: Boolean(lesson.isCompleted),
-    videoUrl: text(lesson.driveFileId) ? `/api/media/lesson/${id}` : "",
-    content: richText(lesson.content)
+    videoUrl: hasDriveVideo ? `/api/media/lesson/${id}` : "",
+    content: lessonContent
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -81,7 +116,8 @@ function mapLesson(value: unknown): CourseLesson {
 
 function mapSection(value: unknown): CourseSection {
   const section = record(value);
-  const lessons = (Array.isArray(section.lessons) ? [...section.lessons] : [])
+  const lessons = records(section.lessons)
+    .filter((lesson) => Boolean(lesson && typeof lesson === "object" && !Array.isArray(lesson)))
     .sort((a, b) => Number(record(a).order || 0) - Number(record(b).order || 0))
     .map(mapLesson)
   return {
@@ -95,10 +131,10 @@ function mapSection(value: unknown): CourseSection {
 export function mapBackendCourse(value: unknown): Course {
   const course = record(value);
   const instructor = record(course.instructor);
-  const sections = (Array.isArray(course.sections) ? [...course.sections] : [])
+  const sections = records(course.sections)
     .sort((a, b) => Number(record(a).order || 0) - Number(record(b).order || 0))
     .map(mapSection)
-  const categories = (Array.isArray(course.categories) ? course.categories : [])
+  const categories = records(course.categories)
     .map(mapCategory)
     .filter((category) => category.name && category.slug);
   const requirements = (Array.isArray(course.requirements) ? course.requirements : [])

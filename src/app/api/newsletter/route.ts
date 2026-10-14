@@ -1,27 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const WP_API = process.env.NEXT_PUBLIC_WP_API || "https://api.skillsair.com/wp-json";
+import { backendFetch } from "@/lib/backend-api";
 
 export async function POST(req: NextRequest) {
-  const { email } = await req.json();
+  const body = await req.json().catch(() => null) as { email?: unknown } | null;
+  const email = typeof body?.email === "string" ? body.email.trim() : "";
 
-  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ message: "Enter a valid email address" }, { status: 400 });
   }
 
-  const res = await fetch(`${WP_API}/wp/v2/newsletter`, {
+  const response = await backendFetch(req, "newsletter/subscribe", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   });
-  const data = await res.json().catch(() => ({}));
+  const payload = await response.json().catch(() => null) as
+    | { success?: boolean; data?: { subscribed?: boolean }; error?: { message?: string }; message?: string }
+    | null;
 
-  if (!res.ok) {
+  if (!response.ok) {
     return NextResponse.json(
-      { message: data.message || "Newsletter signup is not available right now" },
-      { status: res.status }
+      { message: payload?.error?.message || payload?.message || "Newsletter signup is not available right now" },
+      { status: response.status }
     );
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: payload?.success === true && payload.data?.subscribed === true });
 }

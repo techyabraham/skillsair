@@ -9,7 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { wpApi } from "@/lib/api";
+import { backendApi } from "@/lib/api";
 import { updateStoredUser } from "@/lib/auth";
 
 const profileSchema = z.object({
@@ -72,7 +72,7 @@ export function ProfilePage() {
     if (!user) return;
     setUpdating(true);
     try {
-      const updated = await wpApi.updateProfile(user.id, {
+      const updated = await backendApi.updateProfile(user.id, {
         firstName: data.firstName,
         lastName: data.lastName,
         displayName: `${data.firstName} ${data.lastName}`.trim(),
@@ -97,7 +97,7 @@ export function ProfilePage() {
     if (!user) return;
     setChangingPassword(true);
     try {
-      await wpApi.changePassword(user.id, user.email, formData);
+      await backendApi.changePassword(user.id, user.email, formData);
       addToast({ type: "success", title: "Password changed successfully!" });
       resetPwd();
     } catch (err) {
@@ -118,7 +118,7 @@ export function ProfilePage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const uploaded = await wpApi.uploadAvatar(formData);
+      const uploaded = await backendApi.uploadAvatar(formData);
       if (uploaded.url) {
         updateStoredUser({ avatar: uploaded.url });
       }

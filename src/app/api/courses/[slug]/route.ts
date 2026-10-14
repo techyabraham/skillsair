@@ -7,7 +7,7 @@ interface PayloadList {
 }
 
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
-  const query = new URLSearchParams({ limit: "1", depth: "3", "where[slug][equals]": params.slug });
+  const query = new URLSearchParams({ limit: "1", depth: "2", "where[slug][equals]": params.slug });
   const response = await backendFetch(req, `courses?${query}`);
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { error?: { message?: string } } | null;
@@ -16,5 +16,16 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   const payload = await backendPayload<PayloadList>(response);
   const course = payload.docs?.[0];
   if (!course) return NextResponse.json({ message: "Course not found" }, { status: 404 });
-  return NextResponse.json(mapBackendCourse(course));
+
+  const courseId = Number((course as { id?: number }).id);
+  const curriculumResponse = await backendFetch(req, `courses/${encodeURIComponent(String(courseId))}/curriculum`);
+  if (!curriculumResponse.ok) {
+    const body = await curriculumResponse.json().catch(() => null) as { error?: { message?: string }; message?: string } | null;
+    return NextResponse.json({ message: body?.error?.message || body?.message || "Unable to load course curriculum." }, { status: curriculumResponse.status });
+  }
+  const curriculumPayload = await backendPayload<{ sections?: unknown[] }>(curriculumResponse);
+  return NextResponse.json(mapBackendCourse({
+    ...(course as Record<string, unknown>),
+    sections: curriculumPayload.sections || [],
+  }));
 }

@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-const BACKEND_ORIGIN = (
+export const BACKEND_ORIGIN = (
   process.env.SKILLSAIR_BACKEND_URL || process.env.BACKEND_API_URL || "http://localhost:3001"
 ).replace(/\/$/, "");
 

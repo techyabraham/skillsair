@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import useSWR from "swr";
 import { useAuth } from "@/hooks/useAuth";
 import { wooApi } from "@/lib/api";
@@ -13,13 +13,29 @@ import Link from "next/link";
 
 export function SubscriptionPage() {
   const { user } = useAuth();
-  const { data: subscriptions, isLoading } = useSWR<Subscription[]>(
+  const [cancelling, setCancelling] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const { data: subscriptions, isLoading, mutate } = useSWR<Subscription[]>(
     user ? `/subscriptions/${user.id}` : null,
     () => wooApi.getSubscriptions(user!.id),
     { revalidateOnFocus: false }
   );
 
   const active = subscriptions?.find((s) => s.status === "active");
+
+  const cancelSubscription = async () => {
+    if (!active || !window.confirm("Cancel this subscription? Your course access remains available until the current billing period ends.")) return;
+    setCancelling(true);
+    setActionError("");
+    try {
+      await wooApi.cancelSubscription(active.id);
+      await mutate();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not cancel the subscription. Please try again.");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <div className="p-6 md:p-10 max-w-3xl mx-auto">
@@ -78,9 +94,10 @@ export function SubscriptionPage() {
                 Upgrade Plan
               </Button>
             </Link>
-            <Button variant="ghost" size="md" fullWidth className="text-neutral-400 hover:text-error">
+            <Button variant="ghost" size="md" fullWidth loading={cancelling} onClick={cancelSubscription} className="text-neutral-400 hover:text-error">
               Cancel Subscription
             </Button>
+            {actionError && <p role="alert" className="text-sm text-error">{actionError}</p>}
           </div>
         </>
       ) : (

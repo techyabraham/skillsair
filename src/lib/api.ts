@@ -86,6 +86,20 @@ export const tutorApi = {
     });
   },
 
+  async getCourseQuizzes(courseId: number): Promise<CourseQuiz[]> {
+    return apiFetch<CourseQuiz[]>(`/api/learning/courses/${courseId}/quizzes`);
+  },
+
+  async submitQuiz(
+    quizId: number,
+    answers: Array<{ questionId: number; optionIndex: number }>,
+  ): Promise<{ id: number; score: number; passed: boolean }> {
+    return apiFetch(`/api/learning/quizzes/${quizId}/submit`, {
+      method: "POST",
+      body: JSON.stringify({ answers }),
+    });
+  },
+
   async getStudentStats(studentId: number): Promise<StudentStats> {
     const base = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
     const res = await fetch(`${base}/api/students/${studentId}/stats`);
@@ -139,11 +153,25 @@ export const wooApi = {
     return res.json() as Promise<Subscription[]>;
   },
 
+  async cancelSubscription(subscriptionId: number): Promise<void> {
+    await apiFetch("/api/subscriptions/cancel", {
+      method: "POST",
+      body: JSON.stringify({ subscriptionId }),
+    });
+  },
+
   async applyCoupon(code: string): Promise<{ valid: boolean; discount: string }> {
     if (!code.trim()) throw new Error("Enter a coupon code.");
     throw new Error("Coupon validation is not configured in the SkillsAir backend yet.");
   },
 };
+
+export interface CourseQuiz {
+  id: number;
+  title: string;
+  passingScore: number;
+  questions: Array<{ id: number; prompt: string; options: string[] }>;
+}
 
 export const wpApi = {
   async subscribeNewsletter(email: string): Promise<{ success: boolean }> {

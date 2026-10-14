@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useCourse } from "@/hooks/useCourses";
 import { useAuth } from "@/hooks/useAuth";
 import { useEnrolledCourses } from "@/hooks/useStudent";
+import useSWR from "swr";
 import type { CourseLesson } from "@/types/course";
 import Link from "next/link";
 
@@ -25,18 +26,29 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
   const [markingComplete, setMarkingComplete] = useState(false);
   const [completedLessons, setCompletedLessons] = useState<Set<number>>(new Set());
   const [watchedSeconds, setWatchedSeconds] = useState(0);
+  const [activeQuiz, setActiveQuiz] = useState<number | null>(null);
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
+  const [quizResult, setQuizResult] = useState<{ score: number; passed: boolean } | null>(null);
+  const [submittingQuiz, setSubmittingQuiz] = useState(false);
+  const [quizError, setQuizError] = useState("");
   const lastVideoTime = useRef<{ lessonId: number; time: number } | null>(null);
 
   const { course, isLoading } = useCourse(slug);
   const { user } = useAuth();
-  const { enrolledCourses } = useEnrolledCourses(user?.id ?? null);
+  const { enrolledCourses, refresh: refreshEnrollments } = useEnrolledCourses(user?.id ?? null);
   const enrolledCourse = enrolledCourses.find((item) => item.id === course?.id || item.slug === slug);
+  const { data: quizzes = [], error: quizzesLoadError } = useSWR(
+    course?.id && enrolledCourse ? `/api/learning/courses/${course.id}/quizzes` : null,
+    () => tutorApi.getCourseQuizzes(course!.id),
+    { revalidateOnFocus: false },
+  );
   const curriculum = course?.curriculum ?? [];
   const totalLessons = curriculum.reduce(
     (acc: number, s: { lessons: CourseLesson[] }) => acc + s.lessons.length,
     0
   );
-  const progress = totalLessons > 0 ? Math.round((completedLessons.size / totalLessons) * 100) : 0;
+  const progress = enrolledCourse?.progress ?? (totalLessons > 0 ? Math.round((completedLessons.size / totalLessons) * 100) : 0);
+  const selectedQuiz = quizzes.find((quiz) => quiz.id === activeQuiz);
   const allLessons = curriculum.flatMap((s: { lessons: CourseLesson[] }) => s.lessons);
 
   useEffect(() => {
@@ -55,8 +67,30 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
   }, [enrolledCourse]);
 
   const handleLessonClick = useCallback((lesson: CourseLesson) => {
+    setActiveQuiz(null);
     setActiveLesson(lesson);
   }, []);
+
+  const handleQuizSubmit = async () => {
+    if (!selectedQuiz || Object.keys(quizAnswers).length !== selectedQuiz.questions.length) {
+      setQuizError("Answer every question before submitting.");
+      return;
+    }
+    setSubmittingQuiz(true);
+    setQuizError("");
+    try {
+      const result = await tutorApi.submitQuiz(selectedQuiz.id, selectedQuiz.questions.map((question) => ({
+        questionId: question.id,
+        optionIndex: quizAnswers[question.id],
+      })));
+      setQuizResult({ score: result.score, passed: result.passed });
+      if (result.passed) await refreshEnrollments();
+    } catch (error) {
+      setQuizError(error instanceof Error ? error.message : "Could not submit quiz. Please try again.");
+    } finally {
+      setSubmittingQuiz(false);
+    }
+  };
 
   const handleMarkComplete = async () => {
     if (!activeLesson || !course?.id) return;
@@ -64,6 +98,7 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
     try {
       await tutorApi.markLessonComplete(course.id, activeLesson.id, watchedSeconds);
       setCompletedLessons((prev) => new Set(Array.from(prev).concat(activeLesson.id)));
+      await refreshEnrollments();
       addToast({ type: "success", title: "Lesson completed!", message: "Great job! Keep going." });
 
       // Auto-advance to next lesson
@@ -151,7 +186,7 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
         {/* Video + Content area */}
         <div className="flex-1 flex flex-col">
           {/* Video player */}
-          <div className="bg-black aspect-video w-full max-h-[calc(100vh-200px)] flex items-center justify-center">
+          {!selectedQuiz && <div className="bg-black aspect-video w-full max-h-[calc(100vh-200px)] flex items-center justify-center">
             {activeLesson?.videoUrl ? (
               isEmbed(activeLesson.videoUrl) ? (
                 <iframe
@@ -185,10 +220,10 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                 </p>
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Lesson Controls */}
-          <div className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center justify-between gap-4">
+          {!selectedQuiz && <div className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center justify-between gap-4">
             <Button
               variant="ghost"
               size="sm"
@@ -240,10 +275,10 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
             >
               Next
             </Button>
-          </div>
+          </div>}
 
           {/* Lesson Content */}
-          {activeLesson && (
+          {!selectedQuiz && activeLesson && (
             <div className="bg-white px-6 py-6 flex-1 overflow-auto">
               <h2 className="text-lg font-heading font-semibold text-neutral-900 mb-4">{activeLesson.title}</h2>
               {activeLesson.content ? (
@@ -275,6 +310,62 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
               )}
             </div>
           )}
+
+          {selectedQuiz && (
+            <section className="bg-white flex-1 px-5 py-7 sm:px-8" aria-labelledby="quiz-title">
+              <div className="max-w-3xl mx-auto">
+                <button
+                  type="button"
+                  onClick={() => { setActiveQuiz(null); setQuizResult(null); setQuizError(""); }}
+                  className="text-sm font-medium text-primary-800 hover:underline mb-5"
+                >
+                  Back to lessons
+                </button>
+                <h2 id="quiz-title" className="text-2xl font-heading font-bold text-neutral-900">{selectedQuiz.title}</h2>
+                <p className="text-sm text-neutral-500 mt-1 mb-6">Pass mark: {selectedQuiz.passingScore}%</p>
+                <div className="space-y-6">
+                  {selectedQuiz.questions.map((question, questionIndex) => (
+                    <fieldset key={question.id} className="border-b border-neutral-100 pb-5">
+                      <legend className="font-semibold text-neutral-900 mb-3">{questionIndex + 1}. {question.prompt}</legend>
+                      <div className="space-y-2">
+                        {question.options.map((option, optionIndex) => (
+                          <label key={`${question.id}-${optionIndex}`} className="flex gap-3 items-start rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-700 hover:border-primary-300 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`quiz-${selectedQuiz.id}-question-${question.id}`}
+                              checked={quizAnswers[question.id] === optionIndex}
+                              disabled={Boolean(quizResult)}
+                              onChange={() => setQuizAnswers((current) => ({ ...current, [question.id]: optionIndex }))}
+                              className="mt-0.5 accent-primary-800"
+                            />
+                            <span>{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  ))}
+                </div>
+                {quizResult && (
+                  <p role="status" className={`mt-5 text-sm font-semibold ${quizResult.passed ? "text-success-dark" : "text-error"}`}>
+                    {quizResult.passed ? "Quiz passed" : "Not quite. Review the material and try again."} Score: {quizResult.score}%.
+                  </p>
+                )}
+                {quizError && <p role="alert" className="mt-4 text-sm text-error">{quizError}</p>}
+                <div className="mt-6 flex gap-3">
+                  {quizResult && !quizResult.passed && (
+                    <Button variant="outline" onClick={() => { setQuizAnswers({}); setQuizResult(null); setQuizError(""); }}>
+                      Try Again
+                    </Button>
+                  )}
+                  {!quizResult && (
+                    <Button variant="primary" onClick={handleQuizSubmit} loading={submittingQuiz}>
+                      Submit Quiz
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Lesson Sidebar */}
@@ -297,10 +388,40 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
               </div>
               <div className="flex-1 overflow-y-auto">
                 <CurriculumAccordion
-                  sections={curriculum}
+                  sections={curriculum.map((section) => ({
+                    ...section,
+                    lessons: section.lessons.map((lesson) => ({
+                      ...lesson,
+                      isCompleted: lesson.isCompleted || completedLessons.has(lesson.id),
+                    })),
+                  }))}
                   activeLesson={activeLesson?.id}
                   onLessonClick={handleLessonClick}
                 />
+                {quizzes.length > 0 && (
+                  <section className="border-t border-neutral-100 p-4" aria-label="Course quizzes">
+                    <h3 className="text-sm font-semibold text-neutral-900 mb-2">Course quizzes</h3>
+                    <ul className="space-y-1">
+                      {quizzes.map((quiz) => (
+                        <li key={quiz.id}>
+                          <button
+                            type="button"
+                            onClick={() => { setActiveQuiz(quiz.id); setQuizAnswers({}); setQuizResult(null); setQuizError(""); }}
+                            className={cn("w-full text-left rounded-lg px-3 py-2 text-sm transition-colors", activeQuiz === quiz.id ? "bg-primary-50 text-primary-800 font-semibold" : "text-neutral-700 hover:bg-neutral-50")}
+                          >
+                            {quiz.title}
+                            <span className="block text-xs text-neutral-400">{quiz.questions.length} questions · pass {quiz.passingScore}%</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {quizzesLoadError && (
+                  <p role="alert" className="border-t border-neutral-100 p-4 text-xs text-error">
+                    Could not load course quizzes. Refresh the page to try again.
+                  </p>
+                )}
               </div>
             </>
           )}

@@ -19,7 +19,7 @@ import {
   formatNumber,
   cn,
 } from "@/lib/utils";
-import type { Course } from "@/types/course";
+import type { Course, CourseReview } from "@/types/course";
 import type { Certificate, EnrolledCourse } from "@/types/course";
 
 interface SingleCoursePageProps {
@@ -62,6 +62,11 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
   const { isAuthenticated, user } = useAuth();
   const enrolling = false;
   const [activeTab, setActiveTab] = useState<"overview" | "curriculum" | "instructor" | "reviews">("overview");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   const { course, isLoading, error } = useCourse(slug);
   const { data: enrollments = [] } = useSWR<EnrolledCourse[]>(
@@ -73,6 +78,11 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
     isAuthenticated && user ? `/api/students/${user.id}/certificates` : null,
     fetcher,
     { revalidateOnFocus: false }
+  );
+  const { data: reviews = [], mutate: refreshReviews } = useSWR<CourseReview[]>(
+    course ? `/api/courses/${encodeURIComponent(slug)}/reviews` : null,
+    fetcher,
+    { revalidateOnFocus: false },
   );
   const enrollment = findEnrollment(course, enrollments);
   const certificate = findCertificate(course, enrollment, certificates);
@@ -104,6 +114,29 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
 
   const handleEnroll = () => {
     window.location.href = `/checkout?course=${slug}`;
+  };
+
+  const submitReview = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setReviewSubmitting(true);
+    setReviewError("");
+    setReviewSubmitted(false);
+    try {
+      const response = await fetch(`/api/courses/${encodeURIComponent(slug)}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: reviewRating, body: reviewBody }),
+      });
+      const payload = await response.json().catch(() => ({})) as { message?: string; error?: { message?: string } };
+      if (!response.ok) throw new Error(payload.error?.message || payload.message || "Unable to submit your review.");
+      setReviewBody("");
+      setReviewSubmitted(true);
+      await refreshReviews();
+    } catch (error) {
+      setReviewError(error instanceof Error ? error.message : "Unable to submit your review.");
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   const TABS = [
@@ -318,24 +351,54 @@ export function SingleCoursePage({ slug }: SingleCoursePageProps) {
                     </h2>
                     <div className="flex items-center gap-6 mb-8 p-6 bg-neutral-50 rounded-2xl">
                       <div className="text-center">
-                        <p className="text-5xl font-bold text-neutral-900">{course.rating.average.toFixed(1)}</p>
-                        <StarRating rating={course.rating.average} size="md" className="justify-center mt-1" />
+                        <p className="text-5xl font-bold text-neutral-900">{(reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : course.rating.average).toFixed(1)}</p>
+                        <StarRating rating={reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : course.rating.average} size="md" className="justify-center mt-1" />
                         <p className="text-xs text-neutral-400 mt-1">Course Rating</p>
                       </div>
                       <div className="flex-1 space-y-2">
                         {[5, 4, 3, 2, 1].map((star) => (
                           <div key={star} className="flex items-center gap-2">
                             <div className="flex-1 bg-neutral-200 rounded-full h-1.5 overflow-hidden">
-                              <div className="bg-warning h-full rounded-full" style={{ width: "70%" }} />
+                              <div className="bg-warning h-full rounded-full" style={{ width: `${reviews.length ? reviews.filter((review) => review.rating === star).length / reviews.length * 100 : 0}%` }} />
                             </div>
-                            <span className="text-xs text-neutral-400 w-4 text-right">{star}</span>
+                            <span className="text-xs text-neutral-400 w-8 text-right">{star} ★</span>
                           </div>
                         ))}
                       </div>
                     </div>
-                    {course.reviews.length === 0 && (
+                    {isAuthenticated && enrollment && (
+                      <form onSubmit={submitReview} className="mb-8 rounded-xl border border-neutral-200 p-5">
+                        <h3 className="font-semibold text-neutral-900 mb-3">Write a review</h3>
+                        <label htmlFor="review-rating" className="block text-sm text-neutral-700 mb-1">Your rating</label>
+                        <select id="review-rating" value={reviewRating} onChange={(event) => setReviewRating(Number(event.target.value))} className="mb-3 rounded-lg border border-neutral-300 px-3 py-2 text-sm">
+                          {[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} star{rating === 1 ? "" : "s"}</option>)}
+                        </select>
+                        <label htmlFor="review-body" className="sr-only">Your review</label>
+                        <textarea id="review-body" required minLength={3} maxLength={3000} value={reviewBody} onChange={(event) => setReviewBody(event.target.value)} rows={4} placeholder="Share what you learned from this course" className="block w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary-600 focus:outline-none" />
+                        <div className="mt-3 flex flex-wrap items-center gap-4">
+                          <Button type="submit" size="sm" loading={reviewSubmitting} disabled={reviewBody.trim().length < 3}>Submit Review</Button>
+                          {reviewSubmitted && <span role="status" className="text-sm text-success-dark">Review submitted.</span>}
+                          {reviewError && <span role="alert" className="text-sm text-error">{reviewError}</span>}
+                        </div>
+                      </form>
+                    )}
+                    {reviews.length === 0 && (
                       <p className="text-neutral-400 text-sm">No reviews yet. Be the first to review this course!</p>
                     )}
+                    <div className="space-y-5">
+                      {reviews.map((review) => (
+                        <article key={review.id} className="border-b border-neutral-100 pb-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="font-semibold text-sm text-neutral-900">{review.author.name}</p>
+                              <StarRating rating={review.rating} size="sm" className="mt-1" />
+                            </div>
+                            <time className="text-xs text-neutral-400" dateTime={review.createdAt}>{review.createdAt ? formatDate(review.createdAt) : ""}</time>
+                          </div>
+                          <p className="mt-3 text-sm text-neutral-600 whitespace-pre-wrap">{review.content}</p>
+                        </article>
+                      ))}
+                    </div>
                   </section>
                 )}
               </>

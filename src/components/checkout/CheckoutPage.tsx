@@ -33,6 +33,13 @@ interface CheckoutResponse {
   message?: string;
 }
 
+interface CoursePlan {
+  id: number;
+  name: string;
+  price: number;
+  interval: "monthly" | "annually";
+}
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function CheckoutPage() {
@@ -40,6 +47,8 @@ export function CheckoutPage() {
   const searchParams = useSearchParams();
   const { addToast } = useToast();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank_transfer");
+  const [purchaseType, setPurchaseType] = useState<"course" | "subscription">("course");
+  const [selectedPlanId, setSelectedPlanId] = useState("");
   const [placing, setPlacing] = useState(false);
 
   const courseSlug = searchParams.get("course");
@@ -53,14 +62,29 @@ export function CheckoutPage() {
     certificateCourseSlug ? `/api/courses/${certificateCourseSlug}` : null,
     fetcher
   );
+  const { data: planData } = useSWR<{ plans?: CoursePlan[] }>(
+    courseSlug && !certificateCourseSlug ? `/api/courses/${encodeURIComponent(courseSlug)}/plans` : null,
+    fetcher,
+  );
+  const plans = planData?.plans || [];
+  const selectedPlan = plans.find((plan) => String(plan.id) === selectedPlanId);
 
   const isCertificateCheckout = Boolean(certificateCourseSlug);
-  const price = isCertificateCheckout ? 10000 : course?.price ?? 0;
+  const isSubscriptionCheckout = purchaseType === "subscription" && !isCertificateCheckout;
+  const price = isCertificateCheckout
+    ? 10000
+    : isSubscriptionCheckout
+      ? selectedPlan?.price ?? 0
+      : course?.price ?? 0;
   const total = price;
   const summaryTitle = isCertificateCheckout
     ? `Certificate - ${certificateCourse?.title || "Course"}`
     : course?.title;
-  const summarySubtitle = isCertificateCheckout ? "Certificate processing fee" : "Course enrollment";
+  const summarySubtitle = isCertificateCheckout
+    ? "Certificate processing fee"
+    : isSubscriptionCheckout && selectedPlan
+      ? `${selectedPlan.name} · renews ${selectedPlan.interval === "monthly" ? "monthly" : "annually"}`
+      : "One-time course purchase";
 
   const onSubmit = async () => {
     if (!user) {
@@ -80,6 +104,7 @@ export function CheckoutPage() {
           productId: course.id,
           courseSlug: productSlug,
           certificateCourseSlug,
+          ...(isSubscriptionCheckout && selectedPlan ? { purchaseType, planId: selectedPlan.id } : {}),
           paymentMethod,
           paymentMethodTitle: PAYMENT_METHODS.find((p) => p.id === paymentMethod)?.label,
         }),
@@ -129,6 +154,48 @@ export function CheckoutPage() {
                 <p className="mt-2 text-sm text-neutral-600">Payment and course access will be associated with this account.</p>
                 <p className="mt-4 text-sm font-medium text-neutral-900">{user.displayName}</p>
                 <p className="text-sm text-neutral-500">{user.email}</p>
+              </section>
+            )}
+
+            {!isCertificateCheckout && plans.length > 0 && (
+              <section className="bg-white rounded-2xl border border-neutral-100 p-6">
+                <h2 className="text-base font-semibold text-neutral-900 mb-1">How would you like to pay?</h2>
+                <p className="text-sm text-neutral-500 mb-4">A subscription gives access to this course only.</p>
+                <div className="space-y-3">
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${purchaseType === "course" ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300"}`}>
+                    <input
+                      type="radio"
+                      name="purchaseType"
+                      value="course"
+                      checked={purchaseType === "course"}
+                      onChange={() => setPurchaseType("course")}
+                      className="mt-1 w-4 h-4 text-primary-800"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-neutral-900">Buy this course once</span>
+                      <span className="block mt-1 text-xs text-neutral-500">{formatPrice(course?.price ?? 0)} · lifetime access</span>
+                    </span>
+                  </label>
+                  {plans.map((plan) => (
+                    <label key={plan.id} className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${purchaseType === "subscription" && selectedPlanId === String(plan.id) ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300"}`}>
+                      <input
+                        type="radio"
+                        name="purchaseType"
+                        value={`plan-${plan.id}`}
+                        checked={purchaseType === "subscription" && selectedPlanId === String(plan.id)}
+                        onChange={() => {
+                          setPurchaseType("subscription");
+                          setSelectedPlanId(String(plan.id));
+                        }}
+                        className="mt-1 w-4 h-4 text-primary-800"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold text-neutral-900">{plan.name}</span>
+                        <span className="block mt-1 text-xs text-neutral-500">{formatPrice(plan.price)} / {plan.interval === "monthly" ? "month" : "year"} · access to this course</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </section>
             )}
 
@@ -193,9 +260,12 @@ export function CheckoutPage() {
 
               <div className="space-y-2 mb-5">
                 <div className="flex justify-between text-sm text-neutral-600">
-                  <span>{isCertificateCheckout ? "Certificate" : "Course"}</span>
+                  <span>{isCertificateCheckout ? "Certificate" : isSubscriptionCheckout ? selectedPlan?.name || "Course subscription" : "Course"}</span>
                   <span>{formatPrice(price)}</span>
                 </div>
+                {isSubscriptionCheckout && selectedPlan && (
+                  <p className="text-xs text-neutral-500">Recurring charge: {selectedPlan.interval === "monthly" ? "monthly" : "annually"}. This plan covers this course only.</p>
+                )}
               </div>
 
               <div className="border-t border-neutral-100 pt-4">
@@ -211,10 +281,12 @@ export function CheckoutPage() {
                 fullWidth
                 loading={placing}
                 className="mt-5"
-                disabled={!course || !user}
+                disabled={!course || !user || (isSubscriptionCheckout && !selectedPlan)}
                 onClick={onSubmit}
               >
-                {paymentMethod === "bank_transfer" ? "Continue with bank transfer" : "Continue to Paystack"} - {formatPrice(total)}
+                {isSubscriptionCheckout
+                  ? `Start ${selectedPlan?.interval === "annually" ? "annual" : "monthly"} subscription`
+                  : paymentMethod === "bank_transfer" ? "Continue with bank transfer" : "Continue to Paystack"} - {formatPrice(total)}
               </Button>
 
               <p className="text-xs text-neutral-400 text-center mt-3">
@@ -224,7 +296,7 @@ export function CheckoutPage() {
 
             <div className="bg-neutral-50 rounded-xl border border-neutral-100 p-4">
               <p className="text-xs text-neutral-400 text-center">
-                30-day money-back guarantee. Cancel anytime.
+                {isSubscriptionCheckout ? "Your subscription provides access to this course only." : "30-day money-back guarantee."}
               </p>
             </div>
           </div>

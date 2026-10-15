@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { backendFetch, backendPayload, backendToken } from "@/lib/backend-api";
 
-interface CourseRecord { id: number; slug: string; title: string; price: number }
+interface CourseRecord { id: number; slug: string; title: string }
 interface PayloadList<T> { docs?: T[] }
 interface PaymentStart { authorizationUrl: string; reference: string; orderId: number }
 
@@ -37,22 +37,39 @@ export async function POST(req: NextRequest) {
     return beginPayment(req, "certificates/purchase", { courseId: String(course.id) }, paymentMethod);
   }
 
-  const planQuery = new URLSearchParams({
-    limit: "10",
-    depth: "1",
-    "where[course][equals]": String(course.id),
-    "where[isActive][equals]": "true",
-    "where[interval][equals]": "monthly",
-  });
-  const plansResponse = await backendFetch(req, `plans?${planQuery}`);
-  if (plansResponse.ok) {
-    const plans = await backendPayload<PayloadList<{ id: number; price: number; interval: string }>>(plansResponse);
-    const plan = plans.docs?.[0];
-    if (!plan) return NextResponse.json({ message: "Monthly billing is not configured for this course yet." }, { status: 503 });
-    if (Number(plan.price) !== Number(course.price)) {
-      return NextResponse.json({ message: "The course price and monthly plan price do not match. Please contact support." }, { status: 409 });
+  if (body.purchaseType === "subscription") {
+    const planId = typeof body.planId === "string" || typeof body.planId === "number"
+      ? String(body.planId)
+      : "";
+    if (!/^\d+$/.test(planId)) {
+      return NextResponse.json({ message: "Choose a valid subscription plan for this course." }, { status: 400 });
     }
-    return beginPayment(req, "payments/initiate", { type: "subscription", planId: String(plan.id) }, paymentMethod);
+    const planQuery = new URLSearchParams({
+      limit: "1",
+      depth: "0",
+      "where[id][equals]": planId,
+      "where[course][equals]": String(course.id),
+      "where[isActive][equals]": "true",
+    });
+    const plansResponse = await backendFetch(req, `plans?${planQuery}`);
+    if (!plansResponse.ok) {
+      const payload = await plansResponse.json().catch(() => null) as { error?: { message?: string } } | null;
+      return NextResponse.json({ message: payload?.error?.message || "Unable to verify this subscription plan." }, { status: plansResponse.status });
+    }
+    const plans = await backendPayload<PayloadList<{ id: number }>>(plansResponse);
+    if (!plans.docs?.length) {
+      return NextResponse.json({ message: "That plan is not active for this course." }, { status: 404 });
+    }
+    return beginPayment(req, "payments/initiate", { type: "subscription", planId }, paymentMethod);
   }
-  return NextResponse.json({ message: "Unable to verify the monthly plan for this course. Please try again shortly." }, { status: 502 });
+
+  // Course cards and checkout show a one-time course price. Send that purchase
+  // to the backend's course-payment flow; subscription plans are a separate,
+  // course-specific product and must not be inferred from the course price.
+  return beginPayment(
+    req,
+    "payments/initiate",
+    { type: "course", courseId: String(course.id) },
+    paymentMethod,
+  );
 }

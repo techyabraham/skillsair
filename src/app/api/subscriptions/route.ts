@@ -20,11 +20,14 @@ export async function GET(req: NextRequest) {
   }
   const payload = await backendPayload<PayloadList>(response);
   const subscriptions: Subscription[] = (payload.docs || []).map((item) => {
-    const plan = typeof item.plan === "object" && item.plan ? item.plan : {};
-    const course = typeof item.course === "object" && item.course ? item.course : {};
+  const plan = typeof item.plan === "object" && item.plan ? item.plan : {};
+  const course = typeof item.course === "object" && item.course ? item.course : {};
+    const status = item.status === "active" || item.status === "cancelled" || item.status === "expired" || item.status === "on-hold"
+      ? item.status
+      : "pending";
     return {
       id: item.id,
-      status: item.status === "cancelled" || item.status === "expired" ? item.status : "active",
+      status,
       planName: plan.name || course.title || "Course subscription",
       planId: Number(plan.id || item.plan || 0),
       startDate: item.currentPeriodStart || "",

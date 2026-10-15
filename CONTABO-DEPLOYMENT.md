@@ -23,15 +23,15 @@ Deploy the backend, database, and Redis first. Keep PostgreSQL and Redis private
 5. Set `CERTIFICATE_PRICE_NGN=10000` to match the frontend certificate checkout price.
 6. Wait for the backend health check at `https://kiwi.skillsair.com/health` to return `{"status":"ok"}`.
 7. Create a separate Coolify application from the `skillsair` frontend repository. Select its `Dockerfile`, expose port `3000`, and assign `skillsair.com` (and `www.skillsair.com` if desired).
-8. Set frontend runtime variables `SKILLSAIR_BACKEND_URL=https://kiwi.skillsair.com` and `NEXT_PUBLIC_SITE_URL=https://skillsair.com`, then deploy.
+8. Set `SKILLSAIR_BACKEND_URL=https://kiwi.skillsair.com` as a runtime variable. Set `NEXT_PUBLIC_SITE_URL=https://skillsair.com` as a build-time variable (and runtime too if Coolify offers both), then deploy. `SKILLSAIR_BACKEND_URL` must be the backend origin only; do not append `/api` or a route path.
 
-The frontend Dockerfile builds Next.js standalone output. Coolify runs that production build inside the image build. The local `npm run build` command has not been run as part of this integration.
+The frontend Dockerfile builds Next.js standalone output. Coolify runs that production build inside the image build. Course purchases use the backend's one-time payment endpoint by default; active course-specific subscription plans are shown as an explicit recurring option. Certificate payments also use the backend's payment endpoint. The backend creates the Paystack authorization URL and verifies the callback.
 
 The included `docker-compose.yml` can run the frontend container by itself. The backend should be deployed from its own repository so Coolify can build it with its own Dockerfile and attach its Postgres and Redis services.
 
 ## Paystack
 
-Configure the Paystack webhook to call `https://kiwi.skillsair.com/api/payments/webhook`. The frontend sends the selected payment option to the backend: bank-transfer checkout is restricted to Paystack's `bank_transfer` channel; the standard Paystack option leaves the provider's enabled channels available. The callback returns to `https://skillsair.com/payments/callback`, where the frontend asks the backend to verify the reference before showing the order.
+Configure the Paystack webhook to call `https://kiwi.skillsair.com/api/payments/webhook`. The frontend sends the selected payment option to the backend: bank-transfer checkout is restricted to Paystack's `bank_transfer` channel; the standard Paystack option leaves the provider's enabled channels available. Course and certificate callbacks return to `https://skillsair.com/payments/callback`; subscription callbacks return to `https://skillsair.com/subscriptions/callback`. Both routes ask the backend to verify the payment reference before showing the order.
 
 ## Data cutover
 

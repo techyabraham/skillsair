@@ -32,6 +32,7 @@ const config: Config = {
           500: "#f97316",
           600: "#ea580c",
           700: "#c2410c",
+          800: "#9a3412",
           DEFAULT: "#f97316",
         },
         navy: {
@@ -73,8 +74,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        heading: ["Plus Jakarta Sans", "Inter", "sans-serif"],
+        sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
+        heading: ["var(--font-plus-jakarta)", "Plus Jakarta Sans", "var(--font-inter)", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       fontSize: {

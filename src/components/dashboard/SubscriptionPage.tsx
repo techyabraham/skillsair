@@ -95,7 +95,7 @@ export function SubscriptionPage() {
           <div className="text-5xl mb-4" aria-hidden="true">💳</div>
           <h2 className="text-lg font-semibold text-neutral-700 mb-2">No Active Subscriptions</h2>
           <p className="text-sm text-neutral-500 mb-6">Choose a course to see its one-time and subscription payment options.</p>
-          <Link href="/courses"><Button variant="accent" size="md">Browse Courses</Button></Link>
+          <Link href="/schools"><Button variant="accent" size="md">Browse Courses</Button></Link>
         </div>
       )}
 

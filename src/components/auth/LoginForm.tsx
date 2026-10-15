@@ -9,6 +9,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { safeNextPath } from "@/lib/lead-session";
 
 const loginSchema = z.object({
   username: z.string().email("Enter a valid email address"),
@@ -36,8 +37,7 @@ export function LoginForm() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       await login(data);
-      const next = searchParams.get("next") || "/dashboard";
-      router.push(next);
+      router.push(safeNextPath(searchParams.get("next")));
     } catch {
       // Error shown via authError
     }

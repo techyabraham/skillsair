@@ -102,7 +102,7 @@ export function CertificatesPage() {
             <p className="text-sm text-neutral-400 mb-6 max-w-xs mx-auto">
               Complete a course and purchase your certificate to show it here.
             </p>
-            <Link href="/courses">
+            <Link href="/schools">
               <Button variant="accent" size="md">Explore Courses</Button>
             </Link>
           </div>

@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { Analytics } from "@/components/analytics/Analytics";
+import { AttributionCapture } from "@/components/analytics/AttributionCapture";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,38 +24,35 @@ export const viewport: Viewport = {
   themeColor: "#1e3a8a",
 };
 
+const TITLE = "SkillsAir: Affordable, job-ready tech training for young Africans";
+const DESCRIPTION =
+  "Learn AI, data, design, engineering, security or marketing at your own pace. Earn a verifiable certificate in 3 months and unlock internship opportunities. Apply in 60 seconds.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://skillsair.com"),
   title: {
-    default: "SkillsAir — Learn Without Limits",
+    default: TITLE,
     template: "%s | SkillsAir",
   },
-  description:
-    "Advance your career with world-class online courses. Learn from expert instructors, earn certificates, and join a community of 50,000+ learners.",
-  keywords: ["online learning", "courses", "e-learning", "certificates", "skills"],
+  description: DESCRIPTION,
+  keywords: ["tech courses in Nigeria", "affordable tech training", "data analysis course Nigeria", "UI/UX design course Nigeria", "cybersecurity course Nigeria", "AI course Nigeria"],
   authors: [{ name: "SkillsAir" }],
   icons: {
-    icon: [
-      { url: "/icon.png", type: "image/png" },
-    ],
-    apple: [
-      { url: "/icon.png", type: "image/png" },
-    ],
+    icon: [{ url: "/icon.png", type: "image/png" }],
+    apple: [{ url: "/icon.png", type: "image/png" }],
     shortcut: "/icon.png",
   },
   openGraph: {
     type: "website",
-    locale: "en_US",
+    locale: "en_NG",
     siteName: "SkillsAir",
-    title: "SkillsAir — Learn Without Limits",
-    description: "Advance your career with world-class online courses.",
-    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "SkillsAir" }],
+    title: TITLE,
+    description: DESCRIPTION,
   },
   twitter: {
-    card: "summary_large_image",
-    title: "SkillsAir — Learn Without Limits",
-    description: "Advance your career with world-class online courses.",
-    images: ["/og-image.jpg"],
+    card: "summary",
+    title: TITLE,
+    description: DESCRIPTION,
     creator: "@skillsair",
   },
   robots: { index: true, follow: true },
@@ -61,9 +60,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${plusJakarta.variable}`}>
+    <html lang="en-NG" className={`${inter.variable} ${plusJakarta.variable}`}>
       <body className="font-sans antialiased bg-white text-neutral-900">
         <Providers>{children}</Providers>
+        <AttributionCapture />
+        <Analytics />
       </body>
     </html>
   );

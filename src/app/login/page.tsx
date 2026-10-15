@@ -30,8 +30,8 @@ export default function LoginPage() {
           </div>
           <p className="text-center text-sm text-neutral-500 mt-6">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary-800 font-semibold hover:underline">
-              Create one for free
+            <Link href="/apply" className="text-primary-800 font-semibold hover:underline">
+              Apply for a programme
             </Link>
           </p>
         </div>

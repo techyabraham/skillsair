@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { backendFetch, backendPayload } from "@/lib/backend-api";
-import { mapBackendCourse } from "@/lib/backend-course-mapper";
+import { mapBackendCourse, toPublicCourse } from "@/lib/backend-course-mapper";
 
 interface PayloadList {
   docs?: unknown[];
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     // custom curriculum endpoint deployment. Its embedded sections may still
     // be populated by Payload's normal relationship depth.
     if (curriculumResponse.status === 404) {
-      return NextResponse.json(mapBackendCourse(course));
+      return NextResponse.json(toPublicCourse(mapBackendCourse(course)));
     }
     const body = await curriculumResponse.json().catch(() => null) as { error?: { message?: string }; message?: string } | null;
     return NextResponse.json(
@@ -33,8 +33,8 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     );
   }
   const curriculumPayload = await backendPayload<{ sections?: unknown[] }>(curriculumResponse);
-  return NextResponse.json(mapBackendCourse({
+  return NextResponse.json(toPublicCourse(mapBackendCourse({
     ...(course as Record<string, unknown>),
     sections: curriculumPayload.sections || [],
-  }));
+  })));
 }

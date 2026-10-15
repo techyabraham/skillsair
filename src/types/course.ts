@@ -71,8 +71,9 @@ export interface Course {
   excerpt: string;
   description: string;
   thumbnail: string;
-  price: number;
-  regularPrice: number;
+  /** Never sent by the public course APIs: prices are only revealed in the personal offer. */
+  price?: number;
+  regularPrice?: number;
   salePrice?: number;
   isFree: boolean;
   isEnrolled?: boolean;

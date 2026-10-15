@@ -33,9 +33,11 @@ export interface RegisterData {
   firstName: string;
   lastName: string;
   email: string;
-  phone?: string;
+  phone: string;
   password: string;
   acceptTerms: boolean;
+  marketingConsent?: boolean;
+  marketingConsentText?: string;
 }
 
 export interface PasswordResetData {

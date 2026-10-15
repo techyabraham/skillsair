@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Spinner } from "@/components/ui/Spinner";
+import { site, whatsappLink } from "@/content/site";
 
 export function PaymentCallback() {
   const params = useSearchParams();
@@ -38,10 +39,16 @@ export function PaymentCallback() {
       <div className="max-w-md text-center">
         {error ? (
           <>
-            <h1 className="text-xl font-semibold text-neutral-900">Payment status unavailable</h1>
+            <h1 className="text-xl font-semibold text-neutral-900">Payment didn&apos;t go through</h1>
             <p className="mt-3 text-sm text-neutral-600">{error}</p>
-            {reference && <p className="mt-3 text-xs text-neutral-500">Reference: {reference}</p>}
-            <Link className="mt-6 inline-block text-primary-800 underline" href="/dashboard/orders">View your orders</Link>
+            <p className="mt-3 text-sm text-neutral-700">
+              If you were debited, your bank normally reverses it automatically. If it hasn&apos;t, send your reference
+              {reference ? <> <strong>{reference}</strong></> : null} to {site.advisor.name} on WhatsApp ({site.whatsapp.display}) and we&apos;ll resolve it within 24 hours.
+            </p>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <a className="inline-flex min-h-12 items-center rounded-xl bg-[#128C7E] px-5 font-semibold text-white" href={whatsappLink(`Hi ${site.advisor.name}, my SkillsAir payment didn't go through. Reference: ${reference}`)} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>
+              <Link className="text-primary-800 underline" href="/dashboard/orders">View your orders</Link>
+            </div>
           </>
         ) : (
           <><Spinner size="lg" /><h1 className="mt-4 text-lg font-semibold text-neutral-900">Confirming your payment</h1></>

@@ -44,8 +44,10 @@ export async function backendFetch(
   // browser-facing origin for requests relayed by this same-origin BFF.
   if (!headers.has("User-Agent")) headers.set("User-Agent", "SkillsAir-Frontend/1.0");
   if (!headers.has("Origin")) headers.set("Origin", req.nextUrl.origin);
+  // An explicit Authorization header (e.g. a lead token) wins over the session cookie.
   const token = backendToken(req);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
+  applyClientIpHeaders(headers, clientIp(req.headers));
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
@@ -57,6 +59,42 @@ export async function backendFetch(
     headers,
     cache: "no-store",
   });
+}
+
+/** The browser's IP as seen by this server, used so backend per-IP limits apply per visitor. */
+export function clientIp(headers: Headers): string {
+  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || headers.get("x-real-ip")?.trim() || "";
+}
+
+/**
+ * Forwards the visitor IP. With BFF_SHARED_SECRET set on both services, the backend trusts
+ * X-SkillsAir-Client-IP; otherwise it falls back to the first X-Forwarded-For entry.
+ */
+export function applyClientIpHeaders(headers: Headers, ip: string): void {
+  if (!ip) return;
+  headers.set("X-Forwarded-For", ip);
+  const secret = process.env.BFF_SHARED_SECRET;
+  if (secret) {
+    headers.set("X-SkillsAir-BFF-Key", secret);
+    headers.set("X-SkillsAir-Client-IP", ip);
+  }
+}
+
+/** Server-component variant of backendFetch: caller supplies the token and visitor headers. */
+export async function serverBackendFetch(
+  path: string,
+  { token, requestHeaders, init = {} }: { token?: string | null; requestHeaders?: Headers; init?: RequestInit } = {},
+): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set("Accept", "application/json");
+  headers.set("User-Agent", "SkillsAir-Frontend/1.0");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (requestHeaders) applyClientIpHeaders(headers, clientIp(requestHeaders));
+  return fetch(backendUrl(path), { cache: "no-store", ...init, headers });
 }
 
 export async function backendPayload<T>(response: Response): Promise<T> {

@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
@@ -23,14 +21,14 @@ html {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 @layer base {
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-family: var(--font-plus-jakarta), var(--font-inter), sans-serif;
     font-weight: 700;
   }
 
@@ -67,7 +65,7 @@ body {
   }
 
   .btn-accent {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-xl bg-accent text-white font-semibold text-sm transition-all duration-200 hover:bg-accent-600 hover:shadow-button-accent active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-xl bg-accent-700 text-white font-semibold text-sm transition-all duration-200 hover:bg-accent-800 hover:shadow-button-accent active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-outline {
@@ -116,6 +114,44 @@ body {
   .star-empty {
     @apply text-neutral-300;
   }
+
+  /* Admin-edited legal pages rendered by RichText. */
+  .prose-legal {
+    @apply text-neutral-700 leading-relaxed;
+  }
+  .prose-legal h2 {
+    @apply text-xl md:text-2xl font-heading font-bold text-neutral-900 mt-10 mb-3;
+  }
+  .prose-legal h3 {
+    @apply text-lg font-heading font-semibold text-neutral-900 mt-8 mb-2;
+  }
+  .prose-legal h4 {
+    @apply text-base font-semibold text-neutral-900 mt-6 mb-2;
+  }
+  .prose-legal p {
+    @apply my-4;
+  }
+  .prose-legal ul {
+    @apply list-disc pl-6 my-4 space-y-1;
+  }
+  .prose-legal ol {
+    @apply list-decimal pl-6 my-4 space-y-1;
+  }
+  .prose-legal a {
+    @apply text-primary-800 underline underline-offset-2;
+  }
+  .prose-legal blockquote {
+    @apply border-l-4 border-neutral-200 pl-4 italic;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer utilities {
@@ -124,7 +160,7 @@ body {
   }
 
   .font-heading {
-    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-family: var(--font-plus-jakarta), var(--font-inter), sans-serif;
   }
 
   .scrollbar-hide {

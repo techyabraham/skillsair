@@ -8,7 +8,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     <AuthGuard>
       <div className="min-h-screen bg-neutral-50 flex flex-col">
         <Header />
-        <div className="flex flex-1 pt-20">
+        <div className="flex flex-1">
           <div className="hidden lg:flex">
             <DashboardSidebar />
           </div>

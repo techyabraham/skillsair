@@ -2,6 +2,14 @@
 const nextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  async redirects() {
+    return [
+      { source: "/courses", destination: "/schools", permanent: true },
+      { source: "/courses/:slug", destination: "/programmes/:slug", permanent: true },
+      { source: "/pricing", destination: "/scholarship", permanent: true },
+      { source: "/help", destination: "/faq", permanent: true },
+    ];
+  },
   compress: true,
   images: {
     remotePatterns: [

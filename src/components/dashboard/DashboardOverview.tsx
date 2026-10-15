@@ -163,7 +163,7 @@ export function DashboardOverview() {
             <div className="text-4xl mb-3">📚</div>
             <p className="font-semibold text-neutral-700">No courses enrolled yet</p>
             <p className="text-sm text-neutral-400 mt-1">Browse our catalog to find your next course</p>
-            <Link href="/courses" className="mt-4 inline-block">
+            <Link href="/schools" className="mt-4 inline-block">
               <Button variant="accent" size="md">Browse Courses</Button>
             </Link>
           </div>
@@ -177,7 +177,7 @@ export function DashboardOverview() {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { href: "/courses", label: "Browse Courses", icon: "🔍" },
+            { href: "/schools", label: "Browse Courses", icon: "🔍" },
             { href: "/dashboard/certificates", label: "My Certificates", icon: "🏆" },
             { href: "/dashboard/subscription", label: "Manage Plan", icon: "💳" },
             { href: "/dashboard/profile", label: "Edit Profile", icon: "👤" },

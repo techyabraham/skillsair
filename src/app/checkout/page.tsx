@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 export default function CheckoutRoute() {
   return (
     <>
-      <Header />
-      <main className="pt-20">
+      <Header minimal />
+      <main>
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-6 h-6 border-2 border-primary-800 border-t-transparent rounded-full animate-spin" /></div>}>
           <CheckoutPage />
         </Suspense>

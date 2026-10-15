@@ -133,6 +133,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           firstName: data.firstName,
           lastName: data.lastName,
           phone: data.phone,
+          marketingConsent: data.marketingConsent === true,
+          marketingConsentText: data.marketingConsent ? data.marketingConsentText : undefined,
         }),
       });
       const result = await safeJson(res);

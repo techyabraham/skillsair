@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { Logo } from "@/components/ui/Logo";
 
 export const metadata: Metadata = {
   title: "Create Account",
-  description: "Join SkillsAir and start learning from expert instructors today.",
+  description: "Create your SkillsAir account.",
 };
 
 export default function RegisterPage() {
@@ -20,11 +21,15 @@ export default function RegisterPage() {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-heading font-bold text-neutral-900">Create your account</h1>
             <p className="text-neutral-500 text-sm mt-2">
-              Join 50,000+ professionals learning on SkillsAir
+              Applying for a programme?{" "}
+              <Link href="/apply" className="font-semibold text-primary-800 underline">Start here instead</Link>{" "}
+              to see your scholarship offer.
             </p>
           </div>
           <div className="bg-white rounded-2xl shadow-card border border-neutral-100 p-8">
-            <RegisterForm />
+            <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-neutral-100" />}>
+              <RegisterForm />
+            </Suspense>
           </div>
           <p className="text-center text-sm text-neutral-500 mt-6">
             Already have an account?{" "}

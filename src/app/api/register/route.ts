@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { backendAuthCookieOptions, backendFetch, backendPayload } from "@/lib/backend-api";
+import { LEAD_COOKIE } from "@/lib/lead-session";
+import { normalizePhone, PHONE_ERROR } from "@/lib/phone";
 
 interface BackendRegistration {
   authToken: string;
@@ -14,21 +16,23 @@ export async function POST(req: NextRequest) {
   const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
   const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
   const phone = typeof body.phone === "string" ? body.phone.trim() : "";
-  if (!email || !password || !firstName || !lastName) {
-    return NextResponse.json({ message: "First name, last name, email, and password are required" }, { status: 400 });
+  if (!email || !password || !firstName || !lastName || !phone) {
+    return NextResponse.json({ message: "First name, last name, email, WhatsApp number and password are required" }, { status: 400 });
   }
 
-  const normalizedPhone = phone
-    ? phone.startsWith("+") ? phone : phone.startsWith("0") ? `+234${phone.slice(1)}` : `+${phone}`
-    : "";
-  if (normalizedPhone && !/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
-    return NextResponse.json({ message: "Enter a valid phone number with country code." }, { status: 400 });
+  const normalizedPhone = normalizePhone(phone);
+  if (!normalizedPhone) {
+    return NextResponse.json({ message: PHONE_ERROR, fields: { phone: PHONE_ERROR } }, { status: 400 });
   }
+  const marketingConsent = body.marketingConsent === true;
+  const marketingConsentText = marketingConsent && typeof body.marketingConsentText === "string" ? body.marketingConsentText.slice(0, 1000) : undefined;
+  // Links the new account to the application (and its consent) that started it.
+  const leadToken = req.cookies.get(LEAD_COOKIE)?.value;
 
   try {
     const upstream = await backendFetch(req, "auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, firstName, lastName, ...(normalizedPhone ? { phone: normalizedPhone } : {}) }),
+      body: JSON.stringify({ email, password, firstName, lastName, phone: normalizedPhone, marketingConsent, marketingConsentText, leadToken }),
     });
     if (!upstream.ok) {
       const payload = await upstream.json().catch(() => null) as { error?: { message?: string; fields?: Record<string, string> } } | null;

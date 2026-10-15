@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { backendFetch, backendPayload } from "@/lib/backend-api";
-import { mapBackendCourse } from "@/lib/backend-course-mapper";
+import { mapBackendCourse, toPublicCourse } from "@/lib/backend-course-mapper";
 import type { Course } from "@/types/course";
 
 interface PayloadList {
@@ -30,15 +30,13 @@ export async function GET(req: NextRequest) {
     const matchesCategory = !category || course.categories.some((item) => item.slug === category);
     return matchesSearch && matchesCategory;
   }).sort((a, b) => {
-    if (sort === "price-asc") return a.price - b.price;
-    if (sort === "price-desc") return b.price - a.price;
     if (sort === "popular") return b.totalStudents - a.totalStudents;
     if (sort === "rating") return b.rating.average - a.rating.average;
     return b.createdAt.localeCompare(a.createdAt);
   });
 
   const start = (page - 1) * perPage;
-  const courses: Course[] = allCourses.slice(start, start + perPage);
+  const courses: Course[] = allCourses.slice(start, start + perPage).map(toPublicCourse);
   return NextResponse.json({
     courses,
     total: allCourses.length,

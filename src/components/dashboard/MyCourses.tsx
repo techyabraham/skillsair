@@ -46,7 +46,7 @@ export function MyCourses() {
           <h1 className="text-2xl font-heading font-bold text-neutral-900">My Courses</h1>
           <p className="text-neutral-500 text-sm mt-1">{enrolledCourses.length} courses enrolled</p>
         </div>
-        <Link href="/courses">
+        <Link href="/schools">
           <Button variant="accent" size="md">+ Browse More</Button>
         </Link>
       </div>
@@ -94,7 +94,7 @@ export function MyCourses() {
             {activeFilter === "all" ? "Enroll in a course to get started" : `No ${activeFilter.replace("-", " ")} courses`}
           </p>
           {activeFilter === "all" && (
-            <Link href="/courses" className="mt-4 inline-block">
+            <Link href="/schools" className="mt-4 inline-block">
               <Button variant="accent" size="md">Browse Courses</Button>
             </Link>
           )}

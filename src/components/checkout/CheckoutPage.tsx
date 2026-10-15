@@ -8,18 +8,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/lib/utils";
+import { track } from "@/lib/analytics";
+import { formatShortDate, type Offer } from "@/lib/offer";
+import { naira, site } from "@/content/site";
 import type { Course } from "@/types/course";
 
 const PAYMENT_METHODS = [
   {
-    id: "bank_transfer",
-    label: "Paystack Bank Transfer",
-    description: "Pay by transfer to an automated bank account",
+    id: "paystack",
+    label: "Card",
+    description: "Pay with your debit card, bank, USSD or QR on Paystack.",
   },
   {
-    id: "paystack",
-    label: "Paystack",
-    description: "Pay with card, bank, USSD, QR, mobile money, or supported wallets.",
+    id: "bank_transfer",
+    label: "Bank transfer",
+    description: "Pay from any Nigerian bank app (or send the details to whoever is paying for you).",
   },
 ] as const;
 
@@ -46,7 +49,7 @@ export function CheckoutPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank_transfer");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("paystack");
   const [purchaseType, setPurchaseType] = useState<"course" | "subscription">("course");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [placing, setPlacing] = useState(false);
@@ -59,6 +62,11 @@ export function CheckoutPage() {
   const { data: course } = useSWR<Course>(
     productSlug ? `/api/courses/${productSlug}` : null,
     fetcher
+  );
+  // Course prices are only revealed through the personal offer (lead or logged-in learner).
+  const { data: offer } = useSWR<Offer>(
+    courseSlug && !certificateCourseSlug && user ? `/api/offer/${encodeURIComponent(courseSlug)}` : null,
+    fetcher,
   );
   const { data: certificateCourse } = useSWR<Course>(
     certificateCourseSlug ? `/api/courses/${certificateCourseSlug}` : null,
@@ -73,11 +81,13 @@ export function CheckoutPage() {
 
   const isCertificateCheckout = Boolean(certificateCourseSlug);
   const isSubscriptionCheckout = purchaseType === "subscription" && !isCertificateCheckout;
+  const certificateFee = offer?.certificatePrice ?? site.programme.certificatePrice;
   const price = isCertificateCheckout
-    ? 10000
+    ? certificateFee
     : isSubscriptionCheckout
       ? selectedPlan?.price ?? 0
-      : course?.price ?? 0;
+      : offer?.effectivePrice ?? 0;
+  const showScholarship = !isCertificateCheckout && !isSubscriptionCheckout && Boolean(offer?.windowOpen) && (offer?.standardPrice ?? 0) > price;
   const total = price;
   const summaryTitle = isCertificateCheckout
     ? `Certificate - ${certificateCourse?.title || "Course"}`
@@ -86,7 +96,9 @@ export function CheckoutPage() {
     ? "Certificate processing fee"
     : isSubscriptionCheckout && selectedPlan
       ? `${selectedPlan.name} · renews ${selectedPlan.interval === "monthly" ? "monthly" : "annually"}`
-      : "One-time course purchase";
+      : offer?.windowOpen
+        ? `Access Scholarship · closes ${formatShortDate(offer.closesAt)}`
+        : "One-time programme fee";
 
   const onSubmit = async () => {
     if (!user) {
@@ -98,6 +110,7 @@ export function CheckoutPage() {
       return;
     }
     setPlacing(true);
+    track("checkout_start", { method: paymentMethod });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -175,7 +188,7 @@ export function CheckoutPage() {
                     />
                     <span>
                       <span className="block text-sm font-semibold text-neutral-900">Buy this course once</span>
-                      <span className="block mt-1 text-xs text-neutral-500">{formatPrice(course?.price ?? 0)} · lifetime access</span>
+                      <span className="block mt-1 text-xs text-neutral-500">{formatPrice(offer?.effectivePrice ?? 0)} · one-time payment · {offer?.durationMonths ?? site.programme.durationMonths} months to finish</span>
                     </span>
                   </label>
                   {plans.map((plan) => (
@@ -261,10 +274,25 @@ export function CheckoutPage() {
               )}
 
               <div className="space-y-2 mb-5">
+                {showScholarship && offer && (
+                  <>
+                    <div className="flex justify-between text-sm text-neutral-500">
+                      <span>Standard fee</span>
+                      <s>{naira(offer.standardPrice)}</s>
+                    </div>
+                    <div className="flex justify-between text-sm text-success-dark">
+                      <span>Access Scholarship</span>
+                      <span>−{naira(offer.standardPrice - price)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between text-sm text-neutral-600">
                   <span>{isCertificateCheckout ? "Certificate" : isSubscriptionCheckout ? selectedPlan?.name || "Course subscription" : "Course"}</span>
                   <span>{formatPrice(price)}</span>
                 </div>
+                {!isCertificateCheckout && (
+                  <p className="text-sm text-neutral-700">Certificate: {naira(certificateFee)}, paid only when you finish and want it.</p>
+                )}
                 {isSubscriptionCheckout && selectedPlan && (
                   <p className="text-xs text-neutral-500">Recurring charge: {selectedPlan.interval === "monthly" ? "monthly" : "annually"}. This plan covers this course only.</p>
                 )}
@@ -283,24 +311,28 @@ export function CheckoutPage() {
                 fullWidth
                 loading={placing}
                 className="mt-5"
-                disabled={isAuthLoading || !course || (isSubscriptionCheckout && !selectedPlan)}
+                disabled={isAuthLoading || !course || (isSubscriptionCheckout && !selectedPlan) || (!isCertificateCheckout && !isSubscriptionCheckout && Boolean(user) && !offer)}
                 onClick={onSubmit}
               >
                 {!user
                   ? `Sign in to continue - ${formatPrice(total)}`
                   : isSubscriptionCheckout
                     ? `Start ${selectedPlan?.interval === "annually" ? "annual" : "monthly"} subscription - ${formatPrice(total)}`
-                    : `${paymentMethod === "bank_transfer" ? "Continue with bank transfer" : "Continue to Paystack"} - ${formatPrice(total)}`}
+                    : `Pay ${formatPrice(total)} securely →`}
               </Button>
 
               <p className="text-xs text-neutral-400 text-center mt-3">
-                Secured by Paystack and 256-bit SSL encryption
+                Payments secured by Paystack
               </p>
             </div>
 
             <div className="bg-neutral-50 rounded-xl border border-neutral-100 p-4">
               <p className="text-xs text-neutral-400 text-center">
-                {isSubscriptionCheckout ? "Your subscription provides access to this course only." : "30-day money-back guarantee."}
+                {isSubscriptionCheckout
+                  ? "Your subscription provides access to this course only."
+                  : isCertificateCheckout
+                    ? "Your certificate is issued as soon as payment is confirmed."
+                    : `Fair refund promise: ask for a refund within ${site.refund.windowHours} hours of paying, after completing ${site.refund.minimumProgress}.`}
               </p>
             </div>
           </div>

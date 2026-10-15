@@ -128,6 +128,15 @@ function mapSection(value: unknown): CourseSection {
   };
 }
 
+/** Public catalogue shape: the scholarship offer is revealed only after Apply, so no prices. */
+export function toPublicCourse(course: Course): Course {
+  const { price: _price, regularPrice: _regular, salePrice: _sale, ...rest } = course;
+  void _price;
+  void _regular;
+  void _sale;
+  return rest;
+}
+
 export function mapBackendCourse(value: unknown): Course {
   const course = record(value);
   const instructor = record(course.instructor);

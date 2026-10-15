@@ -59,7 +59,7 @@ export function PaymentCallback() {
               {reference ? <> <strong>{reference}</strong></> : null} to {site.advisor.name} on WhatsApp ({site.whatsapp.display}) and we&apos;ll resolve it within 24 hours.
             </p>
             <div className="mt-6 flex flex-col items-center gap-3">
-              <a className="inline-flex min-h-12 items-center rounded-xl bg-[#128C7E] px-5 font-semibold text-white" href={whatsappLink(`Hi ${site.advisor.name}, my SkillsAir payment didn't go through. Reference: ${reference}`)} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>
+              <a className="inline-flex min-h-12 items-center rounded-xl bg-[#075E54] px-5 font-semibold text-white" href={whatsappLink(`Hi ${site.advisor.name}, my SkillsAir payment didn't go through. Reference: ${reference}`)} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>
               <Link className="text-primary-800 underline" href="/dashboard/orders">View your orders</Link>
             </div>
           </>

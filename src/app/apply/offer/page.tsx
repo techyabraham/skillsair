@@ -46,11 +46,17 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
   const certificate = naira(offer.certificatePrice);
 
   const microFaq = [
-    {
-      id: "one-time",
-      question: `Is ${naira(offer.effectivePrice)} a one-time payment?`,
-      answer: `Yes. The ${certificate} certificate is separate and only when you finish.`,
-    },
+    offer.windowOpen
+      ? {
+          id: "one-time",
+          question: `Is ${naira(offer.effectivePrice)} a one-time payment?`,
+          answer: `Yes. The ${certificate} certificate is separate and only when you finish.`,
+        }
+      : {
+          id: "one-time",
+          question: "How do I pay the standard fee?",
+          answer: `Pay ${naira(offer.effectivePrice)} once${offer.standardMonthlyPrice ? `, or ${naira(offer.standardMonthlyPrice)} a month where a monthly plan is offered at checkout` : ""}. The ${certificate} certificate is separate and only when you finish.`,
+        },
     {
       id: "debited",
       question: "What if I'm debited and it fails?",

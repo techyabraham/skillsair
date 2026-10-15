@@ -15,5 +15,6 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/schools/:path*", "/programmes/:path*"],
+  // The A/B test runs on the home page only, so school and programme pages stay cached.
+  matcher: ["/"],
 };

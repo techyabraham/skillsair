@@ -146,53 +146,107 @@ export function CheckoutPage() {
     }
   };
 
+  const payLabel = !user
+    ? "Log in to continue"
+    : isSubscriptionCheckout
+      ? `Start ${selectedPlan?.interval === "annually" ? "annual" : "monthly"} plan · ${formatPrice(total)} →`
+      : `Pay ${formatPrice(total)} securely →`;
+  const loadingPrice = !isCertificateCheckout && !isSubscriptionCheckout && Boolean(user) && !offer;
+
   return (
-    <div className="min-h-screen bg-neutral-50 py-10">
-      <div className="container-narrow">
-        <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-2">Checkout</h1>
-        {!user && (
-          <p className="text-sm text-neutral-500 mb-8">
-            Sign in to your SkillsAir account before checkout.{" "}
-            <a href={signInHref} className="text-primary-800 font-medium hover:underline">
-              Sign in
-            </a>
+    <div className="min-h-screen bg-neutral-50 py-8 md:py-12">
+      <div className="mx-auto max-w-5xl px-4">
+        <h1 className="text-2xl font-heading font-extrabold text-neutral-900 md:text-3xl">
+          {isCertificateCheckout ? "Claim your certificate" : "Secure your seat"}
+        </h1>
+        {user ? (
+          <p className="mt-1 text-sm text-neutral-600">
+            Paying as <span className="font-medium text-neutral-900">{user.displayName}</span> ({user.email})
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-neutral-600">
+            Log in to your SkillsAir account to pay.{" "}
+            <a href={signInHref} className="font-medium text-primary-800 underline">Log in</a>
           </p>
         )}
-        {user && <p className="text-sm text-neutral-500 mb-8">Signed in as <span className="font-medium">{user.email}</span></p>}
 
-        <div className="grid lg:grid-cols-3 gap-8 items-start">
-          {/* Left: Account and payment method */}
-          <div className="lg:col-span-2 space-y-6">
-            {user && (
-              <section className="bg-white rounded-2xl border border-neutral-100 p-6">
-                <h2 className="text-base font-semibold text-neutral-900">Payment account</h2>
-                <p className="mt-2 text-sm text-neutral-600">Payment and course access will be associated with this account.</p>
-                <p className="mt-4 text-sm font-medium text-neutral-900">{user.displayName}</p>
-                <p className="text-sm text-neutral-500">{user.email}</p>
-              </section>
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_24rem] lg:items-start">
+          {/* Order summary first on phones, right-hand column on desktop. */}
+          <section aria-labelledby="summary-heading" className="order-first rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 lg:order-last lg:sticky lg:top-24">
+            <h2 id="summary-heading" className="sr-only">Order summary</h2>
+            {course ? (
+              <div className="flex gap-3 border-b border-neutral-100 pb-4">
+                {course.thumbnail && (
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl">
+                    <Image src={course.thumbnail} alt="" fill className="object-cover" sizes="64px" />
+                  </div>
+                )}
+                <div>
+                  <p className="font-heading font-semibold leading-snug text-neutral-900">{summaryTitle}</p>
+                  <p className="mt-1 text-sm text-neutral-600">{summarySubtitle}</p>
+                </div>
+              </div>
+            ) : productSlug ? (
+              <div className="h-16 animate-pulse rounded-xl bg-neutral-100" />
+            ) : (
+              <p className="text-sm text-neutral-600">No programme selected. <a href="/apply" className="font-medium text-primary-800 underline">Apply first</a>.</p>
             )}
 
+            <dl className="mt-4 space-y-2 text-sm">
+              {showScholarship && offer && (
+                <>
+                  <div className="flex justify-between text-neutral-600">
+                    <dt>Standard fee</dt>
+                    <dd><s>{naira(offer.standardPrice)}</s></dd>
+                  </div>
+                  <div className="flex justify-between text-success-dark">
+                    <dt>Access Scholarship</dt>
+                    <dd>−{naira(offer.standardPrice - price)}</dd>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between border-t border-neutral-100 pt-3 text-base font-bold text-neutral-900">
+                <dt>Total today</dt>
+                <dd>{loadingPrice ? "…" : formatPrice(total)}</dd>
+              </div>
+            </dl>
+            {!isCertificateCheckout && (
+              <p className="mt-3 text-sm text-neutral-700">Certificate: {naira(certificateFee)}, paid only when you finish and want it.</p>
+            )}
+            {isSubscriptionCheckout && selectedPlan && (
+              <p className="mt-2 text-xs text-neutral-500">Recurring charge: {selectedPlan.interval === "monthly" ? "monthly" : "annually"}. This plan covers this programme only.</p>
+            )}
+
+            <Button
+              variant="accent"
+              size="lg"
+              fullWidth
+              loading={placing}
+              className="mt-5 min-h-12"
+              disabled={isAuthLoading || !course || (isSubscriptionCheckout && !selectedPlan) || loadingPrice}
+              onClick={onSubmit}
+            >
+              {payLabel}
+            </Button>
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-neutral-600">
+              <span aria-hidden="true">🔒</span> Payments secured by Paystack
+            </p>
+          </section>
+
+          <div className="space-y-6">
             {!isCertificateCheckout && plans.length > 0 && (
-              <section className="bg-white rounded-2xl border border-neutral-100 p-6">
-                <h2 className="text-base font-semibold text-neutral-900 mb-1">How would you like to pay?</h2>
-                <p className="text-sm text-neutral-500 mb-4">A subscription gives access to this course only.</p>
-                <div className="space-y-3">
-                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${purchaseType === "course" ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300"}`}>
-                    <input
-                      type="radio"
-                      name="purchaseType"
-                      value="course"
-                      checked={purchaseType === "course"}
-                      onChange={() => setPurchaseType("course")}
-                      className="mt-1 w-4 h-4 text-primary-800"
-                    />
+              <section aria-labelledby="plan-heading" className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
+                <h2 id="plan-heading" className="font-heading font-semibold text-neutral-900">How would you like to pay?</h2>
+                <div className="mt-4 space-y-3">
+                  <label className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border-2 p-4 ${purchaseType === "course" ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300"}`}>
+                    <input type="radio" name="purchaseType" value="course" checked={purchaseType === "course"} onChange={() => setPurchaseType("course")} className="mt-1 h-4 w-4 text-primary-800" />
                     <span>
-                      <span className="block text-sm font-semibold text-neutral-900">Buy this course once</span>
-                      <span className="block mt-1 text-xs text-neutral-500">{formatPrice(offer?.effectivePrice ?? 0)} · one-time payment · {offer?.durationMonths ?? site.programme.durationMonths} months to finish</span>
+                      <span className="block font-semibold text-neutral-900">One-time payment</span>
+                      <span className="mt-1 block text-sm text-neutral-600">{formatPrice(offer?.effectivePrice ?? 0)} · {offer?.durationMonths ?? site.programme.durationMonths} months to finish</span>
                     </span>
                   </label>
                   {plans.map((plan) => (
-                    <label key={plan.id} className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${purchaseType === "subscription" && selectedPlanId === String(plan.id) ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300"}`}>
+                    <label key={plan.id} className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border-2 p-4 ${purchaseType === "subscription" && selectedPlanId === String(plan.id) ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300"}`}>
                       <input
                         type="radio"
                         name="purchaseType"
@@ -202,11 +256,11 @@ export function CheckoutPage() {
                           setPurchaseType("subscription");
                           setSelectedPlanId(String(plan.id));
                         }}
-                        className="mt-1 w-4 h-4 text-primary-800"
+                        className="mt-1 h-4 w-4 text-primary-800"
                       />
                       <span>
-                        <span className="block text-sm font-semibold text-neutral-900">{plan.name}</span>
-                        <span className="block mt-1 text-xs text-neutral-500">{formatPrice(plan.price)} / {plan.interval === "monthly" ? "month" : "year"} · access to this course</span>
+                        <span className="block font-semibold text-neutral-900">{plan.name}</span>
+                        <span className="mt-1 block text-sm text-neutral-600">{formatPrice(plan.price)} / {plan.interval === "monthly" ? "month" : "year"} · this programme only</span>
                       </span>
                     </label>
                   ))}
@@ -214,127 +268,38 @@ export function CheckoutPage() {
               </section>
             )}
 
-              <section className="bg-white rounded-2xl border border-neutral-100 p-6">
-                <h2 className="text-base font-semibold text-neutral-900 mb-4">Payment Method</h2>
-                <div className="space-y-3">
-                  {PAYMENT_METHODS.map((method) => (
-                    <label
-                      key={method.id}
-                      className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        paymentMethod === method.id
-                          ? "border-primary-800 bg-primary-50"
-                          : "border-neutral-200 hover:border-neutral-300"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="payment"
-                        value={method.id}
-                        checked={paymentMethod === method.id}
-                        onChange={() => setPaymentMethod(method.id)}
-                        className="w-4 h-4 text-primary-800"
-                      />
-                      <div>
-                        <p className="text-sm font-semibold text-neutral-900">{method.label}</p>
-                        <p className="text-xs text-neutral-400">{method.description}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </section>
-          </div>
+            <section aria-labelledby="method-heading" className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
+              <h2 id="method-heading" className="font-heading font-semibold text-neutral-900">Payment method</h2>
+              <div className="mt-4 space-y-3">
+                {PAYMENT_METHODS.map((method) => (
+                  <label
+                    key={method.id}
+                    className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border-2 p-4 ${paymentMethod === method.id ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300"}`}
+                  >
+                    <input type="radio" name="payment" value={method.id} checked={paymentMethod === method.id} onChange={() => setPaymentMethod(method.id)} className="mt-1 h-4 w-4 text-primary-800" />
+                    <span>
+                      <span className="block font-semibold text-neutral-900">{method.label}</span>
+                      <span className="mt-1 block text-sm text-neutral-600">{method.description}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </section>
 
-          {/* Right: Order Summary */}
-          <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-neutral-100 p-6">
-              <h2 className="text-base font-semibold text-neutral-900 mb-4">Order Summary</h2>
-
-              {course ? (
-                <div className="flex gap-3 mb-5 pb-5 border-b border-neutral-100">
-                  {course.thumbnail && (
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
-                      <Image
-                        src={course.thumbnail}
-                        alt={course.title}
-                        fill
-                        className="object-cover"
-                        sizes="64px"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-medium text-neutral-900 leading-snug">{summaryTitle}</p>
-                    <p className="text-xs text-neutral-400 mt-1">{summarySubtitle}</p>
-                  </div>
-                </div>
-              ) : productSlug ? (
-                <div className="h-16 bg-neutral-100 rounded-xl animate-pulse mb-5" />
-              ) : (
-                <p className="text-sm text-neutral-400 mb-5">No course selected.</p>
+            <section aria-label="Before you pay" className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-700 md:p-6">
+              {!isCertificateCheckout && !isSubscriptionCheckout && (
+                <p>
+                  <strong className="text-neutral-900">Fair refund promise:</strong> ask for a refund within {site.refund.windowHours} hours of paying, after completing {site.refund.minimumProgress}.{" "}
+                  <a href="/refunds" className="font-medium text-primary-800 underline">Refund policy</a>
+                </p>
               )}
-
-              <div className="space-y-2 mb-5">
-                {showScholarship && offer && (
-                  <>
-                    <div className="flex justify-between text-sm text-neutral-500">
-                      <span>Standard fee</span>
-                      <s>{naira(offer.standardPrice)}</s>
-                    </div>
-                    <div className="flex justify-between text-sm text-success-dark">
-                      <span>Access Scholarship</span>
-                      <span>−{naira(offer.standardPrice - price)}</span>
-                    </div>
-                  </>
-                )}
-                <div className="flex justify-between text-sm text-neutral-600">
-                  <span>{isCertificateCheckout ? "Certificate" : isSubscriptionCheckout ? selectedPlan?.name || "Course subscription" : "Course"}</span>
-                  <span>{formatPrice(price)}</span>
-                </div>
-                {!isCertificateCheckout && (
-                  <p className="text-sm text-neutral-700">Certificate: {naira(certificateFee)}, paid only when you finish and want it.</p>
-                )}
-                {isSubscriptionCheckout && selectedPlan && (
-                  <p className="text-xs text-neutral-500">Recurring charge: {selectedPlan.interval === "monthly" ? "monthly" : "annually"}. This plan covers this course only.</p>
-                )}
-              </div>
-
-              <div className="border-t border-neutral-100 pt-4">
-                <div className="flex justify-between text-base font-bold text-neutral-900">
-                  <span>Total today</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
-              </div>
-
-              <Button
-                variant="accent"
-                size="lg"
-                fullWidth
-                loading={placing}
-                className="mt-5"
-                disabled={isAuthLoading || !course || (isSubscriptionCheckout && !selectedPlan) || (!isCertificateCheckout && !isSubscriptionCheckout && Boolean(user) && !offer)}
-                onClick={onSubmit}
-              >
-                {!user
-                  ? `Sign in to continue - ${formatPrice(total)}`
-                  : isSubscriptionCheckout
-                    ? `Start ${selectedPlan?.interval === "annually" ? "annual" : "monthly"} subscription - ${formatPrice(total)}`
-                    : `Pay ${formatPrice(total)} securely →`}
-              </Button>
-
-              <p className="text-xs text-neutral-400 text-center mt-3">
-                Payments secured by Paystack
+              <p>
+                <strong className="text-neutral-900">Debited but it failed?</strong> Banks normally reverse failed payments automatically. If yours hasn&apos;t, send your reference to {site.advisor.name} on WhatsApp ({site.whatsapp.display}) and we&apos;ll resolve it within {site.failedPaymentResolutionHours} hours.
               </p>
-            </div>
-
-            <div className="bg-neutral-50 rounded-xl border border-neutral-100 p-4">
-              <p className="text-xs text-neutral-400 text-center">
-                {isSubscriptionCheckout
-                  ? "Your subscription provides access to this course only."
-                  : isCertificateCheckout
-                    ? "Your certificate is issued as soon as payment is confirmed."
-                    : `Fair refund promise: ask for a refund within ${site.refund.windowHours} hours of paying, after completing ${site.refund.minimumProgress}.`}
+              <p>
+                <strong className="text-neutral-900">Someone paying for you?</strong> Choose Bank transfer and send them the account details Paystack shows you.
               </p>
-            </div>
+            </section>
           </div>
         </div>
       </div>

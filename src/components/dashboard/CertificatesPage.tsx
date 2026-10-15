@@ -151,7 +151,7 @@ function ReadyForCertCard({ course, index }: { course: EnrolledCourse; index: nu
           {course.title}
         </p>
         <Link
-          href={`/checkout?type=certificate&course=${course.slug}&courseName=${encodeURIComponent(course.title)}`}
+          href={`/checkout?certificate=${encodeURIComponent(course.slug)}`}
           className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-white bg-accent hover:bg-accent/90 px-3 py-1.5 rounded-lg transition-colors w-fit"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

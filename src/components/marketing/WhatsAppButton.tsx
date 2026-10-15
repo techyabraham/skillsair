@@ -16,7 +16,7 @@ export function WhatsAppFloat() {
       href={whatsappLink()}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-20 right-4 z-30 flex min-h-12 items-center gap-2 rounded-full bg-[#128C7E] px-4 py-3 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-[#075E54] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#128C7E] md:bottom-6"
+      className="fixed bottom-20 right-4 z-30 flex min-h-12 items-center gap-2 rounded-full bg-[#075E54] px-4 py-3 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-[#054a42] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#075E54] md:bottom-6"
       aria-label={`Questions? Chat with ${site.advisor.name} on WhatsApp`}
     >
       <WhatsAppIcon className="h-5 w-5" />

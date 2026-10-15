@@ -7,6 +7,8 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   hint?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  /** Accessible name for the right-hand icon button (e.g. the password show/hide toggle). */
+  rightIconLabel?: string;
   onRightIconClick?: () => void;
 }
 
@@ -16,6 +18,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
   hint,
   leftIcon,
   rightIcon,
+  rightIconLabel = "Show or hide password",
   onRightIconClick,
   className,
   id,
@@ -59,8 +62,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
           <button
             type="button"
             onClick={onRightIconClick}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-            tabIndex={-1}
+            className="absolute right-2 top-1/2 flex h-9 min-w-9 -translate-y-1/2 items-center justify-center rounded-lg px-1.5 text-neutral-600 transition-colors hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800"
+            aria-label={rightIconLabel}
           >
             {rightIcon}
           </button>
@@ -75,7 +78,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
         </p>
       )}
       {hint && !error && (
-        <p id={`${inputId}-hint`} className="mt-1.5 text-xs text-neutral-400">{hint}</p>
+        <p id={`${inputId}-hint`} className="mt-1.5 text-xs text-neutral-600">{hint}</p>
       )}
     </div>
   );

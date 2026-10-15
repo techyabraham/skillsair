@@ -3,12 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { Badge } from "@/components/ui/Badge";
 import { formatDate, formatPrice } from "@/lib/utils";
+import { site, whatsappLink } from "@/content/site";
 import type { Order } from "@/types/order";
 
 interface OrderConfirmationPageProps {
@@ -23,133 +21,103 @@ interface VerificationResponse {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+/** Shows the backend-verified state truthfully: confirmed, still pending, or not completed. */
 export function OrderConfirmationPage({ orderId }: OrderConfirmationPageProps) {
   const searchParams = useSearchParams();
   const reference = searchParams.get("reference");
 
-  const { data: verification, isLoading: verifying } = useSWR<VerificationResponse>(
+  const { data: verification, isLoading: verifying, mutate } = useSWR<VerificationResponse>(
     reference ? `/api/paystack/verify?reference=${encodeURIComponent(reference)}&orderId=${orderId}` : null,
     fetcher,
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false },
   );
-
-  const { data: order, isLoading } = useSWR<Order>(
-    orderId ? `/api/orders/${orderId}` : null,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
-  const isCertificateOrder = order?.lineItems.some((item) => item.name.toLowerCase().includes("certificate")) ?? false;
+  const { data: order, isLoading } = useSWR<Order>(orderId ? `/api/orders/${orderId}` : null, fetcher, { revalidateOnFocus: false });
+  const isCertificateOrder = order?.lineItems?.some((item) => item.name.toLowerCase().includes("certificate")) ?? false;
 
   if (isLoading || verifying) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-[60vh] items-center justify-center" aria-busy="true">
         <Spinner size="lg" />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-neutral-50 py-16">
-      <div className="max-w-2xl mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-10"
-        >
-          <div className="w-20 h-20 bg-success-light rounded-full flex items-center justify-center mx-auto mb-5">
-            <svg className="w-10 h-10 text-success-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-heading font-bold text-neutral-900 mb-2">
-            Order Confirmed! 🎉
-          </h1>
-          <p className="text-neutral-500">
-            {isCertificateOrder
-              ? "Thank you for your purchase. Your certificate will be available in your dashboard."
-              : "Thank you for your purchase. Your courses are ready to access."}
-          </p>
-        </motion.div>
+  const confirmed = verification ? verification.paid : order?.status === "completed";
+  const failed = verification?.status === "failed" || verification?.status === "abandoned" || order?.status === "failed";
+  const ref = reference ?? "";
 
-        {verification && !verification.paid && (
-          <div className="mb-6 rounded-2xl border border-warning bg-warning-light p-4 text-sm text-warning-dark">
-            {verification.message || "Payment is still pending. If you completed payment, refresh this page in a moment."}
+  return (
+    <div className="min-h-screen bg-neutral-50 py-10 md:py-16">
+      <div className="mx-auto max-w-2xl px-4">
+        <div className="mb-8 text-center">
+          <div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full text-3xl ${confirmed ? "bg-success-light" : failed ? "bg-error-light" : "bg-warning-light"}`} aria-hidden="true">
+            {confirmed ? "✓" : failed ? "!" : "⏳"}
           </div>
-        )}
+          <h1 className="text-2xl font-heading font-extrabold text-neutral-900 md:text-3xl">
+            {confirmed ? "Payment confirmed 🎉" : failed ? "Payment didn't go through" : "We're confirming your payment"}
+          </h1>
+          <p className="mt-2 text-neutral-600">
+            {confirmed
+              ? isCertificateOrder
+                ? "Your certificate is being issued. You'll find it in your dashboard."
+                : "Your seat is secured. Check WhatsApp and email for your welcome."
+              : failed
+                ? `If you were debited, your bank normally reverses it automatically. If it hasn't, send your reference to ${site.advisor.name} and we'll resolve it within ${site.failedPaymentResolutionHours} hours.`
+                : verification?.message || "This can take a minute. Refresh to check again."}
+          </p>
+        </div>
 
         {order && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6"
-          >
-            <div className="flex items-center justify-between mb-5 pb-5 border-b border-neutral-100">
+          <section className="mb-6 rounded-2xl border border-neutral-200 bg-white p-5 md:p-6" aria-label="Order details">
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
               <div>
-                <p className="text-sm text-neutral-400">Order Number</p>
+                <p className="text-sm text-neutral-500">Order</p>
                 <p className="text-lg font-bold text-neutral-900">#{order.id}</p>
               </div>
-              <Badge variant={order.status === "completed" ? "success" : "warning"}>
-                {order.status === "completed" ? "Confirmed" : order.status}
-              </Badge>
+              {ref && <p className="text-right text-xs text-neutral-500">Reference<br /><span className="font-mono text-neutral-800">{ref}</span></p>}
             </div>
-
-            <div className="space-y-3 mb-5">
+            <dl className="mt-4 space-y-2 text-sm">
               {order.lineItems.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span className="text-neutral-700">{item.name}</span>
-                  <span className="font-medium text-neutral-900">{formatPrice(parseFloat(item.total))}</span>
+                <div key={item.id} className="flex justify-between gap-4">
+                  <dt className="text-neutral-700">{item.name}</dt>
+                  <dd className="font-medium text-neutral-900">{formatPrice(parseFloat(item.total))}</dd>
                 </div>
               ))}
-            </div>
-
-            <div className="border-t border-neutral-100 pt-4 space-y-2">
-              <div className="flex justify-between text-sm text-neutral-500">
-                <span>Subtotal</span><span>{formatPrice(parseFloat(order.subtotal))}</span>
+              <div className="flex justify-between border-t border-neutral-100 pt-3 font-bold text-neutral-900">
+                <dt>Total</dt>
+                <dd>{formatPrice(parseFloat(order.total))}</dd>
               </div>
-              <div className="flex justify-between text-sm text-neutral-500">
-                <span>Tax</span><span>{formatPrice(parseFloat(order.totalTax))}</span>
-              </div>
-              <div className="flex justify-between font-bold text-neutral-900 pt-2 border-t border-neutral-100">
-                <span>Total</span><span>{formatPrice(parseFloat(order.total))}</span>
-              </div>
-            </div>
-
-            <div className="mt-5 pt-5 border-t border-neutral-100 grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-neutral-400 text-xs mb-1">Date</p>
-                <p className="font-medium">{formatDate(order.dateCreated)}</p>
-              </div>
-              <div>
-                <p className="text-neutral-400 text-xs mb-1">Payment</p>
-                <p className="font-medium">{order.paymentMethodTitle}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-neutral-400 text-xs mb-1">Confirmation sent to</p>
-                <p className="font-medium">{order.billing.email}</p>
-              </div>
-            </div>
-          </motion.div>
+            </dl>
+            <p className="mt-4 text-sm text-neutral-600">
+              {formatDate(order.dateCreated)} · {order.paymentMethodTitle}
+              {order.billing?.email ? ` · ${order.billing.email}` : ""}
+            </p>
+          </section>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="space-y-3"
-        >
-          <Link href={isCertificateOrder ? "/dashboard/certificates" : "/dashboard/courses"} className="block">
-            <Button variant="accent" size="lg" fullWidth>
-              {isCertificateOrder ? "View Certificate" : "Start Learning Now"}
-            </Button>
+        <div className="space-y-3">
+          {confirmed ? (
+            <Link href={isCertificateOrder ? "/dashboard/certificates" : "/dashboard/welcome"} className="flex min-h-12 items-center justify-center rounded-xl bg-accent-700 font-semibold text-white hover:bg-accent-800">
+              {isCertificateOrder ? "View my certificate" : "Start learning →"}
+            </Link>
+          ) : failed ? (
+            <a
+              href={whatsappLink(`Hi ${site.advisor.name}, my SkillsAir payment didn't go through. Reference: ${ref}`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-12 items-center justify-center rounded-xl bg-[#075E54] font-semibold text-white"
+            >
+              Chat with {site.advisor.name} on WhatsApp
+            </a>
+          ) : (
+            <button type="button" onClick={() => void mutate()} className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-700 font-semibold text-white hover:bg-accent-800">
+              Check again
+            </button>
+          )}
+          <Link href="/dashboard" className="flex min-h-12 items-center justify-center rounded-xl border-2 border-primary-800 font-semibold text-primary-800 hover:bg-primary-50">
+            Go to dashboard
           </Link>
-          <Link href="/dashboard" className="block">
-            <Button variant="outline" size="lg" fullWidth>
-              Go to Dashboard
-            </Button>
-          </Link>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

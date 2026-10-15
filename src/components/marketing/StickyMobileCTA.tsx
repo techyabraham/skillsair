@@ -34,7 +34,7 @@ export function StickyMobileCTA() {
           rel="noopener noreferrer"
           tabIndex={visible ? 0 : -1}
           aria-label="Chat with Imisi on WhatsApp"
-          className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#128C7E] text-white"
+          className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#075E54] text-white"
         >
           <WhatsAppIcon className="h-6 w-6" />
         </a>

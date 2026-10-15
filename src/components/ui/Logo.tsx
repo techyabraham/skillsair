@@ -56,7 +56,7 @@ function LogoMark({ variant = "on-light", size = "md", className }: Omit<LogoPro
           variant === "on-dark" ? "text-white" : "text-primary-800"
         )}
       >
-        Skills<span className="text-accent">Air</span>
+        Skills<span className={variant === "on-dark" ? "text-accent" : "text-accent-700"}>Air</span>
       </span>
     </span>
   );

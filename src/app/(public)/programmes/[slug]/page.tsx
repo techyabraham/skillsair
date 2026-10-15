@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
 import { Section } from "@/components/marketing/Section";
 import { PrimaryCTA } from "@/components/marketing/PrimaryCTA";
 import { FAQAccordion } from "@/components/marketing/FAQAccordion";
@@ -12,9 +11,11 @@ import { SoftCapture } from "@/components/programme/SoftCapture";
 import { getProgramme } from "@/lib/programme";
 import { getScholarshipWindow } from "@/lib/scholarship";
 import { formatShortDate } from "@/lib/offer";
-import { CTA_LABELS, EXPERIMENT_COOKIE, parseAssignments } from "@/lib/experiments";
 import { faqs } from "@/content/faq";
 import { naira, site } from "@/content/site";
+
+// Cached and refreshed every 5 minutes (ISR); enrolment state loads client-side.
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const result = await getProgramme(params.slug);
@@ -36,7 +37,7 @@ export default async function ProgrammePage({ params }: { params: { slug: string
   const { programme } = result;
   const { course } = programme;
   const scholarship = await getScholarshipWindow();
-  const applyLabel = parseAssignments(cookies().get(EXPERIMENT_COOKIE)?.value).cta === "apply" ? "Apply for this programme →" : CTA_LABELS.qualify;
+  const applyLabel = "Apply for this programme →";
   const certificate = naira(site.programme.certificatePrice);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://skillsair.com";
   const programmeFaqs = faqs.filter((faq) => ["why-cheap", "beginner", "phone", "start", "certificate", "refunds"].includes(faq.id));
@@ -130,7 +131,7 @@ export default async function ProgrammePage({ params }: { params: { slug: string
       ) : (
         showSlots && (
           <Section title="Who it's for">
-            <p className="rounded-xl border-2 border-dashed border-warning p-4 text-warning-dark">
+            <p className="rounded-xl border-2 border-dashed border-warning p-4 text-neutral-800">
               {`{{WHO_FOR_${course.slug.toUpperCase().replace(/-/g, "_")}}}`}: add &ldquo;who it&apos;s for / not for&rdquo; to this course&apos;s description in the admin. Hidden in production.
             </p>
           </Section>

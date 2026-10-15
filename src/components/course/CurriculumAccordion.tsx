@@ -92,7 +92,7 @@ export function CurriculumAccordion({
               >
                 <div>
                   <p className="font-semibold text-sm text-neutral-900">{section.title}</p>
-                  <p className="text-xs text-neutral-400 mt-0.5">
+                  <p className="text-xs text-neutral-600 mt-0.5">
                     {section.lessons.length} lessons • {formatDuration(section.totalDuration)}
                   </p>
                 </div>
@@ -148,7 +148,7 @@ export function CurriculumAccordion({
                               </span>
                             )}
                             {lesson.duration > 0 && (
-                              <span className="text-xs text-neutral-400">{formatDuration(lesson.duration)}</span>
+                              <span className="text-xs text-neutral-600">{formatDuration(lesson.duration)}</span>
                             )}
                           </div>
                         </button>

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Section } from "@/components/marketing/Section";
+import { images, unsplashUrl } from "@/content/images";
 import { ContactForm } from "@/components/marketing/ContactForm";
 import { site, whatsappLink } from "@/content/site";
 
@@ -44,6 +46,9 @@ export default function ContactPage() {
           </div>
         </dl>
         <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+          <div className="relative mb-6 aspect-[16/9] overflow-hidden rounded-xl">
+            <Image src={unsplashUrl(images.support.id, 900)} alt={images.support.alt} fill sizes="(min-width: 1024px) 40vw, 100vw" className="object-cover" />
+          </div>
           <h2 className="text-xl font-heading font-bold text-neutral-900">Send us a message</h2>
           <div className="mt-5">
             <ContactForm />

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import { images, unsplashUrl } from "@/content/images";
 import { Section } from "@/components/marketing/Section";
 import { PrimaryCTA } from "@/components/marketing/PrimaryCTA";
 import { FAQAccordion } from "@/components/marketing/FAQAccordion";
@@ -34,6 +36,7 @@ export default async function ScholarshipPage() {
       </Section>
 
       <Section title="How it works">
+        <div className="grid items-start gap-10 lg:grid-cols-[1fr_22rem]">
         <ul className="max-w-3xl space-y-4 text-lg text-neutral-700">
           <li>
             • The standard fee for every programme is <strong>{naira(site.programme.standardFee)}</strong> (or {naira(site.programme.standardMonthlyFee)} a month).
@@ -47,6 +50,10 @@ export default async function ScholarshipPage() {
           <li>• When you finish, you can claim a verifiable certificate for {naira(site.programme.certificatePrice)}. It is optional for learning, and needed for internship access and laptop support.</li>
           {scholarship.cohortLabel && <li>• Current cohort: {scholarship.cohortLabel}. Everyone who enrols in this period belongs to it, whatever they paid.</li>}
         </ul>
+        <div className="relative hidden aspect-[4/5] overflow-hidden rounded-3xl lg:block">
+          <Image src={unsplashUrl(images.learning.id, 800)} alt={images.learning.alt} fill sizes="22rem" className="object-cover" />
+        </div>
+        </div>
       </Section>
 
       {laptopSupportOn && (

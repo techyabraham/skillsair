@@ -43,7 +43,7 @@ interface CoursePlan {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function CheckoutPage() {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank_transfer");
@@ -54,6 +54,8 @@ export function CheckoutPage() {
   const courseSlug = searchParams.get("course");
   const certificateCourseSlug = searchParams.get("certificate");
   const productSlug = certificateCourseSlug || courseSlug;
+  const checkoutPath = `/checkout?${certificateCourseSlug ? `certificate=${encodeURIComponent(certificateCourseSlug)}` : `course=${encodeURIComponent(courseSlug || "")}`}`;
+  const signInHref = `/login?next=${encodeURIComponent(checkoutPath)}`;
   const { data: course } = useSWR<Course>(
     productSlug ? `/api/courses/${productSlug}` : null,
     fetcher
@@ -88,7 +90,7 @@ export function CheckoutPage() {
 
   const onSubmit = async () => {
     if (!user) {
-      addToast({ type: "error", title: "Sign in required", message: "Sign in before starting a payment." });
+      window.location.assign(signInHref);
       return;
     }
     if (!course) {
@@ -138,7 +140,7 @@ export function CheckoutPage() {
         {!user && (
           <p className="text-sm text-neutral-500 mb-8">
             Sign in to your SkillsAir account before checkout.{" "}
-            <a href={`/login?next=${encodeURIComponent(`/checkout?${certificateCourseSlug ? `certificate=${certificateCourseSlug}` : `course=${courseSlug || ""}`}`)}`} className="text-primary-800 font-medium hover:underline">
+            <a href={signInHref} className="text-primary-800 font-medium hover:underline">
               Sign in
             </a>
           </p>
@@ -281,12 +283,14 @@ export function CheckoutPage() {
                 fullWidth
                 loading={placing}
                 className="mt-5"
-                disabled={!course || !user || (isSubscriptionCheckout && !selectedPlan)}
+                disabled={isAuthLoading || !course || (isSubscriptionCheckout && !selectedPlan)}
                 onClick={onSubmit}
               >
-                {isSubscriptionCheckout
-                  ? `Start ${selectedPlan?.interval === "annually" ? "annual" : "monthly"} subscription`
-                  : paymentMethod === "bank_transfer" ? "Continue with bank transfer" : "Continue to Paystack"} - {formatPrice(total)}
+                {!user
+                  ? `Sign in to continue - ${formatPrice(total)}`
+                  : isSubscriptionCheckout
+                    ? `Start ${selectedPlan?.interval === "annually" ? "annual" : "monthly"} subscription - ${formatPrice(total)}`
+                    : `${paymentMethod === "bank_transfer" ? "Continue with bank transfer" : "Continue to Paystack"} - ${formatPrice(total)}`}
               </Button>
 
               <p className="text-xs text-neutral-400 text-center mt-3">

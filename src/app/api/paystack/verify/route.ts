@@ -3,7 +3,7 @@ import { backendFetch, backendPayload, backendToken } from "@/lib/backend-api";
 
 interface VerifyResult {
   status: string;
-  order?: { id: number; type?: string };
+  order?: { id: number; type?: string; amount?: number };
 }
 
 export async function GET(req: NextRequest) {
@@ -22,5 +22,6 @@ export async function GET(req: NextRequest) {
     orderId: result.order?.id,
     message: result.status === "success" ? undefined : "Payment is still pending. If you completed payment, refresh this page in a moment.",
     type: result.order?.type,
+    amount: result.order?.amount,
   });
 }

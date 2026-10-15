@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Spinner } from "@/components/ui/Spinner";
 import { site, whatsappLink } from "@/content/site";
+import { track } from "@/lib/analytics";
 
 export function PaymentCallback() {
   const params = useSearchParams();
@@ -22,11 +23,23 @@ export function PaymentCallback() {
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Payment verification failed.");
-        return data as { orderId?: number };
+        return data as { orderId?: number; paid?: boolean; status?: string; type?: string; amount?: number };
       })
-      .then(({ orderId }) => {
-        if (!cancelled && orderId) router.replace(`/order-confirmation/${orderId}?reference=${encodeURIComponent(reference)}`);
-        else if (!cancelled) setError("We could not find the related order. Contact support with your payment reference.");
+      .then(({ orderId, paid, status, type, amount }) => {
+        if (cancelled) return;
+        if (paid) {
+          track("payment_success", { value: amount ?? 0, currency: "NGN", type: type ?? "" });
+          if (type === "course" || type === "subscription") {
+            router.replace(`/dashboard/welcome?order=${orderId ?? ""}`);
+            return;
+          }
+        }
+        if (status === "failed" || status === "abandoned") {
+          setError("Your payment was not completed.");
+          return;
+        }
+        if (orderId) router.replace(`/order-confirmation/${orderId}?reference=${encodeURIComponent(reference)}`);
+        else setError("We could not find the related order.");
       })
       .catch((reason: unknown) => {
         if (!cancelled) setError(reason instanceof Error ? reason.message : "Payment verification failed.");

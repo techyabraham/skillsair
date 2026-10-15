@@ -37,6 +37,15 @@ const sidebarLinks = [
     ),
   },
   {
+    label: "Laptop support",
+    href: "/dashboard/laptop-support",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16v10H4zM2 19h20" />
+      </svg>
+    ),
+  },
+  {
     label: "Subscription",
     href: "/dashboard/subscription",
     icon: (

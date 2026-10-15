@@ -3,11 +3,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://skillsair.com}
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
+        NEXT_PUBLIC_META_PIXEL_ID: ${NEXT_PUBLIC_META_PIXEL_ID:-}
+        NEXT_PUBLIC_FEATURE_LAPTOP_SUPPORT: ${NEXT_PUBLIC_FEATURE_LAPTOP_SUPPORT:-true}
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3000
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://skillsair.com}
       SKILLSAIR_BACKEND_URL: ${SKILLSAIR_BACKEND_URL:?Set SKILLSAIR_BACKEND_URL to the backend HTTPS origin}
+      BFF_SHARED_SECRET: ${BFF_SHARED_SECRET:-}
     expose:
       - "3000"

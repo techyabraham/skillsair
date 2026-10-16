@@ -75,7 +75,9 @@ export const site = {
     weeklyHours: 8,
     standardFee: 100000,
     standardMonthlyFee: 40000,
+    /** Access Scholarship price per month (billed monthly by Paystack while learning). */
     scholarshipPrice: 2000,
+    scholarshipBilling: "monthly",
     certificatePrice: 10000,
     currentCohort: "October 2026 – January 2027",
     phoneFriendlyExamples: ["Canva Design", "Smartphone Videography", "Data Analysis", "Product Management"],

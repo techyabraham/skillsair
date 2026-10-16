@@ -10,9 +10,9 @@ export interface FaqItem {
 export const faqs: FaqItem[] = [
   {
     id: "why-cheap",
-    question: "Why is it only ₦2,000? What's the catch?",
+    question: "Why is it only ₦2,000 a month? What's the catch?",
     answer:
-      "No catch. SkillsAir's founder, Abraham Akinwumi, started SkillsAir because talented young Africans were priced out of quality tech training, while companies couldn't find enough skilled people. During each scholarship window, the Access Scholarship covers most of the ₦100,000 standard fee. You pay ₦2,000 once to start. The certificate is ₦10,000, paid only when you finish and want it.",
+      "No catch. SkillsAir's founder, Abraham Akinwumi, started SkillsAir because talented young Africans were priced out of quality tech training, while companies couldn't find enough skilled people. During each scholarship window, the Access Scholarship replaces the standard fee (₦100,000, or ₦40,000 a month) with ₦2,000 a month while you study. Most learners finish in 3 months, and you can cancel anytime. The certificate is ₦10,000, paid only when you finish and want it.",
   },
   {
     id: "beginner",
@@ -57,12 +57,13 @@ export const faqs: FaqItem[] = [
     id: "after-deadline",
     question: "What happens after 31 October?",
     answer:
-      "The scholarship window closes and the standard fee (₦100,000, or ₦40,000 a month) applies until the next window opens.",
+      "The scholarship window closes and the standard fee (₦100,000, or ₦40,000 a month) applies to new learners until the next window opens. If you joined during the window, you keep paying ₦2,000 a month.",
   },
   {
     id: "someone-else-pays",
     question: "Can someone else pay for me?",
-    answer: "Yes. Create your account, choose Bank transfer at checkout, and send them the transfer details.",
+    answer:
+      "Yes. Create your account, then they can enter their own card on the Paystack page; the ₦2,000 monthly payment renews from that card. For a one-off standard-fee payment they can also pay by bank transfer.",
   },
   {
     id: "debited",

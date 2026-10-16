@@ -7,7 +7,7 @@ import { faqs } from "@/content/faq";
 
 export const metadata: Metadata = {
   title: "FAQ: price, phone learning, certificates and internships",
-  description: "Why is it only ₦2,000? Can I learn on my phone? Will you get me a job? Straight answers about SkillsAir.",
+  description: "Why is it only ₦2,000 a month? Can I learn on my phone? Will you get me a job? Straight answers about SkillsAir.",
   alternates: { canonical: "/faq" },
 };
 

@@ -44,13 +44,16 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
   const outcomes = offer.objectives.slice(0, 3);
   const closesShort = formatShortDate(offer.closesAt);
   const certificate = naira(offer.certificatePrice);
+  // The scholarship is billed monthly through its Paystack plan.
+  const monthly = offer.billing === "monthly";
+  const scholarshipNotReady = offer.windowOpen && !offer.scholarshipPlanId;
 
   const microFaq = [
-    offer.windowOpen
+    monthly
       ? {
-          id: "one-time",
-          question: `Is ${naira(offer.effectivePrice)} a one-time payment?`,
-          answer: `Yes. The ${certificate} certificate is separate and only when you finish.`,
+          id: "monthly",
+          question: `How does ${naira(offer.price)} a month work?`,
+          answer: `Paystack charges ${naira(offer.price)} to your card each month while you study. Most learners finish in ${offer.durationMonths} months. Joining during this scholarship window keeps your ${naira(offer.price)} rate. Cancel anytime from your dashboard. The ${certificate} certificate is separate and only when you finish.`,
         }
       : {
           id: "one-time",
@@ -107,9 +110,9 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
 
       {offer.windowOpen && (
         <section className="mt-6 rounded-2xl bg-navy p-5 text-white md:p-6">
-          <h2 className="text-lg font-heading font-bold text-white">Why only {naira(offer.effectivePrice)}?</h2>
+          <h2 className="text-lg font-heading font-bold text-white">Why only {naira(offer.price)} a month?</h2>
           <p className="mt-2 text-white/90 leading-relaxed">
-            Because talent isn&apos;t the problem. Access is. SkillsAir was started by {site.founder.name} to give young Africans quality, job-ready tech training without the high fees, and to supply the tech market with the skilled people it&apos;s short of. The scholarship covers the rest of your fee for this window.
+            Because talent isn&apos;t the problem. Access is. SkillsAir was started by {site.founder.name} to give young Africans quality, job-ready tech training without the high fees, and to supply the tech market with the skilled people it&apos;s short of. The scholarship replaces the standard fee with {naira(offer.price)} a month for everyone who joins in this window.
           </p>
         </section>
       )}
@@ -153,9 +156,13 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
       </section>
 
       <section className="mt-8 space-y-4">
-        {offer.windowOpen ? (
+        {scholarshipNotReady ? (
+          <p className="rounded-xl border border-warning/40 bg-warning-light p-4 text-neutral-800">
+            Monthly billing for {offer.programme} is being set up. Message {site.advisor.name} on WhatsApp and we&apos;ll hold your {naira(offer.price)}-a-month seat.
+          </p>
+        ) : monthly ? (
           <Link href={nextHref} className="flex min-h-14 w-full items-center justify-center rounded-xl bg-accent-700 px-6 py-4 text-lg font-semibold text-white hover:bg-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-700 focus-visible:ring-offset-2">
-            Secure my seat for {naira(offer.effectivePrice)} →
+            Secure my seat for {naira(offer.price)}/month →
           </Link>
         ) : (
           <>
@@ -169,7 +176,9 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
           <WhatsAppTextLink />
         </div>
         <p className="text-center text-sm text-neutral-600">
-          Someone paying for you? Choose <strong>Bank transfer</strong> at checkout and send them the account details.
+          {monthly
+            ? "Someone paying for you? They can enter their own card on the Paystack page; it renews from that card each month."
+            : "Someone paying for you? Choose Bank transfer at checkout and send them the account details."}
         </p>
       </section>
 

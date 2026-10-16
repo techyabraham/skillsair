@@ -77,24 +77,31 @@ export function CheckoutPage() {
     fetcher,
   );
   const plans = planData?.plans || [];
-  const selectedPlan = plans.find((plan) => String(plan.id) === selectedPlanId);
-
   const isCertificateCheckout = Boolean(certificateCourseSlug);
-  const isSubscriptionCheckout = purchaseType === "subscription" && !isCertificateCheckout;
+  // While a window is open, the Access Scholarship is the course's ₦2,000/month plan.
+  const scholarshipMonthly = !isCertificateCheckout && offer?.billing === "monthly" && Boolean(offer?.scholarshipPlanId);
+  const scholarshipPlan: CoursePlan | undefined =
+    scholarshipMonthly && offer?.scholarshipPlanId
+      ? { id: offer.scholarshipPlanId, name: "Access Scholarship", price: offer.price, interval: "monthly" }
+      : undefined;
+  const selectedPlan = scholarshipPlan ?? plans.find((plan) => String(plan.id) === selectedPlanId);
+  const isSubscriptionCheckout = scholarshipMonthly || (purchaseType === "subscription" && !isCertificateCheckout);
   const certificateFee = offer?.certificatePrice ?? site.programme.certificatePrice;
   const price = isCertificateCheckout
     ? certificateFee
     : isSubscriptionCheckout
       ? selectedPlan?.price ?? 0
       : offer?.effectivePrice ?? 0;
-  const showScholarship = !isCertificateCheckout && !isSubscriptionCheckout && Boolean(offer?.windowOpen) && (offer?.standardPrice ?? 0) > price;
+  const showScholarship = scholarshipMonthly;
   const total = price;
   const summaryTitle = isCertificateCheckout
     ? `Certificate - ${certificateCourse?.title || "Course"}`
     : course?.title;
   const summarySubtitle = isCertificateCheckout
     ? "Certificate processing fee"
-    : isSubscriptionCheckout && selectedPlan
+    : scholarshipMonthly && offer
+      ? `Access Scholarship · ${naira(offer.price)} a month · join by ${formatShortDate(offer.closesAt)}`
+      : isSubscriptionCheckout && selectedPlan
       ? `${selectedPlan.name} · renews ${selectedPlan.interval === "monthly" ? "monthly" : "annually"}`
       : offer?.windowOpen
         ? `Access Scholarship · closes ${formatShortDate(offer.closesAt)}`
@@ -119,8 +126,9 @@ export function CheckoutPage() {
           productId: course.id,
           courseSlug: productSlug,
           certificateCourseSlug,
-          ...(isSubscriptionCheckout && selectedPlan ? { purchaseType, planId: selectedPlan.id } : {}),
-          paymentMethod,
+          ...(isSubscriptionCheckout && selectedPlan ? { purchaseType: "subscription", planId: selectedPlan.id } : {}),
+          // Monthly plans renew from a card, so they always go through Paystack card checkout.
+          paymentMethod: isSubscriptionCheckout ? "paystack" : paymentMethod,
           paymentMethodTitle: PAYMENT_METHODS.find((p) => p.id === paymentMethod)?.label,
         }),
       });
@@ -149,9 +157,9 @@ export function CheckoutPage() {
   const payLabel = !user
     ? "Log in to continue"
     : isSubscriptionCheckout
-      ? `Start ${selectedPlan?.interval === "annually" ? "annual" : "monthly"} plan · ${formatPrice(total)} →`
+      ? `Start ${formatPrice(total)}/${selectedPlan?.interval === "annually" ? "year" : "month"} securely →`
       : `Pay ${formatPrice(total)} securely →`;
-  const loadingPrice = !isCertificateCheckout && !isSubscriptionCheckout && Boolean(user) && !offer;
+  const loadingPrice = !isCertificateCheckout && Boolean(user) && !offer;
 
   return (
     <div className="min-h-screen bg-neutral-50 py-8 md:py-12">
@@ -195,13 +203,15 @@ export function CheckoutPage() {
             <dl className="mt-4 space-y-2 text-sm">
               {showScholarship && offer && (
                 <>
-                  <div className="flex justify-between text-neutral-600">
+                  <div className="flex justify-between gap-3 text-neutral-600">
                     <dt>Standard fee</dt>
-                    <dd><s>{naira(offer.standardPrice)}</s></dd>
+                    <dd className="text-right">
+                      <s>{offer.standardMonthlyPrice ? `${naira(offer.standardMonthlyPrice)}/month or ${naira(offer.standardPrice)} once` : naira(offer.standardPrice)}</s>
+                    </dd>
                   </div>
                   <div className="flex justify-between text-success-dark">
                     <dt>Access Scholarship</dt>
-                    <dd>−{naira(offer.standardPrice - price)}</dd>
+                    <dd>{naira(offer.price)} a month</dd>
                   </div>
                 </>
               )}
@@ -214,7 +224,10 @@ export function CheckoutPage() {
               <p className="mt-3 text-sm text-neutral-700">Certificate: {naira(certificateFee)}, paid only when you finish and want it.</p>
             )}
             {isSubscriptionCheckout && selectedPlan && (
-              <p className="mt-2 text-xs text-neutral-500">Recurring charge: {selectedPlan.interval === "monthly" ? "monthly" : "annually"}. This plan covers this programme only.</p>
+              <p className="mt-2 text-sm text-neutral-700">
+                Then {formatPrice(selectedPlan.price)} each {selectedPlan.interval === "monthly" ? "month" : "year"} from your card while you study
+                {scholarshipMonthly ? ` (most learners finish in ${offer?.durationMonths ?? site.programme.durationMonths} months)` : ""}. Cancel anytime from your dashboard. Covers this programme only.
+              </p>
             )}
 
             <Button
@@ -234,7 +247,7 @@ export function CheckoutPage() {
           </section>
 
           <div className="space-y-6">
-            {!isCertificateCheckout && plans.length > 0 && (
+            {!isCertificateCheckout && !scholarshipMonthly && plans.length > 0 && (
               <section aria-labelledby="plan-heading" className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
                 <h2 id="plan-heading" className="font-heading font-semibold text-neutral-900">How would you like to pay?</h2>
                 <div className="mt-4 space-y-3">
@@ -271,7 +284,14 @@ export function CheckoutPage() {
             <section aria-labelledby="method-heading" className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
               <h2 id="method-heading" className="font-heading font-semibold text-neutral-900">Payment method</h2>
               <div className="mt-4 space-y-3">
-                {PAYMENT_METHODS.map((method) => (
+                {isSubscriptionCheckout ? (
+                  <p className="rounded-xl border-2 border-primary-800 bg-primary-50 p-4 text-neutral-800">
+                    <span className="block font-semibold text-neutral-900">Card</span>
+                    <span className="mt-1 block text-sm text-neutral-600">
+                      Monthly payments renew from a card on Paystack. Someone paying for you can enter their own card.
+                    </span>
+                  </p>
+                ) : PAYMENT_METHODS.map((method) => (
                   <label
                     key={method.id}
                     className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border-2 p-4 ${paymentMethod === method.id ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300"}`}
@@ -287,7 +307,7 @@ export function CheckoutPage() {
             </section>
 
             <section aria-label="Before you pay" className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-700 md:p-6">
-              {!isCertificateCheckout && !isSubscriptionCheckout && (
+              {!isCertificateCheckout && (
                 <p>
                   <strong className="text-neutral-900">Fair refund promise:</strong> ask for a refund within {site.refund.windowHours} hours of paying, after completing {site.refund.minimumProgress}.{" "}
                   <a href="/refunds" className="font-medium text-primary-800 underline">Refund policy</a>
@@ -297,7 +317,10 @@ export function CheckoutPage() {
                 <strong className="text-neutral-900">Debited but it failed?</strong> Banks normally reverse failed payments automatically. If yours hasn&apos;t, send your reference to {site.advisor.name} on WhatsApp ({site.whatsapp.display}) and we&apos;ll resolve it within {site.failedPaymentResolutionHours} hours.
               </p>
               <p>
-                <strong className="text-neutral-900">Someone paying for you?</strong> Choose Bank transfer and send them the account details Paystack shows you.
+                <strong className="text-neutral-900">Someone paying for you?</strong>{" "}
+                {isSubscriptionCheckout
+                  ? "They can enter their own card on the Paystack page; it renews from that card each month."
+                  : "Choose Bank transfer and send them the account details Paystack shows you."}
               </p>
             </section>
           </div>

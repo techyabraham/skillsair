@@ -1,5 +1,6 @@
 import { backendUrl } from "@/lib/backend-api";
 import { schoolOneLiner, site } from "@/content/site";
+import { slugify } from "@/lib/utils";
 
 /** Public programme summary. Deliberately has no price fields. */
 export interface ProgrammeSummary {
@@ -44,14 +45,15 @@ async function backendList<T>(path: string): Promise<T[]> {
 const normalise = (value: string) => value.toLowerCase().replace(/[^a-z]/g, "");
 
 /**
- * Schools (backend categories) with their paid programmes, in the brief's order. Free courses
- * (the CV & LinkedIn and Freelancing bonuses) are not programmes you apply for. Schools with
- * no published programme yet are left out so nobody applies to an empty school.
+ * The ten schools with their paid programmes. Free courses (the CV & LinkedIn and Freelancing
+ * bonuses) are not programmes you apply for. A school with no published programme yet has an
+ * empty list; pages show it as "Programmes coming soon" and offer a waitlist instead of Apply.
  */
 export async function getSchools(): Promise<SchoolSummary[]> {
+  // If the catalogue can't be loaded, still show the ten schools (without programmes).
   const [categories, courses] = await Promise.all([
-    backendList<BackendCategory>("categories?limit=100&depth=0&sort=name"),
-    backendList<BackendCourse>("courses?limit=500&depth=1&where[status][equals]=published&sort=title"),
+    backendList<BackendCategory>("categories?limit=100&depth=0&sort=name").catch((): BackendCategory[] => []),
+    backendList<BackendCourse>("courses?limit=500&depth=1&where[status][equals]=published&sort=title").catch((): BackendCourse[] => []),
   ]);
 
   const programmesBySchool = new Map<number, ProgrammeSummary[]>();
@@ -70,18 +72,26 @@ export async function getSchools(): Promise<SchoolSummary[]> {
     programmesBySchool.set(schoolId, list);
   }
 
-  const order = site.schools.map((school) => normalise(school.name));
-  return categories
-    .filter((category) => (programmesBySchool.get(category.id)?.length ?? 0) > 0)
+  // The ten SkillsAir schools always appear, in the owner's order, even before they have
+  // programmes. Backend categories supply the real slug and programmes when they exist.
+  const byName = new Map(categories.map((category) => [normalise(category.name), category]));
+  const tenSchools: SchoolSummary[] = site.schools.map((school) => {
+    const category = byName.get(normalise(school.name));
+    return {
+      slug: category?.slug || slugify(school.name),
+      name: school.name,
+      oneLiner: school.oneLiner,
+      programmes: category ? programmesBySchool.get(category.id) ?? [] : [],
+    };
+  });
+  const known = new Set(site.schools.map((school) => normalise(school.name)));
+  const otherSchools = categories
+    .filter((category) => !known.has(normalise(category.name)) && (programmesBySchool.get(category.id)?.length ?? 0) > 0)
     .map((category) => ({
       slug: category.slug,
       name: category.name,
       oneLiner: schoolOneLiner(category.name),
       programmes: programmesBySchool.get(category.id) ?? [],
-    }))
-    .sort((a, b) => {
-      const ai = order.indexOf(normalise(a.name));
-      const bi = order.indexOf(normalise(b.name));
-      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-    });
+    }));
+  return [...tenSchools, ...otherSchools];
 }

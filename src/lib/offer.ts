@@ -9,6 +9,10 @@ export interface Offer {
   standardPrice: number;
   standardMonthlyPrice: number | null;
   effectivePrice: number;
+  /** "monthly" while the scholarship is open and its plan is set up; otherwise "once". */
+  billing: "monthly" | "once";
+  scholarshipPlanId: number | null;
+  standardPlanId: number | null;
   windowOpen: boolean;
   closesAt: string | null;
   cohortLabel: string;

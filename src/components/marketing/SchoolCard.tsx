@@ -15,7 +15,7 @@ export function SchoolCard({ slug, name, oneLiner, programmeCount, scholarshipOp
       href={`/schools/${slug}`}
       className="group flex h-full flex-col gap-2.5 rounded-2xl border border-neutral-200 bg-white p-[22px] text-neutral-900 transition-colors hover:border-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800"
     >
-      {scholarshipOpen && (
+      {scholarshipOpen && programmeCount > 0 && (
         <span className="self-start rounded-full bg-success-light px-2.5 py-0.5 text-xs font-semibold text-success-dark">Scholarship open</span>
       )}
       <span className="text-[17px] font-bold text-navy">{name}</span>
@@ -23,7 +23,7 @@ export function SchoolCard({ slug, name, oneLiner, programmeCount, scholarshipOp
       <span className="mt-auto flex items-center justify-between pt-1 text-sm font-semibold">
         <span className="text-accent-700">Explore →</span>
         <span className="font-medium text-neutral-600">
-          {programmeCount} programme{programmeCount === 1 ? "" : "s"}
+          {programmeCount > 0 ? `${programmeCount} programme${programmeCount === 1 ? "" : "s"}` : "Coming soon"}
         </span>
       </span>
     </Link>

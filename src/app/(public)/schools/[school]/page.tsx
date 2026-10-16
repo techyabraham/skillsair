@@ -11,6 +11,7 @@ import { formatShortDate } from "@/lib/offer";
 import { faqs } from "@/content/faq";
 import { site } from "@/content/site";
 import { schoolRoles } from "@/content/schools";
+import { SchoolWaitlistForm } from "@/components/marketing/SchoolWaitlistForm";
 
 export const revalidate = 300;
 
@@ -41,6 +42,7 @@ export default async function SchoolPage({ params }: { params: { school: string 
   if (!school) notFound();
   const scholarship = await getScholarshipWindow();
   const roles = schoolRoles(school.name);
+  const hasProgrammes = school.programmes.length > 0;
   const schoolFaqs = faqs.filter((faq) => ["beginner", "phone", "how-long", "job", "certificate"].includes(faq.id));
 
   const breadcrumbs = {
@@ -62,7 +64,11 @@ export default async function SchoolPage({ params }: { params: { school: string 
         title={school.name}
         intro={<p>{school.oneLiner}</p>}
       >
-        <PrimaryCTA href={`/apply?school=${encodeURIComponent(school.slug)}`} block>Apply for a scholarship seat →</PrimaryCTA>
+        {hasProgrammes ? (
+          <PrimaryCTA href={`/apply?school=${encodeURIComponent(school.slug)}`} block>Apply for a scholarship seat →</PrimaryCTA>
+        ) : (
+          <p className="inline-flex rounded-full bg-accent-50 px-4 py-2 font-semibold text-accent-800">Programmes coming soon</p>
+        )}
       </Section>
 
       {roles.length > 0 && (
@@ -76,6 +82,18 @@ export default async function SchoolPage({ params }: { params: { school: string 
         </Section>
       )}
 
+      {!hasProgrammes && (
+        <Section
+          title={`Be first in when the ${school.name} opens`}
+          intro={<p>Programmes for this school are being finalised. Leave your details and {site.advisor.name} will message you on WhatsApp as soon as you can apply.</p>}
+        >
+          <div className="max-w-xl rounded-2xl border border-neutral-200 bg-white p-6">
+            <SchoolWaitlistForm school={school.slug} schoolName={school.name} />
+          </div>
+        </Section>
+      )}
+
+      {hasProgrammes && (
       <Section title={`Programmes in the ${school.name}`}>
         <ul className="grid gap-4 md:grid-cols-2">
           {school.programmes.map((programme) => (
@@ -93,7 +111,9 @@ export default async function SchoolPage({ params }: { params: { school: string 
           ))}
         </ul>
       </Section>
+      )}
 
+      {hasProgrammes && (
       <Section
         tone="navy"
         title={scholarship.isOpen ? "The Access Scholarship is open" : "Scholarship windows open regularly"}
@@ -107,6 +127,7 @@ export default async function SchoolPage({ params }: { params: { school: string 
       >
         <PrimaryCTA href={`/apply?school=${encodeURIComponent(school.slug)}`} block>See my price →</PrimaryCTA>
       </Section>
+      )}
 
       <Section title="Questions about this school">
         <div className="max-w-3xl"><FAQAccordion items={schoolFaqs} /></div>

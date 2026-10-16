@@ -11,6 +11,7 @@ interface PlanRecord {
   price?: number;
   paystackPlanCode?: string;
   interval?: "monthly" | "annually";
+  kind?: "scholarship" | "standard" | null;
 }
 
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
@@ -43,7 +44,9 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     .filter((plan) =>
       (plan.interval === "monthly" || plan.interval === "annually") &&
       Number(plan.price) > 0 &&
-      Boolean(plan.paystackPlanCode)
+      Boolean(plan.paystackPlanCode) &&
+      // The ₦2,000/month scholarship plan is only revealed in the personal offer.
+      plan.kind !== "scholarship"
     )
     .map((plan) => ({
       id: plan.id,

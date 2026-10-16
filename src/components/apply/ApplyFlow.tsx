@@ -91,6 +91,7 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
   const [ready, setReady] = useState(false);
   const [existingAccount, setExistingAccount] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [waitlisted, setWaitlisted] = useState(false);
   const [error, setError] = useState("");
 
   const programmeSchool = useMemo(() => {
@@ -131,6 +132,8 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
 
   const selectedSchool = schools.find((school) => school.slug === state.school);
   const selectedProgramme = selectedSchool?.programmes.find((programme) => programme.slug === state.programme);
+  // Schools whose programmes aren't published yet take a waitlist sign-up instead of an offer.
+  const schoolComingSoon = Boolean(selectedSchool && selectedSchool.programmes.length === 0);
 
   const chooseSchool = (slug: string) => {
     const school = schools.find((item) => item.slug === slug);
@@ -183,9 +186,23 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
     return <div className="mx-auto max-w-xl px-4 py-16" aria-busy="true"><div className="h-64 animate-pulse rounded-2xl bg-neutral-200" /></div>;
   }
 
+  if (waitlisted) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-12 md:py-16" aria-live="polite">
+        <h1 className="text-2xl font-bold text-navy md:text-3xl">You&apos;re on the list 🎉</h1>
+        <p className="mt-3 text-lg text-neutral-700">
+          We&apos;ll message you on WhatsApp as soon as programmes in the {selectedSchool?.name ?? "school"} open.
+        </p>
+        <Link href="/schools" className="mt-6 inline-flex min-h-12 items-center rounded-xl border-2 border-navy px-6 font-semibold text-navy hover:bg-neutral-50">
+          Explore other schools
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-xl px-4 py-8 md:py-12">
-      <ProgressSteps step={state.step} total={3} />
+      <ProgressSteps step={state.step} total={schoolComingSoon ? 2 : 3} />
 
       {state.step === 1 && (
         <section aria-labelledby="apply-step-1">
@@ -208,7 +225,10 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
                     selected ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300",
                   )}
                 >
-                  <span className="block font-semibold text-neutral-900">{school.name}</span>
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="font-semibold text-neutral-900">{school.name}</span>
+                    {school.programmes.length === 0 && <span className="shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-700">Coming soon</span>}
+                  </span>
                   {school.oneLiner && <span className="mt-1 block text-sm text-neutral-600">{school.oneLiner}</span>}
                 </button>
               );
@@ -251,9 +271,15 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
             </fieldset>
           )}
 
+          {schoolComingSoon && (
+            <p className="mt-6 rounded-xl border border-accent-200 bg-accent-50 p-4 text-neutral-800">
+              Programmes for the {selectedSchool?.name} open soon. Continue and leave your details, and {`we'll`} message you on WhatsApp as soon as you can apply.
+            </p>
+          )}
+
           <button
             type="button"
-            disabled={!state.programme}
+            disabled={!state.school || (!schoolComingSoon && !state.programme)}
             onClick={() => goToStep(2)}
             className="mt-8 flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-700 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-accent-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
           >
@@ -273,6 +299,11 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
           <h1 id="apply-step-2" ref={headingRef} tabIndex={-1} className="text-2xl font-heading font-bold text-neutral-900 focus:outline-none md:text-3xl">
             Where should we send your scholarship offer?
           </h1>
+          {schoolComingSoon && (
+            <p className="mt-2 text-neutral-600">
+              Joining the waitlist for the <strong className="text-neutral-900">{selectedSchool?.name}</strong>.
+            </p>
+          )}
           {selectedProgramme && (
             <p className="mt-2 text-neutral-600">
               Applying for <strong className="text-neutral-900">{selectedProgramme.title}</strong>.{" "}
@@ -303,6 +334,10 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
                 onChange={(details) => setState((current) => ({ ...current, details }))}
                 onSuccess={(result, details) => {
                   track("lead_captured", { source: "apply", school: state.school });
+                  if (!state.programme) {
+                    setWaitlisted(true);
+                    return;
+                  }
                   if (result.hasAccount) {
                     setExistingAccount(true);
                     return;

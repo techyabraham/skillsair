@@ -21,7 +21,8 @@ export default function OutcomesPage() {
   return (
     <>
       <Section
-        title={<span className="block text-[2rem] md:text-[3.5rem]">From certificate to internship access</span>}
+        level={1}
+        title={<>From certificate to internship access</>}
         intro={
           <p>
             When you earn your certificate, you get access to internship openings from SkillsAir partner firms, and sometimes direct job opportunities. We don&apos;t promise jobs, and be careful of anyone who does.

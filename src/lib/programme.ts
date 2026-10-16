@@ -64,10 +64,10 @@ export async function getProgramme(slug: string): Promise<ProgrammeResult> {
   const course = toPublicCourse(mapBackendCourse({ ...raw, sections }));
   const firstCategory = raw.categories?.find((item): item is { name?: string; slug?: string } => typeof item === "object" && item !== null);
   const descriptionSentences = sentences(course.description);
-  const projects = [
-    ...course.outcomes.filter((outcome) => /\bproject/i.test(outcome)),
-    ...descriptionSentences.filter((sentence) => /\b(you will|you'll) (build|create|complete)\b.*\bproject/i.test(sentence)),
-  ];
+  // Only from the description: objectives are already shown under "What you'll be able to do".
+  const projects = descriptionSentences.filter(
+    (sentence) => /\bprojects?\b/i.test(sentence) && /\b(build|create|complete|make|design|launch)\b/i.test(sentence),
+  );
   const whoFor = descriptionSentences.filter((sentence) => /(who (this|it) is for|ideal for|perfect for|designed for|is for you if|not for you)/i.test(sentence));
   const previewLesson = course.curriculum.flatMap((section) => section.lessons).find((lesson) => lesson.isPreview);
 

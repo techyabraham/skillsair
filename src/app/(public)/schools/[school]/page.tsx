@@ -58,7 +58,8 @@ export default async function SchoolPage({ params }: { params: { school: string 
       <TrackEvent event="view_school" params={{ school: school.slug }} />
       <Section
         eyebrow="School"
-        title={<span className="block text-[2rem] md:text-[3.5rem]">{school.name}</span>}
+        level={1}
+        title={school.name}
         intro={<p>{school.oneLiner}</p>}
       >
         <PrimaryCTA href={`/apply?school=${encodeURIComponent(school.slug)}`} block>Apply for a scholarship seat →</PrimaryCTA>

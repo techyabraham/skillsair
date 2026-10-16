@@ -13,7 +13,8 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <Section title={<span className="block text-[2rem] md:text-[3.5rem]">Talk to us</span>} intro={<p>The fastest way to reach us is WhatsApp. {site.advisor.name} replies {site.advisor.hours}.</p>}>
+    <Section level={1}
+        title={<>Talk to us</>} intro={<p>The fastest way to reach us is WhatsApp. {site.advisor.name} replies {site.advisor.hours}.</p>}>
       <div className="grid gap-10 lg:grid-cols-2">
         <dl className="space-y-6">
           <div>

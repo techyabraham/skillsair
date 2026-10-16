@@ -8,6 +8,7 @@ import { RequirementsList } from "@/components/marketing/RequirementsList";
 import { TrackEvent } from "@/components/analytics/TrackEvent";
 import { ProgrammeActions, PreviewCurriculum, WatchPreviewButton } from "@/components/programme/ProgrammeClient";
 import { SoftCapture } from "@/components/programme/SoftCapture";
+import { AdirePattern } from "@/components/marketing/AdirePattern";
 import { getProgramme } from "@/lib/programme";
 import { getScholarshipWindow } from "@/lib/scholarship";
 import { formatShortDate } from "@/lib/offer";
@@ -67,14 +68,15 @@ export default async function ProgrammePage({ params }: { params: { slug: string
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([courseJsonLd, breadcrumbs]) }} />
       <TrackEvent event="view_programme" params={{ programme: course.slug }} />
 
-      <section className="bg-navy text-white">
-        <div className="container-wide py-12 md:py-20">
+      <section className="relative overflow-hidden border-t border-primary-800 bg-navy text-white">
+        <AdirePattern opacity={0.4} />
+        <div className="container-wide relative py-12 md:py-20">
           {programme.school && (
             <Link href={`/schools/${programme.school.slug}`} className="text-sm font-semibold uppercase tracking-wider text-accent-300 hover:underline">
               {programme.school.name}
             </Link>
           )}
-          <h1 className="mt-3 max-w-3xl text-[2rem] font-heading font-extrabold leading-tight md:text-[3.5rem]">{course.title}: job-ready in {programme.durationMonths} months</h1>
+          <h1 className="mt-3 max-w-3xl text-[2.125rem] font-bold leading-[1.06] tracking-[-0.02em] text-white md:text-[3.5rem]">{course.title}: job-ready in {programme.durationMonths} months</h1>
           {course.excerpt && <p className="mt-4 max-w-2xl text-lg text-white/85">{course.excerpt}</p>}
           <ul className="mt-6 flex flex-wrap gap-2 text-sm">
             {[

@@ -90,12 +90,12 @@ export function Header({ schools = [], minimal = false }: HeaderProps) {
 
   return (
     <>
-      <header className="sticky inset-x-0 top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur">
+      <header className="sticky inset-x-0 top-0 z-40 border-b border-neutral-200 bg-white">
         <div className="container-wide">
-          <div className="flex h-16 items-center justify-between gap-4 md:h-18">
+          <div className="flex min-h-16 items-center justify-between gap-6 md:min-h-[72px]">
             <Logo variant="on-light" size="md" />
 
-            <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
+            <nav className="hidden items-center gap-4 lg:flex xl:gap-5" aria-label="Main navigation">
               <div className="relative" ref={schoolsRef}>
                 <button
                   type="button"
@@ -103,7 +103,7 @@ export function Header({ schools = [], minimal = false }: HeaderProps) {
                   aria-expanded={schoolsOpen}
                   aria-controls="schools-menu"
                   className={cn(
-                    "flex min-h-11 items-center gap-1 rounded-xl px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-800",
+                    "flex min-h-11 items-center gap-1 rounded-lg px-2 text-[15px] font-medium text-neutral-900 hover:text-primary-800",
                     pathname.startsWith("/schools") && "text-primary-800",
                   )}
                 >
@@ -135,7 +135,7 @@ export function Header({ schools = [], minimal = false }: HeaderProps) {
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "flex min-h-11 items-center rounded-xl px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-primary-800",
+                    "flex min-h-11 items-center rounded-lg px-2 text-[15px] font-medium text-neutral-900 hover:text-primary-800",
                     pathname === link.href && "text-primary-800",
                   )}
                 >
@@ -144,7 +144,7 @@ export function Header({ schools = [], minimal = false }: HeaderProps) {
               ))}
             </nav>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 lg:gap-5">
               {isAuthenticated && user ? (
                 <div className="relative hidden lg:block" ref={userMenuRef}>
                   <button
@@ -171,11 +171,11 @@ export function Header({ schools = [], minimal = false }: HeaderProps) {
                   )}
                 </div>
               ) : (
-                <Link href="/login" className="hidden min-h-11 items-center rounded-xl px-4 text-sm font-medium text-neutral-700 hover:bg-neutral-50 lg:flex">
+                <Link href="/login" className="hidden min-h-11 items-center px-2 text-[15px] font-medium text-neutral-900 hover:text-primary-800 lg:flex">
                   Log in
                 </Link>
               )}
-              <Link href="/apply" className="flex min-h-11 items-center rounded-xl bg-accent-700 px-4 text-sm font-semibold text-white hover:bg-accent-800 md:px-5">
+              <Link href="/apply" className="flex min-h-11 items-center rounded-xl bg-accent-700 px-4 text-[15px] font-semibold text-white hover:bg-accent-800 md:px-5">
                 <span className="lg:hidden">Apply</span>
                 <span className="hidden lg:inline">Apply now</span>
               </Link>

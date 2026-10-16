@@ -28,7 +28,8 @@ export default async function ScholarshipPage() {
     <>
       <Section
         tone="navy"
-        title={<span className="block text-[2rem] md:text-[3.5rem]">{scholarship.isOpen && closesOn ? `The Access Scholarship is open until ${closesOn}` : "The Access Scholarship"}</span>}
+        level={1}
+        title={scholarship.isOpen && closesOn ? `The Access Scholarship is open until ${closesOn}` : "The Access Scholarship"}
         intro={<p>Money shouldn&apos;t decide who gets into tech. During each scholarship window, SkillsAir covers most of your programme fee.</p>}
       >
         <PrimaryCTA href="/apply" block>See my scholarship price →</PrimaryCTA>

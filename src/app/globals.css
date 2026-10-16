@@ -21,15 +21,17 @@ html {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 @layer base {
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-plus-jakarta), var(--font-inter), sans-serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
     font-weight: 700;
+    color: #0d1b4b;
+    text-wrap: balance;
   }
 
   a {
@@ -48,8 +50,19 @@ body {
 }
 
 @layer components {
+  /* Design: 1200px content width, 24px gutters. */
   .container-wide {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-[1200px] px-4 sm:px-6;
+  }
+
+  /* Design: uppercase orange eyebrow label above section headings. */
+  .eyebrow {
+    @apply text-[13px] font-semibold uppercase tracking-[0.1em] text-accent-700;
+  }
+
+  /* Design: underlined secondary text link ("Not sure? Take the quiz"). */
+  .link-ghost {
+    @apply font-semibold text-navy underline underline-offset-4 hover:text-primary-800;
   }
 
   .container-narrow {
@@ -160,7 +173,7 @@ body {
   }
 
   .font-heading {
-    font-family: var(--font-plus-jakarta), var(--font-inter), sans-serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
   }
 
   .scrollbar-hide {

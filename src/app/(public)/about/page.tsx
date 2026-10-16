@@ -15,7 +15,8 @@ export default function AboutPage() {
   const founderPhoto = isPlaceholder(site.founder.photo) ? null : site.founder.photo;
   return (
     <>
-      <Section tone="navy" title={<span className="block text-[2rem] md:text-[3.5rem]">Talent is everywhere in Africa. Access isn&apos;t. We&apos;re fixing that.</span>} />
+      <Section tone="navy" level={1}
+        title={<>Talent is everywhere in Africa. Access isn&apos;t. We&apos;re fixing that.</>} />
 
       <Section title="Why I started SkillsAir">
         <div className="grid items-start gap-8 md:grid-cols-[12rem_1fr]">

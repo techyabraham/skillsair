@@ -74,8 +74,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
-        heading: ["var(--font-plus-jakarta)", "Plus Jakarta Sans", "var(--font-inter)", "sans-serif"],
+        sans: ["var(--font-sans)", "Space Grotesk", "system-ui", "sans-serif"],
+        heading: ["var(--font-sans)", "Space Grotesk", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       fontSize: {

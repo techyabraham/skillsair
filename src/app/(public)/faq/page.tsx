@@ -26,7 +26,8 @@ export default function FaqPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
-      <Section title={<span className="block text-[2rem] md:text-[3.5rem]">Questions, answered straight</span>} intro={<p>If yours isn&apos;t here, ask us on WhatsApp. A real person reads every message.</p>}>
+      <Section level={1}
+        title={<>Questions, answered straight</>} intro={<p>If yours isn&apos;t here, ask us on WhatsApp. A real person reads every message.</p>}>
         <div className="max-w-3xl space-y-10">
           {GROUPS.map((group) => (
             <div key={group.title}>

@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { Section } from "@/components/marketing/Section";
-import { PrimaryCTA } from "@/components/marketing/PrimaryCTA";
+import { GhostLink, PrimaryCTA } from "@/components/marketing/PrimaryCTA";
 import { TrustStrip } from "@/components/marketing/TrustStrip";
 import { StepPathway } from "@/components/marketing/StepPathway";
 import { SchoolCard } from "@/components/marketing/SchoolCard";
-import { FounderCard } from "@/components/marketing/FounderCard";
 import { FAQAccordion } from "@/components/marketing/FAQAccordion";
 import { StoryCard } from "@/components/marketing/StoryCard";
-import { WhatsAppTextLink } from "@/components/marketing/WhatsAppButton";
+import { AdirePattern } from "@/components/marketing/AdirePattern";
 import { TrackEvent } from "@/components/analytics/TrackEvent";
 import { images, unsplashUrl } from "@/content/images";
 import { faqs, homeFaqIds } from "@/content/faq";
 import { proof, verifiedOnly } from "@/content/proof";
-import { site } from "@/content/site";
+import { site, whatsappLink } from "@/content/site";
 import { getSchools, type SchoolSummary } from "@/lib/catalog";
 import { getScholarshipWindow } from "@/lib/scholarship";
 import { formatShortDate } from "@/lib/offer";
@@ -29,12 +27,22 @@ export const metadata: Metadata = {
 const HERO_HEADLINES = {
   A: (
     <>
-      Learn a tech skill employers pay for. <span className="text-accent-300">Then get access to internships.</span>
+      Learn a tech skill employers pay for. <span className="text-accent">Then get access to internships.</span>
     </>
   ),
-  B: <>From zero to job-ready in 3 months, for less than your data subscription.</>,
-  C: <>Your tech career starts with one 60-second application.</>,
+  B: (
+    <>
+      From zero to job-ready in 3 months, <span className="text-accent">for less than your data subscription.</span>
+    </>
+  ),
+  C: (
+    <>
+      Your tech career starts with <span className="text-accent">one 60-second application.</span>
+    </>
+  ),
 } as const;
+
+const PATHWAY = ["1 · Learn", "2 · Certify", "3 · Get internship access"];
 
 const laptopSupportOn = process.env.NEXT_PUBLIC_FEATURE_LAPTOP_SUPPORT !== "false";
 
@@ -50,7 +58,7 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
   const adSchool = typeof searchParams.utm_content === "string" ? schools.find((school) => school.slug === searchParams.utm_content) : undefined;
   const subLine = adSchool?.oneLiner
     ? `${adSchool.name}: ${adSchool.oneLiner} Self-paced, about ${site.programme.weeklyHours} hours a week for ${site.programme.durationMonths} months, ending with a verifiable certificate and internship access.`
-    : `Self-paced training in AI, data, design, engineering, security, marketing and more. Finish in ${site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week, earn a verifiable certificate, and unlock internship openings from our partner firms.${scholarship.isOpen ? " Access Scholarship seats are open now." : ""}`;
+    : `Self-paced training in AI, data, design, engineering, security, marketing and more. Finish in ${site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week, earn a verifiable certificate, and unlock internship openings from our partner firms.`;
 
   const organisationJsonLd = {
     "@context": "https://schema.org",
@@ -69,29 +77,42 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organisationJsonLd) }} />
       <TrackEvent event="experiment_variant" params={{ hero: experiments.hero, cta: experiments.cta }} />
 
-      <section className="bg-navy text-white">
-        <div className="container-wide grid items-center gap-10 py-12 md:py-20 lg:grid-cols-2">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-accent-300">For young Africans ready to start a tech career</p>
-            <h1 className="mt-3 text-[2rem] font-heading font-extrabold leading-tight md:text-[3.5rem]">{HERO_HEADLINES[experiments.hero]}</h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-white/85 md:text-lg">{subLine}</p>
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-              <PrimaryCTA href="/apply" block>{ctaLabel}</PrimaryCTA>
-              <Link href="/quiz" className="min-h-12 text-center text-sm font-medium text-white underline underline-offset-4 hover:text-accent-300 sm:text-left">
-                Not sure which skill? Take the 2-minute Career Match quiz
-              </Link>
-            </div>
-            <p className="mt-4 text-sm text-white/75">Free to apply · Takes 60 seconds · Beginners welcome</p>
+      {/* Hero: centred on navy over the adire pattern. */}
+      <section className="relative overflow-hidden border-t border-primary-800 bg-navy">
+        <AdirePattern />
+        <div className="container-wide relative flex max-w-[920px] flex-col items-center gap-6 pb-20 pt-20 text-center md:gap-[26px] md:pb-[104px] md:pt-28">
+          <p className="eyebrow text-accent-300">For young Africans ready to start a tech career</p>
+          <h1 className="text-[2.125rem] font-bold leading-[1.06] tracking-[-0.025em] text-white md:text-[4rem]">{HERO_HEADLINES[experiments.hero]}</h1>
+          <p className="max-w-[660px] text-lg text-neutral-300 md:text-xl">{subLine}</p>
+          <div className="mt-2 flex w-full flex-col items-center justify-center gap-6 sm:w-auto sm:flex-row sm:flex-wrap">
+            <PrimaryCTA href="/apply" size="lg" block>
+              {ctaLabel}
+            </PrimaryCTA>
+            <GhostLink href="/quiz" onDark>
+              Not sure? Take the 2-minute quiz
+            </GhostLink>
           </div>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl">
-            <Image src={unsplashUrl(images.hero.id, 1200)} alt={images.hero.alt} fill priority sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
-          </div>
+          <p className="text-sm text-neutral-300">Free to apply · Takes 60 seconds · Beginners welcome</p>
+          <ol className="mt-5 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-neutral-200" aria-label="Your pathway">
+            {PATHWAY.map((step, index) => (
+              <li key={step} className="flex items-center gap-3">
+                {index > 0 && (
+                  <span aria-hidden="true" className="text-accent">
+                    →
+                  </span>
+                )}
+                <span className="rounded-full border border-[#334a8f] px-4 py-2">{step}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
       <TrustStrip />
 
       <Section
+        align="center"
+        narrow
         title="You're ready to work. The market wants skills you haven't had the chance to get."
         intro={
           <p>
@@ -100,86 +121,129 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
         }
       />
 
-      <Section id="how-it-works" tone="muted" title="Four steps from where you are to where you want to be">
+      <Section id="how-it-works" tone="muted" eyebrow="How it works" title="Four steps from where you are to where you want to be">
         <StepPathway />
-        <div className="mt-10">
-          <PrimaryCTA href="/apply" block>Start step 1: Apply now →</PrimaryCTA>
+        <div className="mt-12">
+          <PrimaryCTA href="/apply" block>
+            Start step 1: Apply now →
+          </PrimaryCTA>
         </div>
       </Section>
 
       {schools.length > 0 && (
-        <Section title={`${schools.length === 10 ? "Ten schools" : "Our schools"}. One goal: get you working in tech.`}>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {schools.map((school) => (
-              <SchoolCard key={school.slug} slug={school.slug} name={school.name} oneLiner={school.oneLiner} programmeCount={school.programmes.length} scholarshipOpen={scholarship.isOpen} />
-            ))}
+        <section className="bg-white py-16 md:py-24">
+          <div className="container-wide flex flex-col gap-10">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div className="flex flex-col gap-3">
+                <p className="eyebrow">Choose your school</p>
+                <h2 className="text-[1.75rem] font-bold leading-[1.15] text-navy md:text-[2.5rem]">
+                  {schools.length === 10 ? "Ten schools" : "Our schools"}. One goal: get you working in tech.
+                </h2>
+              </div>
+              <GhostLink href="/quiz" className="text-[15px]">
+                Not sure? Take the Career Match quiz →
+              </GhostLink>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              {schools.map((school) => (
+                <SchoolCard key={school.slug} slug={school.slug} name={school.name} oneLiner={school.oneLiner} programmeCount={school.programmes.length} scholarshipOpen={scholarship.isOpen} />
+              ))}
+            </div>
           </div>
-          <p className="mt-8 text-neutral-700">
-            Not sure?{" "}
-            <Link href="/quiz" className="font-semibold text-primary-800 underline underline-offset-2">Take the Career Match quiz →</Link>
-          </p>
-        </Section>
+        </section>
       )}
 
       {stories.length > 0 ? (
-        <Section tone="muted" title="Stories from SkillsAir graduates">
+        <Section tone="muted" eyebrow="Graduate stories" title="Stories from SkillsAir graduates">
           <div className="grid gap-4 md:grid-cols-2">
-            {stories.map((story) => <StoryCard key={story.name} story={story} />)}
+            {stories.map((story) => (
+              <StoryCard key={story.name} story={story} />
+            ))}
           </div>
         </Section>
       ) : (
-        <Section
-          tone="muted"
-          title="Be part of SkillsAir's founding cohort"
-          intro={<p>We&apos;re new, and we&apos;re proud of it. Our first learners will be the first stories on this page. Start now, finish strong, and we&apos;ll celebrate your win here (with your permission).</p>}
-        >
-          <div className="max-w-2xl">
-            <FounderCard />
+        <section className="bg-neutral-50 py-16 md:py-24">
+          <div className="container-wide grid items-center gap-10 md:grid-cols-2 md:gap-14">
+            <div className="flex flex-col gap-[18px]">
+              <p className="eyebrow">Founding cohort</p>
+              <h2 className="text-[1.75rem] font-bold leading-[1.15] text-navy md:text-[2.5rem]">Be part of SkillsAir&apos;s founding cohort</h2>
+              <p className="text-neutral-700">
+                We&apos;re new, and we&apos;re proud of it. Our first learners will be the first stories on this page. Start now, finish strong, and we&apos;ll celebrate your win here (with your permission).
+              </p>
+              <blockquote className="border-l-4 border-accent-700 pl-4 text-neutral-700">
+                &ldquo;{site.founder.quote}&rdquo;
+                <footer className="mt-2 text-sm font-semibold text-navy">{site.founder.name}, {site.founder.title}</footer>
+              </blockquote>
+              <div>
+                <PrimaryCTA href="/apply" block>
+                  Apply for a scholarship seat →
+                </PrimaryCTA>
+              </div>
+            </div>
+            <div className="relative aspect-[4/3] overflow-hidden rounded-3xl">
+              <Image src={unsplashUrl(images.hero.id, 1000)} alt={images.hero.alt} fill sizes="(min-width: 768px) 50vw, 100vw" className="object-cover" />
+            </div>
           </div>
-        </Section>
+        </section>
       )}
 
-      <Section
-        tone="navy"
-        title={scholarship.isOpen && closesOn ? `The Access Scholarship is open, until ${closesOn}` : "The Access Scholarship opens in windows"}
-        intro={
-          <>
-            <p>
-              Money shouldn&apos;t decide who gets into tech. During each scholarship window, SkillsAir covers most of your programme fee.
-              {scholarship.isOpen && closesOn
-                ? ` When this window closes on ${closesOn}, the standard fee applies until the next one opens.`
-                : " Between windows the standard fee applies. Apply now and we'll message you on WhatsApp when the next window opens."}
-            </p>
-            {laptopSupportOn && (
-              <p className="mt-4">
-                Certified graduates who need a laptop can apply for one. {scholarship.laptopsPerCohort} laptops go to each cohort.{" "}
-                <Link href="/laptop-rules" className="font-semibold text-white underline underline-offset-2">Official rules</Link>
-              </p>
+      <section className="bg-navy text-neutral-200">
+        <div className="container-wide flex max-w-[900px] flex-col items-start gap-5 py-16 md:py-[88px]">
+          <p className="eyebrow text-accent-300">Access Scholarship</p>
+          <h2 className="text-[1.75rem] font-bold leading-[1.15] text-white md:text-[2.5rem]">
+            {scholarship.isOpen && closesOn ? (
+              <>
+                The Access Scholarship is open, <span className="text-accent">until {closesOn}</span>
+              </>
+            ) : (
+              "The Access Scholarship opens in windows"
             )}
-          </>
-        }
-      >
-        <PrimaryCTA href="/apply" block>See my scholarship price →</PrimaryCTA>
-        <p className="mt-3 text-sm text-white/75">You&apos;ll see your exact price after a 60-second application.</p>
-      </Section>
-
-      <Section title="Questions people ask first">
-        <div className="max-w-3xl">
-          <FAQAccordion items={teaser} />
-          <Link href="/faq" className="mt-6 inline-block font-semibold text-primary-800 underline underline-offset-2">See all FAQs</Link>
+          </h2>
+          <p className="text-lg text-neutral-300">
+            Money shouldn&apos;t decide who gets into tech. During each scholarship window, SkillsAir covers most of your programme fee.
+            {scholarship.isOpen && closesOn
+              ? ` When this window closes on ${closesOn}, the standard fee applies until the next one opens.`
+              : " Between windows the standard fee applies. Apply now and we'll message you on WhatsApp when the next window opens."}
+          </p>
+          <div className="flex w-full flex-col gap-5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+            <PrimaryCTA href="/apply" block className="text-[17px]">
+              See my scholarship price →
+            </PrimaryCTA>
+            <span className="text-sm text-neutral-300">You&apos;ll see your exact price after a 60-second application.</span>
+          </div>
+          {laptopSupportOn && (
+            <p className="mt-2 text-sm text-neutral-300">
+              <span aria-hidden="true">💻 </span>Certified graduates who need a laptop can apply for one. {scholarship.laptopsPerCohort} laptops go to each cohort.{" "}
+              <a href="/laptop-rules" className="text-accent-300 underline underline-offset-2">
+                Official rules
+              </a>
+            </p>
+          )}
         </div>
-      </Section>
+      </section>
 
-      <Section
-        tone="muted"
-        title="Three months from now, you could have a certificate and a new direction."
-        intro={<p>Applying is free and takes 60 seconds. You&apos;ll see your price and everything you get, then decide.</p>}
-      >
-        <PrimaryCTA href="/apply" block>Apply for a scholarship seat →</PrimaryCTA>
-        <p className="mt-4">
-          <WhatsAppTextLink>Or chat with {site.advisor.name} on WhatsApp first</WhatsAppTextLink>
-        </p>
-      </Section>
+      <section className="bg-white py-16 md:py-24">
+        <div className="container-wide flex max-w-[860px] flex-col gap-8">
+          <h2 className="text-[1.75rem] font-bold text-navy md:text-[2.25rem]">Questions people ask first</h2>
+          <FAQAccordion items={teaser} />
+          <GhostLink href="/faq" className="text-[15px]">
+            See all FAQs
+          </GhostLink>
+        </div>
+      </section>
+
+      <section className="bg-neutral-50 py-16 md:py-24">
+        <div className="container-wide flex max-w-[820px] flex-col items-center gap-[18px] text-center">
+          <h2 className="text-[1.875rem] font-bold leading-[1.12] text-navy md:text-[2.75rem]">Three months from now, you could have a certificate and a new direction.</h2>
+          <p className="text-lg text-neutral-700">Applying is free and takes 60 seconds. You&apos;ll see your price and everything you get, then decide.</p>
+          <PrimaryCTA href="/apply" block className="min-h-14 px-8 text-[17px]">
+            Apply for a scholarship seat →
+          </PrimaryCTA>
+          <a href={whatsappLink()} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-navy underline underline-offset-4 hover:text-primary-800">
+            Or chat with {site.advisor.name} on WhatsApp first
+          </a>
+        </div>
+      </section>
     </>
   );
 }

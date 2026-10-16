@@ -29,10 +29,10 @@ export function AnnouncementBar({ closesOn, closesAt }: { closesOn: string; clos
   };
 
   return (
-    <div className="relative z-50 bg-navy text-white">
-      <div className="container-wide flex min-h-11 items-center justify-center gap-3 py-2 pr-10 text-center text-sm">
+    <div className="relative z-50 bg-navy text-neutral-200">
+      <div className="container-wide flex min-h-11 items-center justify-center gap-3 py-2.5 pr-10 text-center text-sm">
         <p>
-          🎓 Access Scholarship is open. Apply by <strong>{closesOn}</strong>.{" "}
+          🎓 Access Scholarship is open. Apply by <strong className="text-white">{closesOn}</strong>.{" "}
           <Link href="/apply" className="font-semibold text-accent-300 underline underline-offset-2 hover:text-white">
             Apply now →
           </Link>

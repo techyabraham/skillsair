@@ -107,7 +107,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
 
       {offer.windowOpen && (
         <section className="mt-6 rounded-2xl bg-navy p-5 text-white md:p-6">
-          <h2 className="text-lg font-heading font-bold">Why only {naira(offer.effectivePrice)}?</h2>
+          <h2 className="text-lg font-heading font-bold text-white">Why only {naira(offer.effectivePrice)}?</h2>
           <p className="mt-2 text-white/90 leading-relaxed">
             Because talent isn&apos;t the problem. Access is. SkillsAir was started by {site.founder.name} to give young Africans quality, job-ready tech training without the high fees, and to supply the tech market with the skilled people it&apos;s short of. The scholarship covers the rest of your fee for this window.
           </p>

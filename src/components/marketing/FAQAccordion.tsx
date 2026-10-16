@@ -1,23 +1,24 @@
 import Link from "next/link";
 import type { FaqItem } from "@/content/faq";
 
-/** Native <details> accordion: keyboard accessible and works without JavaScript. */
+/**
+ * Design: hairline-ruled list, 18px semibold navy questions with an orange "+".
+ * Native <details> keeps it keyboard accessible and working without JavaScript.
+ */
 export function FAQAccordion({ items }: { items: FaqItem[] }) {
   return (
-    <div className="divide-y divide-neutral-200 rounded-2xl border border-neutral-200 bg-white">
+    <div className="border-t border-neutral-200">
       {items.map((item) => (
-        <details key={item.id} id={item.id} className="group px-5 py-1 md:px-6">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-left font-semibold text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800 [&::-webkit-details-marker]:hidden">
+        <details key={item.id} id={item.id} className="group border-b border-neutral-200 py-5 md:py-[22px]">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-left text-lg font-semibold text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800 [&::-webkit-details-marker]:hidden">
             <span>{item.question}</span>
-            <svg className="h-5 w-5 shrink-0 text-neutral-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            <span aria-hidden="true" className="shrink-0 text-2xl font-normal leading-none text-accent-700 transition-transform group-open:rotate-45">+</span>
           </summary>
-          <div className="pb-5 text-neutral-600 leading-relaxed">
+          <div className="mt-3 text-base leading-relaxed text-neutral-700">
             <p>{item.answer}</p>
             {item.link && (
               <p className="mt-2">
-                <Link href={item.link.href} className="font-medium text-primary-800 underline underline-offset-2">
+                <Link href={item.link.href} className="font-semibold text-navy underline underline-offset-4">
                   {item.link.label}
                 </Link>
               </p>

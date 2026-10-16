@@ -17,7 +17,8 @@ export default async function SchoolsPage() {
   const [schools, scholarship] = await Promise.all([getSchools().catch((): SchoolSummary[] => []), getScholarshipWindow()]);
   return (
     <Section
-      title={<span className="block text-[2rem] md:text-[3.5rem]">Pick the career you want to build</span>}
+      level={1}
+        title={<>Pick the career you want to build</>}
       intro={<p>Every school is beginner-friendly and self-paced, and ends with a verifiable certificate and internship access.</p>}
     >
       {schools.length ? (

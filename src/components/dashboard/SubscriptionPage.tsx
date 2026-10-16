@@ -57,7 +57,7 @@ export function SubscriptionPage() {
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
                     <p className="text-white/60 text-xs uppercase tracking-widest mb-1">Course plan</p>
-                    <h2 className="text-2xl font-heading font-bold">{subscription.planName}</h2>
+                    <h2 className="text-2xl font-heading font-bold text-white">{subscription.planName}</h2>
                   </div>
                   <Badge variant="success" className="bg-success/20 text-success border border-success/30">Active</Badge>
                 </div>

@@ -21,7 +21,7 @@ export default async function PublicLayout({ children }: { children: React.React
       {scholarship.isOpen && scholarship.closesAt && <AnnouncementBar closesOn={formatShortDate(scholarship.closesAt)} closesAt={scholarship.closesAt} />}
       <Header schools={navSchools} />
       <main id="main">{children}</main>
-      <Footer schools={navSchools} />
+      <Footer />
       <StickyMobileCTA />
       <WhatsAppFloat />
     </>

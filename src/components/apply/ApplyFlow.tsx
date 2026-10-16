@@ -273,7 +273,7 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
 
           {schoolComingSoon && (
             <p className="mt-6 rounded-xl border border-accent-200 bg-accent-50 p-4 text-neutral-800">
-              Programmes for the {selectedSchool?.name} open soon. Continue and leave your details, and {`we'll`} message you on WhatsApp as soon as you can apply.
+              Programmes for the {selectedSchool?.name}{selectedSchool?.upcoming.length ? ` (${selectedSchool.upcoming.join(", ")})` : ""} open soon. Continue and leave your details, and {`we'll`} message you on WhatsApp as soon as you can apply.
             </p>
           )}
 

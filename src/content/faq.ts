@@ -23,7 +23,7 @@ export const faqs: FaqItem[] = [
     id: "phone",
     question: "Can I learn with only my phone?",
     answer:
-      "It depends on the programme. These work fully on a phone: Canva Design, Smartphone Videography, Data Analysis and Product Management (look for the 📱 badge). Others need a laptop for some of the work. Each programme lists exactly what you'll need.",
+      "It depends on the programme. These work fully on a phone: Smartphone Videography, Mobile Graphics Design, Data Analysis and Product Management (look for the 📱 badge). Others need a laptop for some of the work. Each programme lists exactly what you'll need.",
   },
   {
     id: "how-long",

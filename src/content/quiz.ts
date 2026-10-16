@@ -13,7 +13,7 @@ export type SchoolKey =
   | "products"
   | "salesandmarketing"
   | "security"
-  | "smartphone";
+  | "smartphonecreators";
 
 export interface QuizOption {
   label: string;
@@ -41,7 +41,7 @@ export const quizQuestions: QuizQuestion[] = [
     id: "device",
     question: "What will you mostly learn on?",
     options: [
-      { label: "My phone", weights: { smartphone: 3, contentcreation: 1, data: 1, products: 1 } },
+      { label: "My phone", weights: { smartphonecreators: 3, contentcreation: 1, data: 1, products: 1 } },
       { label: "A laptop", weights: { engineering: 2, data: 1, design: 1, security: 1 } },
       { label: "Both", weights: {} },
     ],
@@ -60,7 +60,7 @@ export const quizQuestions: QuizQuestion[] = [
     id: "online",
     question: "What do you do most online?",
     options: [
-      { label: "Watch and make videos", weights: { contentcreation: 3, smartphone: 2 } },
+      { label: "Watch and make videos", weights: { contentcreation: 3, smartphonecreators: 2 } },
       { label: "Read about new tech and AI tools", weights: { ai: 3, engineering: 1 } },
       { label: "Follow brands and trends", weights: { salesandmarketing: 2, design: 1 } },
       { label: "Read about scams, hacks and online safety", weights: { security: 3 } },
@@ -91,7 +91,7 @@ export const quizQuestions: QuizQuestion[] = [
     options: [
       { label: "Careful, I notice small mistakes", weights: { security: 2, data: 1, engineering: 1 } },
       { label: "Creative, full of ideas", weights: { design: 1, contentcreation: 2 } },
-      { label: "Practical, I like quick results", weights: { nocodedevelopment: 2, smartphone: 1 } },
+      { label: "Practical, I like quick results", weights: { nocodedevelopment: 2, smartphonecreators: 1 } },
       { label: "A people person", weights: { salesandmarketing: 2, products: 1 } },
     ],
   },
@@ -100,7 +100,7 @@ export const quizQuestions: QuizQuestion[] = [
     question: "What do you want most in the next year?",
     options: [
       { label: "A stable job in a company", weights: { data: 1, engineering: 1, security: 1, products: 1 } },
-      { label: "Freelance clients and side income", weights: { design: 1, contentcreation: 1, nocodedevelopment: 1, smartphone: 1 } },
+      { label: "Freelance clients and side income", weights: { design: 1, contentcreation: 1, nocodedevelopment: 1, smartphonecreators: 1 } },
       { label: "To grow a brand or business", weights: { salesandmarketing: 2, contentcreation: 1 } },
       { label: "To work on the newest technology", weights: { ai: 2, engineering: 1 } },
     ],

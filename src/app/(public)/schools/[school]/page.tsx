@@ -87,6 +87,7 @@ export default async function SchoolPage({ params }: { params: { school: string 
           title={`Be first in when the ${school.name} opens`}
           intro={<p>Programmes for this school are being finalised. Leave your details and {site.advisor.name} will message you on WhatsApp as soon as you can apply.</p>}
         >
+          {school.upcoming.length > 0 && <UpcomingProgrammes titles={school.upcoming} />}
           <div className="max-w-xl rounded-2xl border border-neutral-200 bg-white p-6">
             <SchoolWaitlistForm school={school.slug} schoolName={school.name} />
           </div>
@@ -110,6 +111,7 @@ export default async function SchoolPage({ params }: { params: { school: string 
             </li>
           ))}
         </ul>
+        {school.upcoming.length > 0 && <UpcomingProgrammes titles={school.upcoming} />}
       </Section>
       )}
 
@@ -133,5 +135,18 @@ export default async function SchoolPage({ params }: { params: { school: string 
         <div className="max-w-3xl"><FAQAccordion items={schoolFaqs} /></div>
       </Section>
     </>
+  );
+}
+
+function UpcomingProgrammes({ titles }: { titles: string[] }) {
+  return (
+    <div className="mb-6 mt-6">
+      <h3 className="text-base font-bold text-navy">Coming soon</h3>
+      <ul className="mt-3 flex flex-wrap gap-2">
+        {titles.map((title) => (
+          <li key={title} className="rounded-full border border-neutral-200 bg-white px-3.5 py-1.5 text-sm font-medium text-neutral-700">{title}</li>
+        ))}
+      </ul>
+    </div>
   );
 }

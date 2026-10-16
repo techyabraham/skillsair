@@ -25,10 +25,21 @@ export interface TeamMember {
   photo: string;
 }
 
+export interface PlannedProgramme {
+  title: string;
+  /** Other names the same backend course may use (matched loosely, ignoring case and spacing). */
+  alsoKnownAs?: string[];
+}
+
 export interface SchoolInfo {
   /** Reference name; the live name comes from the backend `categories` collection. */
   name: string;
+  /** Earlier names of this school, so an existing backend category still matches. */
+  formerNames?: string[];
   oneLiner: string;
+  /** The owner's programme line-up. Published backend courses appear as real programmes;
+   *  the rest show as "Coming soon". A course may belong to more than one school. */
+  programmes: PlannedProgramme[];
 }
 
 export const site = {
@@ -80,7 +91,7 @@ export const site = {
     scholarshipBilling: "monthly",
     certificatePrice: 10000,
     currentCohort: "October 2026 – January 2027",
-    phoneFriendlyExamples: ["Canva Design", "Smartphone Videography", "Data Analysis", "Product Management"],
+    phoneFriendlyExamples: ["Smartphone Videography", "Mobile Graphics Design", "Data Analysis", "Product Management"],
     /** Owner to confirm whether the ₦100,000 standard fee includes the certificate. Treated as separate until then. */
     standardFeeIncludesCertificate: "{{STANDARD_FEE_INCLUDES_CERTIFICATE}}",
   },
@@ -104,16 +115,55 @@ export const site = {
   promise:
     "SkillsAir gives young Africans job-ready tech skills they can afford, and opens doors to internships once they're certified.",
   schools: [
-    { name: "School of AI", oneLiner: "Use and build with AI, the skill every industry is now hiring for." },
-    { name: "School of Content Creation", oneLiner: "Create content brands and audiences pay attention to." },
-    { name: "School of Data", oneLiner: "Turn raw numbers into decisions companies pay for." },
-    { name: "School of Design", oneLiner: "Design products and visuals people love to use." },
-    { name: "School of Engineering", oneLiner: "Build the software that runs modern businesses." },
-    { name: "School of No-Code Development", oneLiner: "Build real apps and websites without writing code." },
-    { name: "School of Products", oneLiner: "Learn to lead products from idea to launch." },
-    { name: "School of Sales and Marketing", oneLiner: "Grow brands and close deals with digital skills." },
-    { name: "School of Security", oneLiner: "Protect systems and data from attackers." },
-    { name: "School of Smart Phone", oneLiner: "Turn the phone in your hand into a source of income." },
+    { name: "School of AI", oneLiner: "Use and build with AI, the skill every industry is now hiring for.", programmes: [] },
+    {
+      name: "School of Content Creation",
+      oneLiner: "Create content brands and audiences pay attention to.",
+      programmes: [{ title: "Smartphone Videography and Content Creation", alsoKnownAs: ["Smartphone Videography"] }],
+    },
+    {
+      name: "School of Data",
+      oneLiner: "Turn raw numbers into decisions, and put AI to work on the busywork.",
+      programmes: [{ title: "Data Analysis" }, { title: "AI Automation" }, { title: "Prompt Engineering" }],
+    },
+    {
+      name: "School of Design",
+      oneLiner: "Design products and visuals people love to use.",
+      programmes: [{ title: "UI/UX Design", alsoKnownAs: ["UI/UX", "UI UX", "Product Design"] }, { title: "Graphics Design", alsoKnownAs: ["Graphic Design"] }],
+    },
+    {
+      name: "School of Engineering",
+      oneLiner: "Build the software that runs modern businesses.",
+      programmes: [
+        { title: "Frontend Development", alsoKnownAs: ["Front-end Development", "Front End Development"] },
+        { title: "Backend Development", alsoKnownAs: ["Back-end Development", "Back End Development"] },
+        { title: "Mobile App Development" },
+        { title: "Cloud Engineering (AWS Solutions Architect)", alsoKnownAs: ["Cloud Engineering", "AWS Solutions Architect"] },
+        { title: "Website Development (Full Stack)", alsoKnownAs: ["Website Development", "Full Stack Development", "Fullstack Development"] },
+      ],
+    },
+    { name: "School of No-Code Development", oneLiner: "Build real apps and websites without writing code.", programmes: [] },
+    {
+      name: "School of Products",
+      oneLiner: "Learn to lead products from idea to launch.",
+      programmes: [{ title: "Product Management" }, { title: "Product Design (UI/UX)", alsoKnownAs: ["Product Design", "UI/UX Design", "UI/UX", "UI UX"] }],
+    },
+    { name: "School of Sales and Marketing", oneLiner: "Grow brands and close deals with digital skills.", programmes: [] },
+    {
+      name: "School of Security",
+      oneLiner: "Protect systems and data from attackers.",
+      programmes: [{ title: "Cyber Security", alsoKnownAs: ["Cybersecurity"] }, { title: "Ethical Hacking" }],
+    },
+    {
+      name: "School of Smartphone Creators",
+      formerNames: ["School of Smart Phone", "School of Smartphone"],
+      oneLiner: "Shoot, design and stream with just your phone, and turn it into income.",
+      programmes: [
+        { title: "Smartphone Videography and Content Creation", alsoKnownAs: ["Smartphone Videography"] },
+        { title: "Mobile Graphics Design", alsoKnownAs: ["Mobile Graphic Design"] },
+        { title: "Mobile Streaming" },
+      ],
+    },
   ] satisfies SchoolInfo[],
   analytics: {
     ga4MeasurementId: "{{GA4_MEASUREMENT_ID}}",
@@ -123,8 +173,26 @@ export const site = {
 
 /** One-liner for a backend school name, matched loosely ("Smart Phone" vs "Smartphone"). */
 export function schoolOneLiner(name: string): string {
-  const normalise = (value: string) => value.toLowerCase().replace(/[^a-z]/g, "");
-  return site.schools.find((school) => normalise(school.name) === normalise(name))?.oneLiner ?? "";
+  return findSchoolInfo(name)?.oneLiner ?? "";
+}
+
+const normaliseName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/** The school a backend category name refers to, including its former names ("Smart Phone" vs "Smartphone"). */
+export function findSchoolInfo(name: string): SchoolInfo | undefined {
+  const key = normaliseName(name);
+  return (site.schools as readonly SchoolInfo[]).find(
+    (school) => normaliseName(school.name) === key || (school.formerNames ?? []).some((former) => normaliseName(former) === key),
+  );
+}
+
+/** True when a backend course title is the planned programme (or one of its other names). */
+export function matchesPlannedProgramme(courseTitle: string, planned: PlannedProgramme): boolean {
+  const title = normaliseName(courseTitle);
+  return [planned.title, ...(planned.alsoKnownAs ?? [])].some((name) => {
+    const key = normaliseName(name);
+    return title === key || title.startsWith(key) || key.startsWith(title);
+  });
 }
 
 export function whatsappLink(text: string = site.whatsapp.prefill): string {

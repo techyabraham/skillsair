@@ -12,7 +12,7 @@ const ROLES: Record<string, string[]> = {
   schoolofproducts: ["Associate product manager", "Product operations assistant", "Project coordinator", "Product support specialist"],
   schoolofsalesandmarketing: ["Digital marketing assistant", "Sales development representative", "Social media manager", "Performance marketing intern"],
   schoolofsecurity: ["Security operations (SOC) analyst intern", "IT support with a security focus", "Junior compliance assistant", "Vulnerability assessment intern"],
-  schoolofsmartphone: ["Smartphone videographer", "Mobile content creator", "Freelance social media editor", "Event and product shoot assistant"],
+  schoolofsmartphonecreators: ["Smartphone videographer", "Mobile content creator", "Live-stream host or producer", "Mobile graphics designer"],
 };
 
 export function schoolRoles(name: string): string[] {

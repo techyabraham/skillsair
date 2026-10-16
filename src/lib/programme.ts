@@ -1,6 +1,7 @@
 import { backendUrl } from "@/lib/backend-api";
 import { mapBackendCourse, toPublicCourse } from "@/lib/backend-course-mapper";
 import type { Course } from "@/types/course";
+import { findSchoolInfo } from "@/content/site";
 
 export interface ProgrammeDetail {
   course: Course;
@@ -78,7 +79,7 @@ export async function getProgramme(slug: string): Promise<ProgrammeResult> {
       phoneFriendly: Boolean(raw.phoneFriendly),
       durationMonths: raw.durationMonths ?? 3,
       weeklyHours: raw.weeklyHours ?? 8,
-      school: firstCategory?.name && firstCategory.slug ? { name: firstCategory.name, slug: firstCategory.slug } : null,
+      school: firstCategory?.name && firstCategory.slug ? { name: findSchoolInfo(firstCategory.name)?.name ?? firstCategory.name, slug: firstCategory.slug } : null,
       projects: Array.from(new Set(projects)).slice(0, 6),
       whoFor: whoFor.slice(0, 4),
       previewLessonId: previewLesson?.id ?? null,

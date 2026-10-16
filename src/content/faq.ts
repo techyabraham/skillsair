@@ -12,7 +12,7 @@ export const faqs: FaqItem[] = [
     id: "why-cheap",
     question: "Why is it only ₦2,000 a month? What's the catch?",
     answer:
-      "No catch. SkillsAir's founder, Abraham Akinwumi, started SkillsAir because talented young Africans were priced out of quality tech training, while companies couldn't find enough skilled people. During each scholarship window, the Access Scholarship replaces the standard fee (₦100,000, or ₦40,000 a month) with ₦2,000 a month while you study. Most learners finish in 3 months, and you can cancel anytime. The certificate is ₦10,000, paid only when you finish and want it.",
+      "No catch. SkillsAir's founder, Abraham Akinwumi, started SkillsAir because talented young Africans were priced out of quality tech training, while companies couldn't find enough skilled people. During each scholarship window, the Access Scholarship replaces the standard fee (₦100,000, or ₦40,000 a month) with ₦2,000 a month while you study. Keep your subscription until you finish your programme (most learners take about 3 months), and cancel anytime. The certificate is ₦10,000, paid only when you finish and want it.",
   },
   {
     id: "beginner",
@@ -28,7 +28,7 @@ export const faqs: FaqItem[] = [
   {
     id: "how-long",
     question: "How long does it take?",
-    answer: "It's self-paced. You get 3 months to finish, and about 8 hours a week is enough.",
+    answer: "It's self-paced. At about 8 hours a week, most learners finish in 3 months. On a monthly plan your access continues for as long as your subscription is active, so you can take longer if you need to.",
   },
   {
     id: "start",

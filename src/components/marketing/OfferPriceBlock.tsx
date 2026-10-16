@@ -38,7 +38,7 @@ export function OfferPriceBlock({ offer }: { offer: PriceFacts }) {
       </dl>
       {scholarship && (
         <p className="mt-4 text-neutral-700">
-          Billed monthly by Paystack while you study. Most learners finish in {site.programme.durationMonths} months. Cancel anytime from your dashboard. That&apos;s {site.priceComparison.toLowerCase()}.
+          Billed monthly by Paystack while you study. Keep it until you finish (most learners take about {site.programme.durationMonths} months). Cancel anytime from your dashboard. That&apos;s {site.priceComparison.toLowerCase()}.
         </p>
       )}
       {offer.windowOpen && offer.closesAt && (

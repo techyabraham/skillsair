@@ -53,7 +53,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
       ? {
           id: "monthly",
           question: `How does ${naira(offer.price)} a month work?`,
-          answer: `Paystack charges ${naira(offer.price)} to your card each month while you study. Most learners finish in ${offer.durationMonths} months. Joining during this scholarship window keeps your ${naira(offer.price)} rate. Cancel anytime from your dashboard. The ${certificate} certificate is separate and only when you finish.`,
+          answer: `Paystack charges ${naira(offer.price)} to your card each month while you study. Your access continues as long as your subscription is active, so keep it until you finish (most learners take about ${offer.durationMonths} months). Joining during this scholarship window keeps your ${naira(offer.price)} rate. Cancel anytime from your dashboard. The ${certificate} certificate is separate and only when you finish.`,
         }
       : {
           id: "one-time",

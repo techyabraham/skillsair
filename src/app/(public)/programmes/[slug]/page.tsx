@@ -81,7 +81,7 @@ export default async function ProgrammePage({ params }: { params: { slug: string
           <ul className="mt-6 flex flex-wrap gap-2 text-sm">
             {[
               "Self-paced",
-              `${programme.durationMonths} months to finish`,
+              `Designed to take about ${programme.durationMonths} months`,
               `~${programme.weeklyHours} hrs/week`,
               `Certificate (${certificate} when you finish)`,
               "Internship access after certification",

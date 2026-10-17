@@ -4,7 +4,7 @@ import { backendFetch } from "@/lib/backend-api";
 /** One-click unsubscribe from marketing (token comes from the email link). */
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as { token?: unknown };
-  const token = typeof body.token === "string" ? body.token.slice(0, 200) : "";
+  const token = typeof body.token === "string" ? body.token.slice(0, 400) : "";
   if (!token) return NextResponse.json({ message: "This unsubscribe link is not valid." }, { status: 400 });
   const upstream = await backendFetch(req, "leads/unsubscribe", { method: "POST", body: JSON.stringify({ token }) }).catch(() => null);
   if (!upstream?.ok) {

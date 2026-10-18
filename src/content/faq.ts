@@ -12,7 +12,7 @@ export const faqs: FaqItem[] = [
     id: "why-cheap",
     question: "Why is it only ₦2,000 a month? What's the catch?",
     answer:
-      "No catch. SkillsAir's founder, Abraham Akinwumi, started SkillsAir because talented young Africans were priced out of quality tech training, while companies couldn't find enough skilled people. During each scholarship window, the Access Scholarship replaces the standard fee (₦100,000, or ₦40,000 a month) with ₦2,000 a month while you study. Keep your subscription until you finish your programme (it's designed to take about 3 months at about 8 hours a week), and cancel anytime. The certificate is ₦10,000, paid only when you finish and want it.",
+      "No catch. SkillsAir's founder, Abraham Akinwumi, started SkillsAir because talented young Africans were priced out of quality tech training, while companies couldn't find enough skilled people. During each scholarship window, the Access Scholarship replaces the standard fee (₦100,000, or ₦40,000 a month) with ₦2,000 a month while you study. Keep your subscription until you finish your programme (it's designed to take about 3 months at about 8 hours a week), and cancel anytime. The only other cost is an optional certificate, paid separately when you finish.",
   },
   {
     id: "beginner",
@@ -51,7 +51,7 @@ export const faqs: FaqItem[] = [
     id: "extras",
     question: "What do I get besides the programme?",
     answer:
-      "Free CV & LinkedIn and Freelancing courses. You can access them while your enrolment is active, or after it ends if you were enrolled for at least two months. When you finish, you can also claim a verifiable certificate for ₦10,000.",
+      "Free CV & LinkedIn and Freelancing courses. You can access them while your enrolment is active, or after it ends if you were enrolled for at least two months. When you finish, you can also claim a verifiable certificate (optional, paid separately).",
   },
   {
     id: "after-deadline",
@@ -87,9 +87,9 @@ export const faqs: FaqItem[] = [
   },
   {
     id: "certificate",
-    question: "Do I get a certificate? How much is it?",
+    question: "Do I get a certificate?",
     answer:
-      "Yes. When you finish your programme, you can claim a verifiable certificate for ₦10,000. It has a unique link employers can check and you can add to LinkedIn. You need it to access internship openings and to apply for laptop support.",
+      "Yes. When you finish your programme, you can claim a verifiable certificate. It's optional and paid separately, and you'll see the fee when you claim it. It has a unique link employers can check and you can add to LinkedIn. You need it to access internship openings and to apply for laptop support.",
   },
   {
     id: "cohort",

@@ -1,4 +1,4 @@
-import { naira, site } from "@/content/site";
+import { site } from "@/content/site";
 
 const STEPS = [
   { title: "Apply in 60 seconds", body: "Pick a school and see your scholarship price instantly." },
@@ -8,7 +8,7 @@ const STEPS = [
   },
   {
     title: "Earn your certificate",
-    body: `Claim a verifiable certificate when you finish (${naira(site.programme.certificatePrice)}), plus free CV & LinkedIn and Freelancing courses.`,
+    body: 'Claim a verifiable certificate when you finish (optional), plus free CV & LinkedIn and Freelancing courses.',
   },
   {
     title: "Unlock internships",

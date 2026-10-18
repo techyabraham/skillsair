@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { cookies } from "next/headers";
@@ -45,6 +46,14 @@ const HERO_HEADLINES = {
 const PATHWAY = ["1 · Learn", "2 · Certify", "3 · Get internship access"];
 
 const laptopSupportOn = process.env.NEXT_PUBLIC_FEATURE_LAPTOP_SUPPORT !== "false";
+
+/** The four schools shown on the home page; the rest are one tap away on /schools. */
+const FEATURED_SCHOOLS = ["School of Security", "School of Data", "School of Engineering", "School of Smartphone Creators"];
+
+function featuredSchools(schools: SchoolSummary[]): SchoolSummary[] {
+  const featured = FEATURED_SCHOOLS.map((name) => schools.find((school) => school.name === name)).filter((school): school is SchoolSummary => Boolean(school));
+  return featured.length ? featured : schools.slice(0, 4);
+}
 
 export default async function HomePage({ searchParams }: { searchParams: { utm_content?: string } }) {
   const [schools, scholarship] = await Promise.all([getSchools().catch((): SchoolSummary[] => []), getScholarshipWindow()]);
@@ -144,11 +153,21 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
                 Not sure? Take the Career Match quiz →
               </GhostLink>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-              {schools.map((school) => (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {featuredSchools(schools).map((school) => (
                 <SchoolCard key={school.slug} slug={school.slug} name={school.name} oneLiner={school.oneLiner} programmeCount={school.programmes.length} scholarshipOpen={scholarship.isOpen} />
               ))}
             </div>
+            {schools.length > FEATURED_SCHOOLS.length && (
+              <div className="flex justify-center">
+                <Link
+                  href="/schools"
+                  className="inline-flex min-h-[52px] items-center justify-center rounded-xl border-2 border-navy px-7 text-base font-semibold text-navy transition-colors hover:bg-navy hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800"
+                >
+                  See all {schools.length} schools →
+                </Link>
+              </div>
+            )}
           </div>
         </section>
       )}

@@ -33,9 +33,13 @@ export const metadata: Metadata = {
   keywords: ["tech courses in Nigeria", "affordable tech training", "data analysis course Nigeria", "UI/UX design course Nigeria", "cybersecurity course Nigeria", "AI course Nigeria"],
   authors: [{ name: "SkillsAir" }],
   icons: {
-    icon: [{ url: "/icon.png", type: "image/png" }],
-    apple: [{ url: "/icon.png", type: "image/png" }],
-    shortcut: "/icon.png",
+    // The three-bar SkillsAir icon (src/app/favicon.ico, icon.png, apple-icon.png).
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
+    shortcut: "/favicon.ico",
   },
   openGraph: {
     type: "website",

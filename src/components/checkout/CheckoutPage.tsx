@@ -223,7 +223,7 @@ export function CheckoutPage() {
               </div>
             </dl>
             {!isCertificateCheckout && (
-              <p className="mt-3 text-sm text-neutral-700">Certificate: {naira(certificateFee)}, paid only when you finish and want it.</p>
+              <p className="mt-3 text-sm text-neutral-700">Certificate: optional, paid separately when you finish.</p>
             )}
             {isSubscriptionCheckout && selectedPlan && (
               <p className="mt-2 text-sm text-neutral-700">

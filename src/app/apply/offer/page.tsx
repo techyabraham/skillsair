@@ -43,7 +43,6 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
   const name = offer.firstName || "Hi";
   const outcomes = offer.objectives.slice(0, 3);
   const closesShort = formatShortDate(offer.closesAt);
-  const certificate = naira(offer.certificatePrice);
   // The scholarship is billed monthly through its Paystack plan.
   const monthly = offer.billing === "monthly";
   const locked = monthly && offer.priceLocked === true;
@@ -54,12 +53,12 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
       ? {
           id: "monthly",
           question: `How does ${naira(offer.price)} a month work?`,
-          answer: `Paystack charges ${naira(offer.price)} to your card each month until you finish. Your access continues as long as your subscription is active. The programme is designed to take about ${offer.durationMonths} months at about ${offer.weeklyHours} hours a week. ${locked ? priceLockLine(offer, naira) : `Joining during this scholarship window keeps your ${naira(offer.price)} rate until you finish.`} Cancel anytime from your dashboard. The ${certificate} certificate is separate and only when you finish.`,
+          answer: `Paystack charges ${naira(offer.price)} to your card each month until you finish. Your access continues as long as your subscription is active. The programme is designed to take about ${offer.durationMonths} months at about ${offer.weeklyHours} hours a week. ${locked ? priceLockLine(offer, naira) : `Joining during this scholarship window keeps your ${naira(offer.price)} rate until you finish.`} Cancel anytime from your dashboard. The certificate is optional and paid separately when you finish.`,
         }
       : {
           id: "one-time",
           question: "How do I pay the standard fee?",
-          answer: `Pay ${naira(offer.effectivePrice)} once${offer.standardMonthlyPrice ? `, or ${naira(offer.standardMonthlyPrice)} a month where a monthly plan is offered at checkout` : ""}. The ${certificate} certificate is separate and only when you finish.`,
+          answer: `Pay ${naira(offer.effectivePrice)} once${offer.standardMonthlyPrice ? `, or ${naira(offer.standardMonthlyPrice)} a month where a monthly plan is offered at checkout` : ""}. The certificate is optional and paid separately when you finish.`,
         },
     {
       id: "debited",
@@ -95,7 +94,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
         <p className="text-sm font-semibold uppercase tracking-wide text-primary-800">{offer.school || "SkillsAir"}</p>
         <h2 className="mt-1 text-xl font-heading font-bold text-neutral-900">{offer.programme}</h2>
         <p className="mt-2 text-neutral-700">
-          Self-paced · designed to take about {offer.durationMonths} months at about {offer.weeklyHours} hours a week · Certificate available when you finish ({certificate}).
+          Self-paced · designed to take about {offer.durationMonths} months at about {offer.weeklyHours} hours a week · Optional certificate when you finish.
         </p>
         {outcomes.length > 0 && (
           <ul className="mt-4 space-y-2">
@@ -126,7 +125,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
         <h2 className="text-xl font-heading font-bold text-neutral-900">What you get</h2>
         <ul className="mt-4 space-y-3 text-neutral-700">
           <li>✓ The full {offer.programme} programme, at your own pace, for as long as you study.</li>
-          <li>✓ When you finish: a verifiable certificate employers can check online ({certificate}).</li>
+          <li>✓ When you finish: a verifiable certificate employers can check online (optional, paid separately).</li>
           <li>✓ <strong>Free bonus courses:</strong> CV &amp; LinkedIn, and Freelancing.</li>
           <li>✓ Access to internship openings from SkillsAir partner firms once you&apos;re certified.</li>
           {laptopSupportOn && (

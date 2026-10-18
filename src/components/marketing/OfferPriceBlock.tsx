@@ -44,7 +44,7 @@ export function OfferPriceBlock({ offer }: { offer: PriceFacts }) {
         )}
         <div className="flex items-start justify-between gap-4 text-neutral-700">
           <dt>Certificate (when you finish)</dt>
-          <dd className="text-right">{naira(offer.certificatePrice)}, optional; needed for internship access</dd>
+          <dd className="text-right">Optional, paid separately; needed for internship access</dd>
         </div>
       </dl>
       {scholarship && (

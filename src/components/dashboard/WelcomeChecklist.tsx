@@ -90,7 +90,7 @@ export function WelcomeChecklist() {
           </div>
         ) : (
           <p className="mt-2 text-neutral-700">
-            Claim your verifiable certificate ({naira(site.programme.certificatePrice)}). It unlocks internship access from our partner firms, and certified graduates can apply for laptop support.
+            Claim your verifiable certificate. It unlocks internship access from our partner firms, and certified graduates can apply for laptop support.
           </p>
         )}
       </div>

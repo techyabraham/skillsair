@@ -3,7 +3,7 @@ import { backendFetch, backendPayload } from "@/lib/backend-api";
 import type { Subscription } from "@/types/order";
 
 interface BackendSubscription {
-  id: number; status?: string; currentPeriodStart?: string; currentPeriodEnd?: string;
+  id: number; status?: string; currentPeriodStart?: string; currentPeriodEnd?: string; lastFailedAt?: string | null; graceEndsAt?: string | null;
   user?: number | { id?: number }; plan?: number | { id?: number; name?: string; price?: number; interval?: string };
   course?: number | { id?: number; title?: string };
 }
@@ -22,9 +22,12 @@ export async function GET(req: NextRequest) {
   const subscriptions: Subscription[] = (payload.docs || []).map((item) => {
   const plan = typeof item.plan === "object" && item.plan ? item.plan : {};
   const course = typeof item.course === "object" && item.course ? item.course : {};
-    const status = item.status === "active" || item.status === "cancelled" || item.status === "expired" || item.status === "on-hold"
+    const status = item.status === "active" || item.status === "past_due" || item.status === "cancelled" || item.status === "expired" || item.status === "on-hold"
       ? item.status
       : "pending";
+    // The backend sets graceEndsAt; fall back to its default 3-day grace after the failed charge.
+    const graceEndsAt = item.graceEndsAt
+      || (item.lastFailedAt ? new Date(Date.parse(item.lastFailedAt) + 3 * 86_400_000).toISOString() : undefined);
     return {
       id: item.id,
       status,
@@ -38,6 +41,7 @@ export async function GET(req: NextRequest) {
       billingInterval: 1,
       paymentMethod: "paystack",
       paymentMethodTitle: "Paystack",
+      ...(status === "past_due" && graceEndsAt ? { graceEndsAt } : {}),
     };
   });
   return NextResponse.json(subscriptions);

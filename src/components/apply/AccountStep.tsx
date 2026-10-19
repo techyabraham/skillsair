@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { CertificateNameNotice } from "@/components/auth/CertificateNameNotice";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { EMAIL_ERROR, PHONE_ERROR, isValidEmail, normalizePhone } from "@/lib/phone";
 import { track } from "@/lib/analytics";
-import { naira, site } from "@/content/site";
+import { site } from "@/content/site";
 import { cn } from "@/lib/utils";
 
 interface LeadProfile {
@@ -164,6 +165,7 @@ export function AccountStep() {
       ) : (
         <form onSubmit={submit} noValidate className="mt-6 space-y-5">
           {formError && <p role="alert" className="rounded-xl border border-error/30 bg-error-light p-3.5 text-sm text-error-dark">{formError}</p>}
+          <CertificateNameNotice id={`${id}-name-notice`} />
           <ReadOnlyField id={`${id}-first`} label="First name" value={profile.firstName} editing={Boolean(editing.firstName)} onEdit={() => setEditing((c) => ({ ...c, firstName: true }))} onChange={(firstName) => setProfile({ ...profile, firstName })} error={errors.firstName} />
           <div>
             <label htmlFor={`${id}-last`} className="label">Last name</label>
@@ -229,7 +231,7 @@ export function AccountStep() {
             {submitting ? "Creating your account…" : "Create account & continue to payment →"}
           </button>
           <p className="text-center text-sm text-neutral-600">
-            Next: pay your offer price by card or bank transfer on Paystack. The {naira(site.programme.certificatePrice)} certificate is paid only when you finish.
+            Next: pay your offer price by card or bank transfer on Paystack. The certificate is optional and paid separately when you finish.
           </p>
           <p className="text-center text-sm text-neutral-600">
             Already have an account? <Link href={loginHref} className="font-medium text-primary-800 underline underline-offset-2">Log in</Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,8 +21,14 @@ export function SubscriptionPage() {
     { revalidateOnFocus: false },
   );
 
-  const active = (subscriptions || []).filter((subscription) => subscription.status === "active");
-  const history = (subscriptions || []).filter((subscription) => subscription.status !== "active");
+  const [cardUnavailable, setCardUnavailable] = useState(false);
+  useEffect(() => {
+    setCardUnavailable(new URLSearchParams(window.location.search).get("card") === "unavailable");
+  }, []);
+
+  const isCurrent = (subscription: Subscription) => subscription.status === "active" || subscription.status === "past_due";
+  const active = (subscriptions || []).filter(isCurrent);
+  const history = (subscriptions || []).filter((subscription) => !isCurrent(subscription));
 
   const cancelSubscription = async (subscription: Subscription) => {
     if (!window.confirm(`Cancel ${subscription.planName}? Access to that course remains until the current billing period ends.`)) return;
@@ -42,6 +48,11 @@ export function SubscriptionPage() {
     <div className="p-6 md:p-10 max-w-3xl mx-auto">
       <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-2">My Subscriptions</h1>
       <p className="text-sm text-neutral-500 mb-8">Each subscription gives access to its selected course only.</p>
+      {cardUnavailable && (
+        <p role="alert" className="mb-6 rounded-xl border border-warning/40 bg-warning-light p-4 text-sm text-neutral-800">
+          We couldn&apos;t open the card update page just now. Please try again in a few minutes, or WhatsApp us on +234 818 212 6524 and we&apos;ll help.
+        </p>
+      )}
 
       {isLoading ? (
         <div className="space-y-4">
@@ -59,7 +70,11 @@ export function SubscriptionPage() {
                     <p className="text-white/60 text-xs uppercase tracking-widest mb-1">Course plan</p>
                     <h2 className="text-2xl font-heading font-bold text-white">{subscription.planName}</h2>
                   </div>
-                  <Badge variant="success" className="bg-success/20 text-success border border-success/30">Active</Badge>
+                  {subscription.status === "past_due" ? (
+                    <Badge variant="warning">Payment failed</Badge>
+                  ) : (
+                    <Badge variant="success" className="bg-success/20 text-success border border-success/30">Active</Badge>
+                  )}
                 </div>
                 <div className="text-3xl font-bold mb-1">
                   {formatPrice(Number(subscription.total))}
@@ -75,6 +90,20 @@ export function SubscriptionPage() {
                     <p className="text-sm font-medium mt-0.5">{formatDate(subscription.nextPaymentDate)}</p>
                   </div>
                 </div>
+                {subscription.status === "past_due" && (
+                  <div className="mt-5 rounded-xl bg-white/10 p-4">
+                    <p className="text-sm">
+                      Your last payment didn&apos;t go through.
+                      {subscription.graceEndsAt ? ` Update your card by ${formatDate(subscription.graceEndsAt)} to keep learning.` : " Update your card to keep learning."}
+                    </p>
+                    <a
+                      href={`/billing/update-card?subscription=${subscription.id}`}
+                      className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-accent-700 px-5 text-sm font-semibold text-white hover:bg-accent-800"
+                    >
+                      Update my card
+                    </a>
+                  </div>
+                )}
                 <Button
                   variant="ghost"
                   size="md"

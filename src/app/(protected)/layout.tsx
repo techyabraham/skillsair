@@ -2,12 +2,14 @@ import React from "react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { Header } from "@/components/layout/Header";
+import { PastDueBanner } from "@/components/dashboard/PastDueBanner";
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-neutral-50 flex flex-col">
         <Header />
+        <PastDueBanner />
         <div className="flex flex-1">
           <div className="hidden lg:flex">
             <DashboardSidebar />

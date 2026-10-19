@@ -48,7 +48,7 @@ export default async function ScholarshipPage() {
               ? `This window closes on ${closesOn} at 11:59pm. After that, the standard fee applies until the next window opens.`
               : "No window is open right now, so the standard fee applies. Apply and we'll message you on WhatsApp when the next window opens."}
           </li>
-          <li>• When you finish, you can claim a verifiable certificate for {naira(site.programme.certificatePrice)}. It is optional for learning, and needed for internship access and laptop support.</li>
+          <li>• When you finish, you can claim a verifiable certificate (optional, paid separately). It isn’t needed to learn, but it is needed for internship access and laptop support.</li>
           {scholarship.cohortLabel && <li>• Current cohort: {scholarship.cohortLabel}. Everyone who enrols in this period belongs to it, whatever they paid.</li>}
         </ul>
         <div className="relative hidden aspect-[4/5] overflow-hidden rounded-3xl lg:block">

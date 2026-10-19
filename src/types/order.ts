@@ -70,7 +70,8 @@ export interface CheckoutData {
 
 export interface Subscription {
   id: number;
-  status: "active" | "cancelled" | "expired" | "pending" | "on-hold";
+  /** past_due: the last renewal failed; access continues until graceEndsAt. */
+  status: "active" | "past_due" | "cancelled" | "expired" | "pending" | "on-hold";
   planName: string;
   planId: number;
   startDate: string;
@@ -81,6 +82,8 @@ export interface Subscription {
   billingInterval: number;
   paymentMethod: string;
   paymentMethodTitle: string;
+  /** When access pauses if the card isn't updated (past_due only). */
+  graceEndsAt?: string;
 }
 
 export interface CartItem {

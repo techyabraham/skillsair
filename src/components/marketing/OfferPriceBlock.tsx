@@ -1,10 +1,20 @@
 import { naira, site } from "@/content/site";
-import { formatClosingDate, formatClosingTime, type Offer } from "@/lib/offer";
+import { formatClosingDate, formatClosingTime, priceLockLine, type Offer } from "@/lib/offer";
 import { DeadlineCountdown } from "@/components/marketing/DeadlineCountdown";
 
 type PriceFacts = Pick<
   Offer,
-  "price" | "standardPrice" | "standardMonthlyPrice" | "effectivePrice" | "billing" | "windowOpen" | "closesAt" | "certificatePrice"
+  | "price"
+  | "standardPrice"
+  | "standardMonthlyPrice"
+  | "effectivePrice"
+  | "billing"
+  | "windowOpen"
+  | "closesAt"
+  | "certificatePrice"
+  | "priceLocked"
+  | "priceLockReason"
+  | "priceLockEndsAt"
 >;
 
 /**
@@ -15,6 +25,7 @@ export function OfferPriceBlock({ offer }: { offer: PriceFacts }) {
   const monthlyStandard = offer.standardMonthlyPrice ? `${naira(offer.standardMonthlyPrice)} a month` : "";
   const standardLine = monthlyStandard ? `${monthlyStandard} or ${naira(offer.standardPrice)} once` : `${naira(offer.standardPrice)} once`;
   const scholarship = offer.billing === "monthly";
+  const locked = scholarship && offer.priceLocked === true;
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
       <dl className="space-y-3 text-base">
@@ -24,7 +35,7 @@ export function OfferPriceBlock({ offer }: { offer: PriceFacts }) {
         </div>
         {scholarship && (
           <div className="flex items-start justify-between gap-4 border-t border-neutral-200 pt-3">
-            <dt className="font-semibold text-navy">With your Access Scholarship</dt>
+            <dt className="font-semibold text-navy">{locked ? "Your locked rate" : "With your Access Scholarship"}</dt>
             <dd className="text-right">
               <span className="text-2xl font-bold text-navy">{naira(offer.price)}</span>
               <span className="text-neutral-700"> a month</span>
@@ -33,15 +44,16 @@ export function OfferPriceBlock({ offer }: { offer: PriceFacts }) {
         )}
         <div className="flex items-start justify-between gap-4 text-neutral-700">
           <dt>Certificate (when you finish)</dt>
-          <dd className="text-right">{naira(offer.certificatePrice)}, optional; needed for internship access</dd>
+          <dd className="text-right">Optional, paid separately; needed for internship access</dd>
         </div>
       </dl>
       {scholarship && (
         <p className="mt-4 text-neutral-700">
-          Billed monthly by Paystack while you study. Keep it until you finish (most learners take about {site.programme.durationMonths} months). Cancel anytime from your dashboard. That&apos;s {site.priceComparison.toLowerCase()}.
+          Billed monthly by Paystack until you finish. Designed to take about {site.programme.durationMonths} months at about {site.programme.weeklyHours} hours a week. Cancel anytime from your dashboard. That&apos;s {site.priceComparison.toLowerCase()}.
         </p>
       )}
-      {offer.windowOpen && offer.closesAt && (
+      {locked && <p className="mt-4 rounded-xl bg-success-light p-4 font-semibold text-success-dark">{priceLockLine(offer, naira)}</p>}
+      {!locked && offer.windowOpen && offer.closesAt && (
         <div className="mt-4 rounded-xl bg-accent-50 p-4 text-accent-800">
           <p className="font-semibold">
             ⏳ Scholarship closes {formatClosingDate(offer.closesAt)}, {formatClosingTime(offer.closesAt)}. Join before then to keep {naira(offer.price)} a month.

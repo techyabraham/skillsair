@@ -100,7 +100,9 @@ export function CheckoutPage() {
   const summarySubtitle = isCertificateCheckout
     ? "Certificate processing fee"
     : scholarshipMonthly && offer
-      ? `Access Scholarship · ${naira(offer.price)} a month · join by ${formatShortDate(offer.closesAt)}`
+      ? offer.priceLocked
+        ? `Your locked rate · ${naira(offer.price)} a month${offer.priceLockEndsAt ? ` · start by ${formatShortDate(offer.priceLockEndsAt)}` : ""}`
+        : `Access Scholarship · ${naira(offer.price)} a month · join by ${formatShortDate(offer.closesAt)}`
       : isSubscriptionCheckout && selectedPlan
       ? `${selectedPlan.name} · renews ${selectedPlan.interval === "monthly" ? "monthly" : "annually"}`
       : offer?.windowOpen
@@ -210,7 +212,7 @@ export function CheckoutPage() {
                     </dd>
                   </div>
                   <div className="flex justify-between text-success-dark">
-                    <dt>Access Scholarship</dt>
+                    <dt>{offer.priceLocked ? "Your locked rate" : "Access Scholarship"}</dt>
                     <dd>{naira(offer.price)} a month</dd>
                   </div>
                 </>
@@ -221,12 +223,12 @@ export function CheckoutPage() {
               </div>
             </dl>
             {!isCertificateCheckout && (
-              <p className="mt-3 text-sm text-neutral-700">Certificate: {naira(certificateFee)}, paid only when you finish and want it.</p>
+              <p className="mt-3 text-sm text-neutral-700">Certificate: optional, paid separately when you finish.</p>
             )}
             {isSubscriptionCheckout && selectedPlan && (
               <p className="mt-2 text-sm text-neutral-700">
-                Then {formatPrice(selectedPlan.price)} each {selectedPlan.interval === "monthly" ? "month" : "year"} from your card while you study
-                {scholarshipMonthly ? ` (most learners finish in ${offer?.durationMonths ?? site.programme.durationMonths} months)` : ""}. Cancel anytime from your dashboard. Covers this programme only.
+                Then {formatPrice(selectedPlan.price)} each {selectedPlan.interval === "monthly" ? "month" : "year"} from your card until you finish
+                {scholarshipMonthly ? ` (designed to take about ${offer?.durationMonths ?? site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week)` : ""}. Cancel anytime from your dashboard. Covers this programme only.
               </p>
             )}
 
@@ -255,7 +257,7 @@ export function CheckoutPage() {
                     <input type="radio" name="purchaseType" value="course" checked={purchaseType === "course"} onChange={() => setPurchaseType("course")} className="mt-1 h-4 w-4 text-primary-800" />
                     <span>
                       <span className="block font-semibold text-neutral-900">One-time payment</span>
-                      <span className="mt-1 block text-sm text-neutral-600">{formatPrice(offer?.effectivePrice ?? 0)} · {offer?.durationMonths ?? site.programme.durationMonths} months to finish</span>
+                      <span className="mt-1 block text-sm text-neutral-600">{formatPrice(offer?.effectivePrice ?? 0)} · designed to take about {offer?.durationMonths ?? site.programme.durationMonths} months</span>
                     </span>
                   </label>
                   {plans.map((plan) => (

@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { ConsentCheckbox, PrivacyNote } from "@/components/marketing/ConsentCheckbox";
 import { EMAIL_ERROR, PHONE_ERROR, isValidEmail, normalizePhone } from "@/lib/phone";
+import { suggestEmail } from "@/lib/email-typos";
 import { MARKETING_CONSENT_TEXT, site } from "@/content/site";
 
 export interface LeadDetails {
@@ -56,6 +57,8 @@ export function LeadDetailsForm({
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [website, setWebsite] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
+  const emailSuggestion = emailTouched ? suggestEmail(details.email) : null;
 
   const update = (patch: Partial<LeadDetails>) => {
     const next = { ...details, ...patch };
@@ -188,10 +191,26 @@ export function LeadDetailsForm({
           autoComplete="email"
           value={details.email}
           onChange={(event) => update({ email: event.target.value })}
-          onBlur={onBlur("email")}
+          onBlur={() => {
+            setEmailTouched(true);
+            onBlur("email")();
+          }}
           aria-invalid={Boolean(errors.email)}
-          aria-describedby={errors.email ? `${id}-email-error` : undefined}
+          aria-describedby={[errors.email ? `${id}-email-error` : "", emailSuggestion ? `${id}-email-hint` : ""].filter(Boolean).join(" ") || undefined}
         />
+        {emailSuggestion && (
+          <p id={`${id}-email-hint`} className="mt-1.5 text-sm text-neutral-700" role="status">
+            Did you mean{" "}
+            <button
+              type="button"
+              onClick={() => update({ email: emailSuggestion })}
+              className="font-semibold text-primary-800 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800"
+            >
+              {emailSuggestion}
+            </button>
+            ?
+          </p>
+        )}
         {errorText("email")}
       </div>
       {withMessage && (

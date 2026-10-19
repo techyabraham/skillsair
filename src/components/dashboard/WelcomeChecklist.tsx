@@ -50,7 +50,7 @@ export function WelcomeChecklist() {
     <div className="mx-auto max-w-2xl px-4 py-8 md:py-12">
       <h1 className="text-2xl font-heading font-extrabold text-neutral-900 md:text-3xl">Welcome to SkillsAir{user?.firstName ? `, ${user.firstName}` : ""}</h1>
       <p className="mt-2 text-neutral-600">
-        You have {site.programme.durationMonths} months to finish. About {site.programme.weeklyHours} hours a week gets you there.
+        Your programme is designed to take about {site.programme.durationMonths} months at about {site.programme.weeklyHours} hours a week. Go at your own pace.
       </p>
       <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
         <p className="text-sm font-semibold text-neutral-700" aria-live="polite">
@@ -90,7 +90,7 @@ export function WelcomeChecklist() {
           </div>
         ) : (
           <p className="mt-2 text-neutral-700">
-            Claim your verifiable certificate ({naira(site.programme.certificatePrice)}). It unlocks internship access from our partner firms, and certified graduates can apply for laptop support.
+            Claim your verifiable certificate. It unlocks internship access from our partner firms, and certified graduates can apply for laptop support.
           </p>
         )}
       </div>

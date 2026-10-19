@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { CertificateNameNotice } from "@/components/auth/CertificateNameNotice";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -90,6 +91,7 @@ export function RegisterForm() {
         </div>
       )}
 
+      <CertificateNameNotice />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input label="First name" placeholder="e.g. Tobi" autoComplete="given-name" error={errors.firstName?.message} {...register("firstName")} />
         <Input label="Last name" placeholder="As on your certificate" autoComplete="family-name" error={errors.lastName?.message} {...register("lastName")} />

@@ -8,6 +8,7 @@ import { ProgressSteps } from "@/components/marketing/ProgressSteps";
 import { LeadDetailsForm, type LeadDetails } from "@/components/apply/LeadDetailsForm";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { SchoolIcon, shortSchoolName } from "@/components/marketing/SchoolIcon";
 
 const STORAGE_KEY = "sa_apply";
 
@@ -135,7 +136,20 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
   // Schools whose programmes aren't published yet take a waitlist sign-up instead of an offer.
   const schoolComingSoon = Boolean(selectedSchool && selectedSchool.programmes.length === 0);
 
+  const openSchools = useMemo(() => schools.filter((school) => school.programmes.length > 0), [schools]);
+  const soonSchools = useMemo(() => schools.filter((school) => school.programmes.length === 0), [schools]);
+  const programmeRef = useRef<HTMLFieldSetElement>(null);
+  const pickedSchool = useRef(false);
+
+  useEffect(() => {
+    // After a tap (not on restore), bring the programme question into view.
+    if (!pickedSchool.current) return;
+    pickedSchool.current = false;
+    if ((selectedSchool?.programmes.length ?? 0) > 1) programmeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [state.school, selectedSchool]);
+
   const chooseSchool = (slug: string) => {
+    pickedSchool.current = true;
     const school = schools.find((item) => item.slug === slug);
     const onlyProgramme = school?.programmes.length === 1 ? school.programmes[0]?.slug ?? "" : "";
     setState((current) => ({ ...current, school: slug, programme: onlyProgramme }));
@@ -201,7 +215,7 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
   }
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-8 md:py-12">
+    <div className={cn("mx-auto px-4 py-8 md:py-12", state.step === 1 ? "max-w-3xl" : "max-w-xl")}>
       <ProgressSteps step={state.step} total={schoolComingSoon ? 2 : 3} />
 
       {state.step === 1 && (
@@ -210,34 +224,78 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
             Which school do you want to join?
           </h1>
           <p className="mt-2 text-neutral-600">Pick one. You can change it later.</p>
-          <div className="mt-6 grid gap-3" role="radiogroup" aria-labelledby="apply-step-1">
-            {schools.map((school) => {
-              const selected = state.school === school.slug;
-              return (
-                <button
-                  key={school.slug}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => chooseSchool(school.slug)}
-                  className={cn(
-                    "min-h-12 rounded-xl border-2 bg-white p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800",
-                    selected ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300",
-                  )}
-                >
-                  <span className="flex items-center justify-between gap-3">
-                    <span className="font-semibold text-neutral-900">{school.name}</span>
-                    {school.programmes.length === 0 && <span className="shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-700">Coming soon</span>}
-                  </span>
-                  {school.oneLiner && <span className="mt-1 block text-sm text-neutral-600">{school.oneLiner}</span>}
-                </button>
-              );
-            })}
+          {/*
+            School picker. Open schools are compact tiles (2 across on phones, 3 on desktop) with
+            an icon and the short name; schools not open yet sit below as smaller "opening soon"
+            pills. Choosing a school with several programmes scrolls the programme question into
+            view, and on phones Continue stays pinned to the bottom of the screen.
+          */}
+          <div role="radiogroup" aria-labelledby="apply-step-1" className="mt-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {openSchools.map((school) => {
+                const selected = state.school === school.slug;
+                return (
+                  <button
+                    key={school.slug}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => chooseSchool(school.slug)}
+                    className={cn(
+                      "group relative flex min-h-[112px] flex-col items-start gap-2 rounded-2xl border-2 bg-white p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800 sm:min-h-[132px]",
+                      selected ? "border-navy bg-primary-50" : "border-neutral-200 hover:border-neutral-300",
+                    )}
+                  >
+                    <span className={cn("flex h-10 w-10 items-center justify-center rounded-xl", selected ? "bg-navy text-white" : "bg-neutral-100 text-navy")}>
+                      <SchoolIcon name={school.name} className="h-5 w-5" />
+                    </span>
+                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-neutral-500">School of</span>
+                    <span className="-mt-2 block text-base font-bold leading-snug text-navy">{shortSchoolName(school.name)}</span>
+                    {school.oneLiner && <span className="hidden text-xs leading-snug text-neutral-600 sm:line-clamp-2">{school.oneLiner}</span>}
+                    <span className="mt-auto text-xs font-medium text-neutral-500">
+                      {school.programmes.length} programme{school.programmes.length === 1 ? "" : "s"}
+                    </span>
+                    {selected && (
+                      <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-navy text-white" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L19 7" /></svg>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {soonSchools.length > 0 && (
+              <div className="mt-6">
+                <p className="text-sm font-semibold text-neutral-700">Opening soon <span className="font-normal text-neutral-500">· join the waitlist</span></p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {soonSchools.map((school) => {
+                    const selected = state.school === school.slug;
+                    return (
+                      <button
+                        key={school.slug}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => chooseSchool(school.slug)}
+                        className={cn(
+                          "inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800",
+                          selected ? "border-navy bg-navy text-white" : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400",
+                        )}
+                      >
+                        <SchoolIcon name={school.name} className="h-4 w-4" />
+                        {shortSchoolName(school.name)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {selectedSchool && selectedSchool.programmes.length > 1 && (
-            <fieldset className="mt-8">
-              <legend className="text-lg font-heading font-semibold text-neutral-900">Which programme?</legend>
+            <fieldset ref={programmeRef} className="mt-8 scroll-mt-24">
+              <legend className="text-lg font-heading font-semibold text-neutral-900">Which programme in the {selectedSchool.name}?</legend>
               <div className="mt-3 grid gap-3">
                 {selectedSchool.programmes.map((programme) => {
                   const selected = state.programme === programme.slug;
@@ -277,14 +335,16 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
             </p>
           )}
 
-          <button
-            type="button"
-            disabled={!state.school || (!schoolComingSoon && !state.programme)}
-            onClick={() => goToStep(2)}
-            className="mt-8 flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-700 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-accent-800 disabled:cursor-not-allowed disabled:bg-neutral-300"
-          >
-            Continue →
-          </button>
+          <div className="sticky bottom-0 -mx-4 mt-8 border-t border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+            <button
+              type="button"
+              disabled={!state.school || (!schoolComingSoon && !state.programme)}
+              onClick={() => goToStep(2)}
+              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-700 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-accent-800 disabled:cursor-not-allowed disabled:bg-neutral-300 sm:mx-auto sm:max-w-md"
+            >
+              {selectedSchool && !schoolComingSoon && !state.programme ? "Choose a programme to continue" : "Continue →"}
+            </button>
+          </div>
           <p className="mt-4 text-center text-sm text-neutral-600">
             Not sure?{" "}
             <Link href="/quiz" className="font-medium text-primary-800 underline underline-offset-2">

@@ -7,7 +7,7 @@ interface BackendUser {
   firstName?: string;
   lastName?: string;
   role?: string;
-  avatar?: { url?: string } | number;
+  avatar?: { url?: string } | number | null;
 }
 
 export async function GET(req: NextRequest) {
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       lastName: user.lastName || "",
       name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
       email: user.email,
-      avatar: { url: typeof user.avatar === "object" ? user.avatar.url || "" : "" },
+      avatar: { url: user.avatar && typeof user.avatar === "object" ? user.avatar.url || "" : "" },
       roles: { nodes: [{ name: user.role || "student" }] },
     },
   });

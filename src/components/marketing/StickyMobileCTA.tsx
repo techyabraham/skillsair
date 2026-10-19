@@ -6,7 +6,7 @@ import { WhatsAppIcon } from "@/components/marketing/WhatsAppButton";
 import { whatsappLink } from "@/content/site";
 
 /** Phones only: after 30% of the page, a bottom bar with the one primary action and WhatsApp. */
-export function StickyMobileCTA() {
+export function StickyMobileCTA({ href = "/apply", label = "Apply for a scholarship seat →" }: { href?: string; label?: string } = {}) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -25,8 +25,8 @@ export function StickyMobileCTA() {
       aria-hidden={!visible}
     >
       <div className="flex gap-3">
-        <Link href="/apply" tabIndex={visible ? 0 : -1} className="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-accent-700 px-4 text-sm font-semibold text-white hover:bg-accent-800">
-          Apply for a scholarship seat →
+        <Link href={href} tabIndex={visible ? 0 : -1} className="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-accent-700 px-4 text-sm font-semibold text-white hover:bg-accent-800">
+          {label}
         </Link>
         <a
           href={whatsappLink()}

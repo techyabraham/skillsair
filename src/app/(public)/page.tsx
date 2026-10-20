@@ -38,7 +38,7 @@ const HERO_HEADLINES = {
   ),
   C: (
     <>
-      Your tech career starts with <span className="text-accent">one 60-second application.</span>
+      Learn a tech skill employers pay for. <span className="text-accent">Then get access to internships.</span>
     </>
   ),
 } as const;

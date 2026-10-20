@@ -82,8 +82,10 @@ export interface Subscription {
   billingInterval: number;
   paymentMethod: string;
   paymentMethodTitle: string;
-  /** When access pauses if the card isn't updated (past_due only). */
+  /** When access pauses: past_due card plans if the card isn't updated, and month-by-month plans if next month isn't paid. */
   graceEndsAt?: string;
+  /** card = Paystack renews it; manual = bank transfer or OPay, paid month by month. */
+  billing?: "card" | "manual";
 }
 
 export interface CartItem {

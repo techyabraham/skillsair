@@ -11,6 +11,13 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { formatDate, formatPrice } from "@/lib/utils";
 import type { Subscription } from "@/types/order";
 
+/** Month-by-month (transfer/OPay) plans: the paid month has ended (the learner is in the grace days). */
+const monthEnded = (subscription: Subscription) => Boolean(subscription.nextPaymentDate) && Date.parse(subscription.nextPaymentDate) <= Date.now();
+
+/** Month-by-month plans can pay for the next month in the last 7 days (same window as the backend). */
+const dueSoon = (subscription: Subscription) =>
+  Boolean(subscription.nextPaymentDate) && Date.parse(subscription.nextPaymentDate) - Date.now() <= 7 * 86_400_000;
+
 export function SubscriptionPage() {
   const { user } = useAuth();
   const [cancellingId, setCancellingId] = useState<number | null>(null);
@@ -72,6 +79,8 @@ export function SubscriptionPage() {
                   </div>
                   {subscription.status === "past_due" ? (
                     <Badge variant="warning">Payment failed</Badge>
+                  ) : subscription.billing === "manual" && monthEnded(subscription) ? (
+                    <Badge variant="warning">Payment due</Badge>
                   ) : (
                     <Badge variant="success" className="bg-success/20 text-success border border-success/30">Active</Badge>
                   )}
@@ -86,10 +95,25 @@ export function SubscriptionPage() {
                     <p className="text-sm font-medium mt-0.5">{formatDate(subscription.startDate)}</p>
                   </div>
                   <div>
-                    <p className="text-white/40 text-xs">Next billing</p>
+                    <p className="text-white/40 text-xs">{subscription.billing === "manual" ? "Paid until" : "Next billing"}</p>
                     <p className="text-sm font-medium mt-0.5">{formatDate(subscription.nextPaymentDate)}</p>
                   </div>
                 </div>
+                {subscription.billing === "manual" && subscription.status === "active" && dueSoon(subscription) && (
+                  <div className="mt-5 rounded-xl bg-white/10 p-4">
+                    <p className="text-sm">
+                      {monthEnded(subscription)
+                        ? `Your paid month ended on ${formatDate(subscription.nextPaymentDate)}. You still have access until ${formatDate(subscription.graceEndsAt || subscription.nextPaymentDate)}; pay for next month by bank transfer or OPay to carry on.`
+                        : `Your next month is due on ${formatDate(subscription.nextPaymentDate)}. Pay by bank transfer or OPay, the same way as before.`}
+                    </p>
+                    <a
+                      href={`/billing/update-card?subscription=${subscription.id}`}
+                      className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-accent-700 px-5 text-sm font-semibold text-white hover:bg-accent-800"
+                    >
+                      Pay for next month
+                    </a>
+                  </div>
+                )}
                 {subscription.status === "past_due" && (
                   <div className="mt-5 rounded-xl bg-white/10 p-4">
                     <p className="text-sm">

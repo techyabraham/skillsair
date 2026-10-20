@@ -53,7 +53,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
       ? {
           id: "monthly",
           question: `How does ${naira(offer.price)} a month work?`,
-          answer: `Paystack charges ${naira(offer.price)} to your card each month until you finish. Your access continues as long as your subscription is active. The programme is designed to take about ${offer.durationMonths} months at about ${offer.weeklyHours} hours a week. ${locked ? priceLockLine(offer, naira) : `Joining during this scholarship window keeps your ${naira(offer.price)} rate until you finish.`} Cancel anytime from your dashboard. The certificate is optional and paid separately when you finish.`,
+          answer: `You pay ${naira(offer.price)} a month until you finish. Pay by bank transfer or OPay and each payment covers a month (we remind you a few days before the next is due), or by card through Paystack, which renews automatically. Your access continues as long as your plan is paid up. The programme is designed to take about ${offer.durationMonths} months at about ${offer.weeklyHours} hours a week. ${locked ? priceLockLine(offer, naira) : `Joining during this scholarship window keeps your ${naira(offer.price)} rate until you finish.`} Cancel anytime from your dashboard. The certificate is optional and paid separately when you finish.`,
         }
       : {
           id: "one-time",
@@ -181,8 +181,8 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
         </div>
         <p className="text-center text-sm text-neutral-600">
           {monthly
-            ? "Someone paying for you? They can enter their own card on the Paystack page; it renews from that card each month."
-            : "Someone paying for you? Choose Bank transfer at checkout and send them the account details."}
+            ? "Someone paying for you? They can pay each month by bank transfer or OPay, or enter their own card on the Paystack page, where it renews from that card."
+            : "Someone paying for you? Choose Bank transfer at checkout and send them the account details, or they can pay from their own OPay."}
         </p>
       </section>
 

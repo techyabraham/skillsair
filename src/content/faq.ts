@@ -63,7 +63,7 @@ export const faqs: FaqItem[] = [
     id: "someone-else-pays",
     question: "Can someone else pay for me?",
     answer:
-      "Yes. Create your account, then they can enter their own card on the Paystack page; the ₦2,000 monthly payment renews from that card. For a one-off standard-fee payment they can also pay by bank transfer.",
+      "Yes. Create your account, then they can pay by bank transfer or OPay, where each payment covers a month, or enter their own card on the Paystack page, where the ₦2,000-a-month payment renews from that card.",
   },
   {
     id: "debited",

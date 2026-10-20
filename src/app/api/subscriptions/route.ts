@@ -3,7 +3,7 @@ import { backendFetch, backendPayload } from "@/lib/backend-api";
 import type { Subscription } from "@/types/order";
 
 interface BackendSubscription {
-  id: number; status?: string; currentPeriodStart?: string; currentPeriodEnd?: string; lastFailedAt?: string | null; graceEndsAt?: string | null;
+  id: number; status?: string; currentPeriodStart?: string; currentPeriodEnd?: string; lastFailedAt?: string | null; graceEndsAt?: string | null; billing?: string | null;
   user?: number | { id?: number }; plan?: number | { id?: number; name?: string; price?: number; interval?: string };
   course?: number | { id?: number; title?: string };
 }
@@ -25,9 +25,11 @@ export async function GET(req: NextRequest) {
     const status = item.status === "active" || item.status === "past_due" || item.status === "cancelled" || item.status === "expired" || item.status === "on-hold"
       ? item.status
       : "pending";
-    // The backend sets graceEndsAt; fall back to its default 3-day grace after the failed charge.
+    const manual = item.billing === "manual";
+    // The backend's default 3-day grace: after a failed card charge, or after a month-by-month plan's paid month.
     const graceEndsAt = item.graceEndsAt
-      || (item.lastFailedAt ? new Date(Date.parse(item.lastFailedAt) + 3 * 86_400_000).toISOString() : undefined);
+      || (item.lastFailedAt ? new Date(Date.parse(item.lastFailedAt) + 3 * 86_400_000).toISOString() : undefined)
+      || (manual && item.currentPeriodEnd ? new Date(Date.parse(item.currentPeriodEnd) + 3 * 86_400_000).toISOString() : undefined);
     return {
       id: item.id,
       status,
@@ -39,9 +41,10 @@ export async function GET(req: NextRequest) {
       total: Number(plan.price || 0).toFixed(2),
       billingPeriod: plan.interval === "annually" ? "year" : "month",
       billingInterval: 1,
-      paymentMethod: "paystack",
-      paymentMethodTitle: "Paystack",
-      ...(status === "past_due" && graceEndsAt ? { graceEndsAt } : {}),
+      paymentMethod: manual ? "bank_transfer" : "paystack",
+      paymentMethodTitle: manual ? "Bank transfer or OPay" : "Paystack",
+      billing: manual ? "manual" : "card",
+      ...((status === "past_due" || manual) && graceEndsAt ? { graceEndsAt } : {}),
     };
   });
   return NextResponse.json(subscriptions);

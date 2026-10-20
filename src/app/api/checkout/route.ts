@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const certificateCourseSlug = typeof body.certificateCourseSlug === "string" ? body.certificateCourseSlug : "";
   const courseSlug = typeof body.courseSlug === "string" ? body.courseSlug : "";
-  const paymentMethod = body.paymentMethod === "bank_transfer" ? "bank_transfer" : "paystack";
+  // Bank transfer is the default; OPay and the full Paystack checkout are the other options.
+  const paymentMethod = body.paymentMethod === "opay" || body.paymentMethod === "paystack" ? body.paymentMethod : "bank_transfer";
   const course = await findCourse(req, certificateCourseSlug || courseSlug);
   if (!course) return NextResponse.json({ message: "This course is unavailable in the new learning platform." }, { status: 404 });
 

@@ -13,16 +13,30 @@ import { formatShortDate, type Offer } from "@/lib/offer";
 import { naira, site } from "@/content/site";
 import type { Course } from "@/types/course";
 
+/**
+ * Checkout payment options, in the order offered. Bank transfer is the default. OPay is
+ * Paystack's "Pay with OPay" (listed under Bank on Paystack's page). Paystack is the full Paystack
+ * checkout. On monthly plans, transfer and OPay pay one month at a time (with a reminder before
+ * the next); Paystack takes a card that renews automatically.
+ */
 const PAYMENT_METHODS = [
-  {
-    id: "paystack",
-    label: "Card",
-    description: "Pay with your debit card, bank, USSD or QR on Paystack.",
-  },
   {
     id: "bank_transfer",
     label: "Bank transfer",
-    description: "Pay from any Nigerian bank app (or send the details to whoever is paying for you).",
+    description: "Pay from any Nigerian bank app. Paystack gives you an account number to send the money to.",
+    monthly: "Each payment covers one month. We'll remind you a few days before the next one is due.",
+  },
+  {
+    id: "opay",
+    label: "OPay",
+    description: "Pay from your OPay account. On the next screen, choose OPay, then confirm in your OPay app.",
+    monthly: "Each payment covers one month. We'll remind you a few days before the next one is due.",
+  },
+  {
+    id: "paystack",
+    label: "Paystack",
+    description: "Card, bank, USSD, QR and every other option Paystack offers.",
+    monthly: "Pay by card on Paystack. It renews automatically each month until you finish or cancel.",
   },
 ] as const;
 
@@ -49,7 +63,7 @@ export function CheckoutPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const searchParams = useSearchParams();
   const { addToast } = useToast();
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("paystack");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank_transfer");
   const [purchaseType, setPurchaseType] = useState<"course" | "subscription">("course");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [placing, setPlacing] = useState(false);
@@ -129,8 +143,7 @@ export function CheckoutPage() {
           courseSlug: productSlug,
           certificateCourseSlug,
           ...(isSubscriptionCheckout && selectedPlan ? { purchaseType: "subscription", planId: selectedPlan.id } : {}),
-          // Monthly plans renew from a card, so they always go through Paystack card checkout.
-          paymentMethod: isSubscriptionCheckout ? "paystack" : paymentMethod,
+          paymentMethod,
           paymentMethodTitle: PAYMENT_METHODS.find((p) => p.id === paymentMethod)?.label,
         }),
       });
@@ -156,11 +169,14 @@ export function CheckoutPage() {
     }
   };
 
+  const monthByMonth = isSubscriptionCheckout && paymentMethod !== "paystack";
   const payLabel = !user
     ? "Log in to continue"
-    : isSubscriptionCheckout
+    : isSubscriptionCheckout && !monthByMonth
       ? `Start ${formatPrice(total)}/${selectedPlan?.interval === "annually" ? "year" : "month"} securely →`
-      : `Pay ${formatPrice(total)} securely →`;
+      : monthByMonth
+        ? `Pay ${formatPrice(total)} for this ${selectedPlan?.interval === "annually" ? "year" : "month"} →`
+        : `Pay ${formatPrice(total)} securely →`;
   const loadingPrice = !isCertificateCheckout && Boolean(user) && !offer;
 
   return (
@@ -227,7 +243,9 @@ export function CheckoutPage() {
             )}
             {isSubscriptionCheckout && selectedPlan && (
               <p className="mt-2 text-sm text-neutral-700">
-                Then {formatPrice(selectedPlan.price)} each {selectedPlan.interval === "monthly" ? "month" : "year"} from your card until you finish
+                {monthByMonth
+                  ? `This pays for one ${selectedPlan.interval === "monthly" ? "month" : "year"}. Pay ${formatPrice(selectedPlan.price)} each ${selectedPlan.interval === "monthly" ? "month" : "year"} the same way until you finish; we'll remind you a few days before it's due`
+                  : `Then ${formatPrice(selectedPlan.price)} each ${selectedPlan.interval === "monthly" ? "month" : "year"} from your card until you finish`}
                 {scholarshipMonthly ? ` (designed to take about ${offer?.durationMonths ?? site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week)` : ""}. Cancel anytime from your dashboard. Covers this programme only.
               </p>
             )}
@@ -286,22 +304,20 @@ export function CheckoutPage() {
             <section aria-labelledby="method-heading" className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
               <h2 id="method-heading" className="font-heading font-semibold text-neutral-900">Payment method</h2>
               <div className="mt-4 space-y-3">
-                {isSubscriptionCheckout ? (
-                  <p className="rounded-xl border-2 border-primary-800 bg-primary-50 p-4 text-neutral-800">
-                    <span className="block font-semibold text-neutral-900">Card</span>
-                    <span className="mt-1 block text-sm text-neutral-600">
-                      Monthly payments renew from a card on Paystack. Someone paying for you can enter their own card.
-                    </span>
-                  </p>
-                ) : PAYMENT_METHODS.map((method) => (
+                {PAYMENT_METHODS.map((method, index) => (
                   <label
                     key={method.id}
                     className={`flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border-2 p-4 ${paymentMethod === method.id ? "border-primary-800 bg-primary-50" : "border-neutral-200 hover:border-neutral-300"}`}
                   >
                     <input type="radio" name="payment" value={method.id} checked={paymentMethod === method.id} onChange={() => setPaymentMethod(method.id)} className="mt-1 h-4 w-4 text-primary-800" />
                     <span>
-                      <span className="block font-semibold text-neutral-900">{method.label}</span>
-                      <span className="mt-1 block text-sm text-neutral-600">{method.description}</span>
+                      <span className="block font-semibold text-neutral-900">
+                        {method.label}
+                        {index === 0 ? <span className="ml-2 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-semibold text-primary-800">Recommended</span> : null}
+                      </span>
+                      {/* Monthly plans: a renewing Paystack plan is card-only, so the "every option" line would mislead. */}
+                      {!isSubscriptionCheckout || method.id !== "paystack" ? <span className="mt-1 block text-sm text-neutral-600">{method.description}</span> : null}
+                      {isSubscriptionCheckout ? <span className="mt-1 block text-sm font-medium text-neutral-800">{method.monthly}</span> : null}
                     </span>
                   </label>
                 ))}
@@ -320,9 +336,9 @@ export function CheckoutPage() {
               </p>
               <p>
                 <strong className="text-neutral-900">Someone paying for you?</strong>{" "}
-                {isSubscriptionCheckout
+                {paymentMethod === "paystack" && isSubscriptionCheckout
                   ? "They can enter their own card on the Paystack page; it renews from that card each month."
-                  : "Choose Bank transfer and send them the account details Paystack shows you."}
+                  : "Choose Bank transfer and send them the account details Paystack shows you, or they can pay from their own OPay."}
               </p>
             </section>
           </div>

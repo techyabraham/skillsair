@@ -231,7 +231,7 @@ export function AccountStep() {
             {submitting ? "Creating your account…" : "Create account & continue to payment →"}
           </button>
           <p className="text-center text-sm text-neutral-600">
-            Next: pay your offer price by card or bank transfer on Paystack. The certificate is optional and paid separately when you finish.
+            Next: pay your offer price by bank transfer, OPay or card on Paystack. The certificate is optional and paid separately when you finish.
           </p>
           <p className="text-center text-sm text-neutral-600">
             Already have an account? <Link href={loginHref} className="font-medium text-primary-800 underline underline-offset-2">Log in</Link>

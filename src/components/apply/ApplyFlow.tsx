@@ -9,6 +9,7 @@ import { LeadDetailsForm, type LeadDetails } from "@/components/apply/LeadDetail
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { SchoolIcon, shortSchoolName } from "@/components/marketing/SchoolIcon";
+import { useAuth } from "@/hooks/useAuth";
 
 const STORAGE_KEY = "sa_apply";
 
@@ -91,9 +92,14 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
   const [state, setState] = useState<ApplyState>({ step: 1, school: "", programme: "", details: {} });
   const [ready, setReady] = useState(false);
   const [existingAccount, setExistingAccount] = useState(false);
+  const [changingEmail, setChangingEmail] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [waitlisted, setWaitlisted] = useState(false);
   const [error, setError] = useState("");
+  const { user, isLoading: authLoading } = useAuth();
+  // Signed-in learners apply with their account details: "working" while that's saved, "done"
+  // once it is, "form" if it couldn't be (e.g. no WhatsApp number on the account yet).
+  const [accountApply, setAccountApply] = useState<"idle" | "working" | "done" | "form">("idle");
 
   const programmeSchool = useMemo(() => {
     for (const school of schools) {
@@ -154,6 +160,55 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
     const onlyProgramme = school?.programmes.length === 1 ? school.programmes[0]?.slug ?? "" : "";
     setState((current) => ({ ...current, school: slug, programme: onlyProgramme }));
   };
+
+  const applyWithAccount = async (current: ApplyState) => {
+    setAccountApply("working");
+    setError("");
+    setState((value) => ({ ...value, step: 2 }));
+    try {
+      const response = await fetch("/api/leads/me", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programme: current.programme, school: current.school }),
+      });
+      const result = (await response.json().catch(() => ({}))) as { answered?: boolean };
+      if (!response.ok) throw new Error("account apply failed");
+      setAccountApply("done");
+      track("lead_captured", { source: "apply", school: current.school });
+      track("apply_step_complete", { step: 2 });
+      if (result.answered) {
+        router.push(`/apply/offer?programme=${encodeURIComponent(current.programme)}`);
+        return;
+      }
+      setState((value) => ({ ...value, leadSaved: true, step: 3 }));
+    } catch {
+      // Fall back to the details form, prefilled from the account.
+      setAccountApply("form");
+    }
+  };
+
+  // Signed-in learners never see the details step. A ?programme= link goes straight on with that
+  // programme; a step 2 remembered from an earlier visit goes back to choosing a school instead.
+  useEffect(() => {
+    if (!ready || authLoading || !user || accountApply !== "idle") return;
+    if (state.step !== 2 || schoolComingSoon) return;
+    if (programmeSchool && state.programme === initialProgramme) void applyWithAccount(state);
+    else setState((current) => ({ ...current, step: 1 }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, authLoading, user, state.step, state.programme, schoolComingSoon, accountApply]);
+
+  const continueFromSchool = () => {
+    if (user && !schoolComingSoon && state.programme && accountApply !== "form") {
+      track("apply_step_complete", { step: 1 });
+      void applyWithAccount(state);
+      return;
+    }
+    goToStep(2);
+  };
+
+  const accountDetails: Partial<LeadDetails> = user
+    ? { firstName: user.firstName || undefined, email: user.email || undefined, phone: user.phone || undefined }
+    : {};
 
   const goToStep = (step: ApplyState["step"]) => {
     if (step > state.step) track("apply_step_complete", { step: state.step });
@@ -339,7 +394,7 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
             <button
               type="button"
               disabled={!state.school || (!schoolComingSoon && !state.programme)}
-              onClick={() => goToStep(2)}
+              onClick={continueFromSchool}
               className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-700 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-accent-800 disabled:cursor-not-allowed disabled:bg-neutral-300 sm:mx-auto sm:max-w-md"
             >
               {selectedSchool && !schoolComingSoon && !state.programme ? "Choose a programme to continue" : "Continue →"}
@@ -372,23 +427,44 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
               </button>
             </p>
           )}
-          {existingAccount ? (
+          {accountApply === "working" ? (
+            <div className="mt-6 flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-6" aria-live="polite">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary-800 border-t-transparent" aria-hidden="true" />
+              <p className="text-neutral-700">Using your account details{user?.email ? ` (${user.email})` : ""}…</p>
+            </div>
+          ) : existingAccount ? (
             <div className="mt-6 rounded-2xl border border-primary-200 bg-white p-6">
               <h2 className="text-lg font-heading font-semibold text-neutral-900">Welcome back. Log in to see your offer.</h2>
-              <p className="mt-2 text-neutral-600">You already have a SkillsAir account with this email.</p>
+              <p className="mt-2 text-neutral-600">
+                You already have a SkillsAir account with{" "}
+                {state.details.email ? <strong className="break-all text-neutral-900">{state.details.email}</strong> : "this email"}.
+              </p>
               <Link
                 href={`/login?next=${encodeURIComponent(`/apply/offer?programme=${state.programme}`)}`}
                 className="mt-5 flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-700 px-6 py-3 font-semibold text-white hover:bg-accent-800"
               >
                 Log in →
               </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  // Back to the form with the email cleared; name and WhatsApp number are kept.
+                  setState((current) => ({ ...current, details: { ...current.details, email: "" }, leadSaved: false }));
+                  setExistingAccount(false);
+                  setChangingEmail(true);
+                }}
+                className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl border-2 border-neutral-300 px-6 py-3 font-semibold text-neutral-800 hover:bg-neutral-50"
+              >
+                Use a different email
+              </button>
             </div>
           ) : (
             <div className="mt-6">
               <LeadDetailsForm
                 source="apply"
                 submitLabel="Continue →"
-                initial={state.details}
+                initial={{ ...accountDetails, ...state.details }}
+                focusEmail={changingEmail}
                 school={state.school}
                 programme={state.programme}
                 onChange={(details) => setState((current) => ({ ...current, details }))}
@@ -458,7 +534,7 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
           <p className="sr-only" aria-live="polite">
             {finishing ? `Checking your scholarship for ${selectedProgramme?.title ?? "your programme"}` : ""}
           </p>
-          <button type="button" onClick={() => goToStep(2)} className="mt-6 min-h-12 text-sm font-medium text-neutral-600 hover:text-neutral-900">
+          <button type="button" onClick={() => goToStep(accountApply === "done" ? 1 : 2)} className="mt-6 min-h-12 text-sm font-medium text-neutral-600 hover:text-neutral-900">
             ← Back
           </button>
         </section>

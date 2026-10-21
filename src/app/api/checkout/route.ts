@@ -13,8 +13,8 @@ async function findCourse(req: NextRequest, slug: string): Promise<CourseRecord 
   return payload.docs?.[0] || null;
 }
 
-async function beginPayment(req: NextRequest, path: string, body: Record<string, unknown>, paymentMethod: string) {
-  const paymentBody = { ...body, paymentMethod };
+async function beginPayment(req: NextRequest, path: string, body: Record<string, unknown>, paymentMethod: string, replacesOrderId?: string) {
+  const paymentBody = { ...body, paymentMethod, ...(replacesOrderId ? { replacesOrderId } : {}) };
   const response = await backendFetch(req, path, { method: "POST", body: JSON.stringify(paymentBody) });
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { error?: { message?: string } } | null;
@@ -31,11 +31,13 @@ export async function POST(req: NextRequest) {
   const courseSlug = typeof body.courseSlug === "string" ? body.courseSlug : "";
   // Bank transfer is the default; OPay and the full Paystack checkout are the other options.
   const paymentMethod = body.paymentMethod === "opay" || body.paymentMethod === "paystack" ? body.paymentMethod : "bank_transfer";
+  // "Complete payment" from order history: the backend closes this pending order once the new one starts.
+  const replacesOrderId = typeof body.replacesOrderId === "string" && /^\d+$/.test(body.replacesOrderId) ? body.replacesOrderId : undefined;
   const course = await findCourse(req, certificateCourseSlug || courseSlug);
   if (!course) return NextResponse.json({ message: "This course is unavailable in the new learning platform." }, { status: 404 });
 
   if (certificateCourseSlug) {
-    return beginPayment(req, "certificates/purchase", { courseId: String(course.id) }, paymentMethod);
+    return beginPayment(req, "certificates/purchase", { courseId: String(course.id) }, paymentMethod, replacesOrderId);
   }
 
   if (body.purchaseType === "subscription") {
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
     if (!plans.docs?.length) {
       return NextResponse.json({ message: "That plan is not active for this course." }, { status: 404 });
     }
-    return beginPayment(req, "payments/initiate", { type: "subscription", planId }, paymentMethod);
+    return beginPayment(req, "payments/initiate", { type: "subscription", planId }, paymentMethod, replacesOrderId);
   }
 
   // Course cards and checkout show a one-time course price. Send that purchase
@@ -72,5 +74,6 @@ export async function POST(req: NextRequest) {
     "payments/initiate",
     { type: "course", courseId: String(course.id) },
     paymentMethod,
+    replacesOrderId,
   );
 }

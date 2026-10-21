@@ -157,10 +157,25 @@ export function AccountStep() {
 
       {existingAccount ? (
         <div className="mt-6 rounded-2xl border border-primary-200 bg-white p-6">
-          <p className="text-neutral-700">You already have a SkillsAir account with this email. Log in to continue to payment.</p>
+          <p className="text-neutral-700">
+            You already have a SkillsAir account with <strong className="break-all text-neutral-900">{profile.email}</strong>. Log in to continue to payment, or use a different email.
+          </p>
           <Link href={loginHref} className="mt-5 flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-700 px-6 py-3 font-semibold text-white hover:bg-accent-800">
             Log in →
           </Link>
+          <button
+            type="button"
+            onClick={() => {
+              // Back to the form with an empty, editable email; everything else they typed is kept.
+              setProfile({ ...profile, email: "" });
+              setEditing((current) => ({ ...current, email: true }));
+              setExistingAccount(false);
+              setTimeout(() => document.getElementById(`${id}-email`)?.focus(), 0);
+            }}
+            className="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl border-2 border-neutral-300 px-6 py-3 font-semibold text-neutral-800 hover:bg-neutral-50"
+          >
+            Use a different email
+          </button>
         </div>
       ) : (
         <form onSubmit={submit} noValidate className="mt-6 space-y-5">

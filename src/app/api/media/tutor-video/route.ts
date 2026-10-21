@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { siteOrigin } from "@/lib/site-origin";
 
 function decodeCookie(value: string): string {
   try {
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!headers.has("content-type")) headers.set("content-type", "video/mp4");
-  headers.set("Access-Control-Allow-Origin", req.nextUrl.origin);
+  headers.set("Access-Control-Allow-Origin", siteOrigin(req));
 
   return new NextResponse(upstream.body, {
     status: upstream.status,

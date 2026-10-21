@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/lib/utils";
+import { paystackFee, withPaystackFee } from "@/lib/paystack-fee";
 import { track } from "@/lib/analytics";
 import { formatShortDate, type Offer } from "@/lib/offer";
 import { naira, site } from "@/content/site";
@@ -70,6 +71,8 @@ export function CheckoutPage() {
 
   const courseSlug = searchParams.get("course");
   const certificateCourseSlug = searchParams.get("certificate");
+  // "Complete payment" from order history: the pending order this payment replaces.
+  const replacesOrderId = searchParams.get("replaces");
   const productSlug = certificateCourseSlug || courseSlug;
   const checkoutPath = `/checkout?${certificateCourseSlug ? `certificate=${encodeURIComponent(certificateCourseSlug)}` : `course=${encodeURIComponent(courseSlug || "")}`}`;
   const signInHref = `/login?next=${encodeURIComponent(checkoutPath)}`;
@@ -107,7 +110,9 @@ export function CheckoutPage() {
       ? selectedPlan?.price ?? 0
       : offer?.effectivePrice ?? 0;
   const showScholarship = scholarshipMonthly;
-  const total = price;
+  // Enrolments pass Paystack's fee on (the backend charges the same); certificates don't.
+  const fee = isCertificateCheckout ? 0 : paystackFee(price);
+  const total = price + fee;
   const summaryTitle = isCertificateCheckout
     ? `Certificate - ${certificateCourse?.title || "Course"}`
     : course?.title;
@@ -144,6 +149,7 @@ export function CheckoutPage() {
           certificateCourseSlug,
           ...(isSubscriptionCheckout && selectedPlan ? { purchaseType: "subscription", planId: selectedPlan.id } : {}),
           paymentMethod,
+          ...(replacesOrderId && /^\d+$/.test(replacesOrderId) ? { replacesOrderId } : {}),
           paymentMethodTitle: PAYMENT_METHODS.find((p) => p.id === paymentMethod)?.label,
         }),
       });
@@ -233,6 +239,18 @@ export function CheckoutPage() {
                   </div>
                 </>
               )}
+              {fee > 0 && !loadingPrice && (
+                <>
+                  <div className="flex justify-between gap-3 text-neutral-700">
+                    <dt>{isSubscriptionCheckout ? "This month" : "Programme fee"}</dt>
+                    <dd>{formatPrice(price)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3 text-neutral-700">
+                    <dt>Paystack fee</dt>
+                    <dd>{formatPrice(fee)}</dd>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between border-t border-neutral-100 pt-3 text-base font-bold text-neutral-900">
                 <dt>Total today</dt>
                 <dd>{loadingPrice ? "…" : formatPrice(total)}</dd>
@@ -244,8 +262,8 @@ export function CheckoutPage() {
             {isSubscriptionCheckout && selectedPlan && (
               <p className="mt-2 text-sm text-neutral-700">
                 {monthByMonth
-                  ? `This pays for one ${selectedPlan.interval === "monthly" ? "month" : "year"}. Pay ${formatPrice(selectedPlan.price)} each ${selectedPlan.interval === "monthly" ? "month" : "year"} the same way until you finish; we'll remind you a few days before it's due`
-                  : `Then ${formatPrice(selectedPlan.price)} each ${selectedPlan.interval === "monthly" ? "month" : "year"} from your card until you finish`}
+                  ? `This pays for one ${selectedPlan.interval === "monthly" ? "month" : "year"}. Pay ${formatPrice(withPaystackFee(selectedPlan.price))} (including the Paystack fee) each ${selectedPlan.interval === "monthly" ? "month" : "year"} the same way until you finish; we'll remind you a few days before it's due`
+                  : `Then ${formatPrice(withPaystackFee(selectedPlan.price))} (including the Paystack fee) each ${selectedPlan.interval === "monthly" ? "month" : "year"} from your card until you finish`}
                 {scholarshipMonthly ? ` (designed to take about ${offer?.durationMonths ?? site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week)` : ""}. Cancel anytime from your dashboard. Covers this programme only.
               </p>
             )}

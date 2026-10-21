@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { backendFetch } from "@/lib/backend-api";
+import { siteOrigin } from "@/lib/site-origin";
 
 /**
  * GET /billing/update-card[?subscription=<id>]: the link in dunning emails, WhatsApp and the
@@ -8,10 +9,6 @@ import { backendFetch } from "@/lib/backend-api";
  * Not signed in → login first, then back here.
  */
 const ALLOWED_HOSTS = [/^(.+\.)?paystack\.com$/i, /^(.+\.)?paystack\.co$/i];
-
-function siteOrigin(req: NextRequest): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/+$/, "");
-}
 
 function safeTarget(url: string, req: NextRequest): string | null {
   if (url.startsWith("/") && !url.startsWith("//")) return `${siteOrigin(req)}${url}`;

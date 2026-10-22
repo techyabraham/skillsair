@@ -186,7 +186,7 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
         {/* Video + Content area */}
         <div className="flex-1 flex flex-col">
           {/* Video player */}
-          {!selectedQuiz && <div className="bg-black aspect-video w-full max-h-[calc(100vh-200px)] flex items-center justify-center">
+          {!selectedQuiz && (activeLesson?.videoUrl || activeLesson?.type !== "text") && <div className="bg-black aspect-video w-full max-h-[calc(100vh-200px)] flex items-center justify-center">
             {activeLesson?.videoUrl ? (
               isEmbed(activeLesson.videoUrl) ? (
                 <iframe

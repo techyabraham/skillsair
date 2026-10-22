@@ -86,12 +86,14 @@ function mapLesson(value: unknown): CourseLesson {
   const lessonContent = richText(lesson.content);
   const hasDriveVideo = Boolean(text(lesson.driveFileId) || legacyDriveId(lesson.content));
   const attachments = Array.isArray(lesson.attachments) ? lesson.attachments : [];
+  // Documents kept in Google Drive, opened through the same-origin media route (access-checked).
+  const resources = Array.isArray(lesson.resources) ? lesson.resources : [];
   return {
     id,
     title: text(lesson.title),
     slug: text(lesson.slug),
     duration: Number(lesson.duration || 0),
-    type: hasDriveVideo ? "video" : lessonContent ? "text" : "video",
+    type: hasDriveVideo ? "video" : lessonContent || resources.length ? "text" : "video",
     isPreview: Boolean(lesson.isFree),
     isCompleted: Boolean(lesson.isCompleted),
     videoUrl: hasDriveVideo ? `/api/media/lesson/${id}` : "",
@@ -102,7 +104,7 @@ function mapLesson(value: unknown): CourseLesson {
       .split(/\n{2,}/)
       .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
       .join(""),
-    attachments: attachments.map((attachment) => {
+    attachments: attachments.map((attachment): NonNullable<CourseLesson["attachments"]>[number] => {
       const file = record(attachment);
       return {
         id: relationId(file),
@@ -110,7 +112,15 @@ function mapLesson(value: unknown): CourseLesson {
         url: mediaUrl(file),
         type: text(file.mimeType),
       };
-    }),
+    }).concat(resources.map((resource, index) => {
+      const file = record(resource);
+      return {
+        id: `${id}-resource-${index}`,
+        title: text(file.title) || "Course material",
+        url: `/api/media/lesson/${id}/resources/${index}`,
+        type: text(file.mimeType),
+      };
+    })),
   };
 }
 

@@ -50,6 +50,8 @@ export interface Order {
   transactionId?: string;
   customerId: number;
   couponLines: CouponLine[];
+  /** Pending orders: checkout link to pay for the same item again (replaces this order). */
+  completeHref?: string;
 }
 
 export interface CouponLine {

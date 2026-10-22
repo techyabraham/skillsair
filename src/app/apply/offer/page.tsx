@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { fetchOffer, hasAccountSession, recordOfferView } from "@/lib/server-session";
 import { formatShortDate, priceLockLine } from "@/lib/offer";
 import { naira, site } from "@/content/site";
+import { paystackFee } from "@/lib/paystack-fee";
 import { OfferPriceBlock } from "@/components/marketing/OfferPriceBlock";
 import { GuaranteeBox } from "@/components/marketing/GuaranteeBox";
 import { RequirementsList } from "@/components/marketing/RequirementsList";
@@ -53,7 +54,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
       ? {
           id: "monthly",
           question: `How does ${naira(offer.price)} a month work?`,
-          answer: `You pay ${naira(offer.price)} a month until you finish. Pay by bank transfer or OPay and each payment covers a month (we remind you a few days before the next is due), or by card through Paystack, which renews automatically. Your access continues as long as your plan is paid up. The programme is designed to take about ${offer.durationMonths} months at about ${offer.weeklyHours} hours a week. ${locked ? priceLockLine(offer, naira) : `Joining during this scholarship window keeps your ${naira(offer.price)} rate until you finish.`} Cancel anytime from your dashboard. The certificate is optional and paid separately when you finish.`,
+          answer: `You pay ${naira(offer.price)} a month until you finish, plus Paystack's ${naira(paystackFee(offer.price))} payment fee. Pay by bank transfer or OPay and each payment covers a month (we remind you a few days before the next is due), or by card through Paystack, which renews automatically. Your access continues as long as your plan is paid up. The programme is designed to take about ${offer.durationMonths} months at about ${offer.weeklyHours} hours a week. ${locked ? priceLockLine(offer, naira) : `Joining during this scholarship window keeps your ${naira(offer.price)} rate until you finish.`} Cancel anytime from your dashboard. The certificate is optional and paid separately when you finish.`,
         }
       : {
           id: "one-time",
@@ -165,9 +166,14 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
             Monthly billing for {offer.programme} is being set up. Message {site.advisor.name} on WhatsApp and we&apos;ll hold your {naira(offer.price)}-a-month seat.
           </p>
         ) : monthly ? (
+          <>
           <Link href={nextHref} className="flex min-h-14 w-full items-center justify-center rounded-xl bg-accent-700 px-6 py-4 text-lg font-semibold text-white hover:bg-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-700 focus-visible:ring-offset-2">
             Secure my seat for {naira(offer.price)}/month →
           </Link>
+          <p className="text-center text-sm text-neutral-600">
+            Plus Paystack&apos;s {naira(paystackFee(offer.price))} payment fee each month, shown at checkout.
+          </p>
+          </>
         ) : (
           <>
             <WaitlistButton />

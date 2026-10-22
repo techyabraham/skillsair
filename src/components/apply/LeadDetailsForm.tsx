@@ -29,6 +29,8 @@ interface LeadDetailsFormProps {
   messageLabel?: string;
   onSuccess: (result: LeadCaptureResult, details: LeadDetails) => void;
   onChange?: (details: LeadDetails) => void;
+  /** Put the cursor in the email field (after "use a different email"). */
+  focusEmail?: boolean;
 }
 
 const SERVER_ERROR = `Something went wrong on our side. Your details are safe. Tap Continue again, or WhatsApp ${site.advisor.name} on ${site.whatsapp.display}.`;
@@ -44,6 +46,7 @@ export function LeadDetailsForm({
   messageLabel = "How can we help?",
   onSuccess,
   onChange,
+  focusEmail = false,
 }: LeadDetailsFormProps) {
   const id = useId();
   const [details, setDetails] = useState<LeadDetails>({
@@ -189,6 +192,7 @@ export function LeadDetailsForm({
           type="email"
           inputMode="email"
           autoComplete="email"
+          autoFocus={focusEmail}
           value={details.email}
           onChange={(event) => update({ email: event.target.value })}
           onBlur={() => {

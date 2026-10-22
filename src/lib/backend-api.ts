@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { siteOrigin } from "./site-origin";
 
 // Production must never silently fall back to an old WordPress/API hostname or
 // localhost inside the frontend container. Keep the legacy variable only for
@@ -43,7 +44,7 @@ export async function backendFetch(
   // Give the API proxy and security layers a stable service identity and the
   // browser-facing origin for requests relayed by this same-origin BFF.
   if (!headers.has("User-Agent")) headers.set("User-Agent", "SkillsAir-Frontend/1.0");
-  if (!headers.has("Origin")) headers.set("Origin", req.nextUrl.origin);
+  if (!headers.has("Origin")) headers.set("Origin", siteOrigin(req));
   // An explicit Authorization header (e.g. a lead token) wins over the session cookie.
   const token = backendToken(req);
   if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);

@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: { school: string } 
   const copy = schoolCopy(school.name);
   return {
     title: `${school.name}: ${copy.headline}`,
-    description: `${copy.pitch} Self-paced, beginner-friendly, with a verifiable certificate and internship access. Apply in 60 seconds.`.slice(0, 300),
+    description: `${copy.pitch} Starts from zero, with a verifiable certificate and internship access. Apply in 60 seconds.`.slice(0, 300),
     alternates: { canonical: `/schools/${school.slug}` },
     openGraph: { title: `${school.name} · SkillsAir`, description: copy.headline },
   };

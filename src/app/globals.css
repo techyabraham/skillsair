@@ -199,3 +199,24 @@ body {
     background-clip: text;
   }
 }
+
+/* Lesson video captions: white on 75% black, at least 18px on phones; S/M/L chosen in the player. */
+video::cue {
+  color: #fff;
+  background-color: rgb(0 0 0 / 0.75);
+  line-height: 1.35;
+}
+video.cue-size-s::cue { font-size: 18px; }
+video.cue-size-m::cue { font-size: 22px; }
+video.cue-size-l::cue { font-size: 28px; }
+@media (min-width: 768px) {
+  video.cue-size-s::cue { font-size: 20px; }
+  video.cue-size-m::cue { font-size: 26px; }
+  video.cue-size-l::cue { font-size: 34px; }
+}
+
+/* Final exam pass: a short confetti fall (skipped when the learner prefers reduced motion). */
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(105vh) rotate(540deg); opacity: 0.9; }
+}

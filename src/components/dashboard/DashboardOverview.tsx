@@ -1,5 +1,6 @@
 "use client";
 
+import { ExamReadyCards } from "@/components/dashboard/ExamReadyCards";
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -61,6 +62,10 @@ export function DashboardOverview() {
 
   return (
     <div className="p-6 md:p-10 max-w-6xl mx-auto">
+      {/* Paid certificates waiting for their final exam */}
+      <div className="mb-6">
+        <ExamReadyCards />
+      </div>
       {/* Welcome */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}

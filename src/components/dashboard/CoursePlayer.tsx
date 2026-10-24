@@ -14,6 +14,11 @@ import { useEnrolledCourses } from "@/hooks/useStudent";
 import useSWR from "swr";
 import type { CourseLesson } from "@/types/course";
 import Link from "next/link";
+import { LessonVideoPlayer, type LessonVideoPlayerHandle } from "@/components/dashboard/player/LessonVideoPlayer";
+import { TranscriptPanel } from "@/components/dashboard/player/TranscriptPanel";
+import { QuizRunner } from "@/components/assessment/QuizRunner";
+import { assessmentApi, lagosTime } from "@/lib/assessment-client";
+import type { AssessmentQuiz } from "@/types/assessment";
 
 interface CoursePlayerProps {
   slug: string;
@@ -27,21 +32,26 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
   const [completedLessons, setCompletedLessons] = useState<Set<number>>(new Set());
   const [watchedSeconds, setWatchedSeconds] = useState(0);
   const [activeQuiz, setActiveQuiz] = useState<number | null>(null);
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
-  const [quizResult, setQuizResult] = useState<{ score: number; passed: boolean } | null>(null);
-  const [submittingQuiz, setSubmittingQuiz] = useState(false);
-  const [quizError, setQuizError] = useState("");
+  // Knowledge check under the video, shown when it ends (once per lesson visit).
+  const [checkForLesson, setCheckForLesson] = useState<number | null>(null);
+  const pendingSeek = useRef<number | null>(null);
   const lastVideoTime = useRef<{ lessonId: number; time: number } | null>(null);
+  const playerRef = useRef<LessonVideoPlayerHandle>(null);
+  const [position, setPosition] = useState(0);
+  const [contentTab, setContentTab] = useState<"notes" | "transcript">("notes");
 
   const { course, isLoading } = useCourse(slug);
   const { user } = useAuth();
   const { enrolledCourses, refresh: refreshEnrollments } = useEnrolledCourses(user?.id ?? null);
   const enrolledCourse = enrolledCourses.find((item) => item.id === course?.id || item.slug === slug);
-  const { data: quizzes = [], error: quizzesLoadError } = useSWR(
-    course?.id && enrolledCourse ? `/api/learning/courses/${course.id}/quizzes` : null,
-    () => tutorApi.getCourseQuizzes(course!.id),
+  const { data: assessments, error: quizzesLoadError, mutate: refreshAssessments } = useSWR(
+    course?.id && enrolledCourse ? `/api/learning/courses/${course.id}/assessments` : null,
+    () => assessmentApi.courseAssessments(course!.id),
     { revalidateOnFocus: false },
   );
+  const quizzes: AssessmentQuiz[] = assessments?.quizzes ?? [];
+  const chapterQuizzes = quizzes.filter((quiz) => quiz.kind === "chapter");
+  const finalExam = quizzes.find((quiz) => quiz.kind === "final_exam");
   const curriculum = course?.curriculum ?? [];
   const totalLessons = curriculum.reduce(
     (acc: number, s: { lessons: CourseLesson[] }) => acc + s.lessons.length,
@@ -59,8 +69,28 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
 
   useEffect(() => {
     setWatchedSeconds(0);
+    setPosition(0);
+    setContentTab("notes");
     lastVideoTime.current = null;
   }, [activeLesson?.id]);
+
+  // Progress heartbeat: every 30 s, send the watch time so far (not a completion). Skipped when
+  // nothing new was watched, so a paused or hidden player sends nothing.
+  const watchedRef = useRef(0);
+  watchedRef.current = watchedSeconds;
+  useEffect(() => {
+    if (!course?.id || !activeLesson?.id) return;
+    const courseId = course.id;
+    const lessonId = activeLesson.id;
+    let sent = 0;
+    const timer = window.setInterval(() => {
+      const seconds = Math.floor(watchedRef.current);
+      if (seconds - sent < 5 || document.visibilityState === "hidden") return;
+      sent = seconds;
+      tutorApi.markLessonComplete(courseId, lessonId, seconds, false).catch(() => undefined);
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [course?.id, activeLesson?.id]);
 
   useEffect(() => {
     if (enrolledCourse) setCompletedLessons(new Set(enrolledCourse.completedLessons));
@@ -68,29 +98,34 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
 
   const handleLessonClick = useCallback((lesson: CourseLesson) => {
     setActiveQuiz(null);
+    setCheckForLesson(null);
     setActiveLesson(lesson);
   }, []);
 
-  const handleQuizSubmit = async () => {
-    if (!selectedQuiz || Object.keys(quizAnswers).length !== selectedQuiz.questions.length) {
-      setQuizError("Answer every question before submitting.");
-      return;
-    }
-    setSubmittingQuiz(true);
-    setQuizError("");
-    try {
-      const result = await tutorApi.submitQuiz(selectedQuiz.id, selectedQuiz.questions.map((question) => ({
-        questionId: question.id,
-        optionIndex: quizAnswers[question.id],
-      })));
-      setQuizResult({ score: result.score, passed: result.passed });
-      if (result.passed) await refreshEnrollments();
-    } catch (error) {
-      setQuizError(error instanceof Error ? error.message : "Could not submit quiz. Please try again.");
-    } finally {
-      setSubmittingQuiz(false);
-    }
-  };
+  /** "Review lesson" / "Rewatch from 04:12" from quiz results. */
+  const reviewLesson = useCallback((lessonId: number, seconds: number | null) => {
+    const lesson = allLessons.find((item: CourseLesson) => item.id === lessonId);
+    if (!lesson) return;
+    setActiveQuiz(null);
+    setCheckForLesson(null);
+    pendingSeek.current = seconds;
+    setActiveLesson(lesson);
+    window.setTimeout(() => {
+      if (pendingSeek.current !== null) playerRef.current?.seek(pendingSeek.current);
+      pendingSeek.current = null;
+    }, 600);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [curriculum]);
+
+  // ?lesson=<id> opens that lesson (links from the exam result and emails).
+  useEffect(() => {
+    if (!allLessons.length) return;
+    const id = Number(new URLSearchParams(window.location.search).get("lesson"));
+    if (id) reviewLesson(id, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allLessons.length]);
+
+  const knowledgeCheck = activeLesson ? quizzes.find((quiz) => quiz.kind === "knowledge_check" && quiz.lessonId === activeLesson.id) : undefined;
 
   const handleMarkComplete = async () => {
     if (!activeLesson || !course?.id) return;
@@ -198,16 +233,16 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                   title={`Video: ${activeLesson.title}`}
                 />
               ) : (
-                <video
-                  key={activeLesson.id}
+                <LessonVideoPlayer
+                  ref={playerRef}
+                  lessonId={activeLesson.id}
                   src={playableVideoUrl(activeLesson.videoUrl)}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="w-full h-full"
-                  aria-label={`Video: ${activeLesson.title}`}
+                  title={activeLesson.title}
+                  captionsSrc={activeLesson.hasCaptions ? `/api/media/lesson/${activeLesson.id}/captions/en.vtt` : undefined}
                   onTimeUpdate={trackVideoTime}
                   onSeeking={() => { lastVideoTime.current = null; }}
+                  onPosition={setPosition}
+                  onEnded={() => { if (knowledgeCheck) setCheckForLesson(activeLesson.id); }}
                 />
               )
             ) : (
@@ -221,6 +256,19 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
               </div>
             )}
           </div>}
+
+          {/* Knowledge check: slides up when the video ends. */}
+          {!selectedQuiz && knowledgeCheck && checkForLesson === activeLesson?.id && (
+            <div className="bg-neutral-50 px-4 py-4 sm:px-6">
+              <QuizRunner
+                key={knowledgeCheck.id}
+                quizId={knowledgeCheck.id}
+                variant="compact"
+                onClose={() => setCheckForLesson(null)}
+                onReviewLesson={reviewLesson}
+              />
+            </div>
+          )}
 
           {/* Lesson Controls */}
           {!selectedQuiz && <div className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center justify-between gap-4">
@@ -281,6 +329,29 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
           {!selectedQuiz && activeLesson && (
             <div className="bg-white px-6 py-6 flex-1 overflow-auto">
               <h2 className="text-lg font-heading font-semibold text-neutral-900 mb-4">{activeLesson.title}</h2>
+              {activeLesson.hasCaptions && (
+                <div role="tablist" aria-label="Lesson content" className="mb-4 flex gap-1 border-b border-neutral-200">
+                  {(["notes", "transcript"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      role="tab"
+                      id={`lesson-tab-${tab}`}
+                      aria-selected={contentTab === tab}
+                      aria-controls={`lesson-panel-${tab}`}
+                      onClick={() => setContentTab(tab)}
+                      className={cn("-mb-px min-h-11 border-b-2 px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800", contentTab === tab ? "border-accent-600 text-neutral-900" : "border-transparent text-neutral-500 hover:text-neutral-800")}
+                    >
+                      {tab === "notes" ? "Notes" : "Transcript"}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {activeLesson.hasCaptions && contentTab === "transcript" ? (
+                <div role="tabpanel" id="lesson-panel-transcript" aria-labelledby="lesson-tab-transcript">
+                  <TranscriptPanel lessonId={activeLesson.id} position={position} onSeek={(seconds) => playerRef.current?.seek(seconds)} />
+                </div>
+              ) : <div role={activeLesson.hasCaptions ? "tabpanel" : undefined} id={activeLesson.hasCaptions ? "lesson-panel-notes" : undefined} aria-labelledby={activeLesson.hasCaptions ? "lesson-tab-notes" : undefined}>
               {activeLesson.content ? (
                 <div
                   className="prose prose-sm max-w-none text-neutral-600"
@@ -308,61 +379,23 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                   </div>
                 </div>
               )}
+              </div>}
             </div>
           )}
 
           {selectedQuiz && (
-            <section className="bg-white flex-1 px-5 py-7 sm:px-8" aria-labelledby="quiz-title">
+            <section className="bg-white flex-1 px-4 py-6 sm:px-8" aria-label={selectedQuiz.title}>
               <div className="max-w-3xl mx-auto">
-                <button
-                  type="button"
-                  onClick={() => { setActiveQuiz(null); setQuizResult(null); setQuizError(""); }}
-                  className="text-sm font-medium text-primary-800 hover:underline mb-5"
-                >
+                <button type="button" onClick={() => setActiveQuiz(null)} className="text-sm font-medium text-primary-800 hover:underline mb-4">
                   Back to lessons
                 </button>
-                <h2 id="quiz-title" className="text-2xl font-heading font-bold text-neutral-900">{selectedQuiz.title}</h2>
-                <p className="text-sm text-neutral-500 mt-1 mb-6">Pass mark: {selectedQuiz.passingScore}%</p>
-                <div className="space-y-6">
-                  {selectedQuiz.questions.map((question, questionIndex) => (
-                    <fieldset key={question.id} className="border-b border-neutral-100 pb-5">
-                      <legend className="font-semibold text-neutral-900 mb-3">{questionIndex + 1}. {question.prompt}</legend>
-                      <div className="space-y-2">
-                        {question.options.map((option, optionIndex) => (
-                          <label key={`${question.id}-${optionIndex}`} className="flex gap-3 items-start rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-700 hover:border-primary-300 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`quiz-${selectedQuiz.id}-question-${question.id}`}
-                              checked={quizAnswers[question.id] === optionIndex}
-                              disabled={Boolean(quizResult)}
-                              onChange={() => setQuizAnswers((current) => ({ ...current, [question.id]: optionIndex }))}
-                              className="mt-0.5 accent-primary-800"
-                            />
-                            <span>{option}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-                  ))}
-                </div>
-                {quizResult && (
-                  <p role="status" className={`mt-5 text-sm font-semibold ${quizResult.passed ? "text-success-dark" : "text-error"}`}>
-                    {quizResult.passed ? "Quiz passed" : "Not quite. Review the material and try again."} Score: {quizResult.score}%.
-                  </p>
-                )}
-                {quizError && <p role="alert" className="mt-4 text-sm text-error">{quizError}</p>}
-                <div className="mt-6 flex gap-3">
-                  {quizResult && !quizResult.passed && (
-                    <Button variant="outline" onClick={() => { setQuizAnswers({}); setQuizResult(null); setQuizError(""); }}>
-                      Try Again
-                    </Button>
-                  )}
-                  {!quizResult && (
-                    <Button variant="primary" onClick={handleQuizSubmit} loading={submittingQuiz}>
-                      Submit Quiz
-                    </Button>
-                  )}
-                </div>
+                <QuizRunner
+                  key={selectedQuiz.id}
+                  quizId={selectedQuiz.id}
+                  onClose={() => { setActiveQuiz(null); void refreshAssessments(); }}
+                  onFinished={async (result) => { await refreshAssessments(); if (result.passed) await refreshEnrollments(); }}
+                  onReviewLesson={reviewLesson}
+                />
               </div>
             </section>
           )}
@@ -398,28 +431,45 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                   activeLesson={activeLesson?.id}
                   onLessonClick={handleLessonClick}
                 />
-                {quizzes.length > 0 && (
-                  <section className="border-t border-neutral-100 p-4" aria-label="Course quizzes">
-                    <h3 className="text-sm font-semibold text-neutral-900 mb-2">Course quizzes</h3>
+                {chapterQuizzes.length > 0 && (
+                  <section className="border-t border-neutral-100 p-4" aria-label="Chapter quizzes">
+                    <h3 className="text-sm font-semibold text-neutral-900 mb-2">Chapter quizzes</h3>
                     <ul className="space-y-1">
-                      {quizzes.map((quiz) => (
+                      {orderedChapterQuizzes(curriculum, chapterQuizzes).map((quiz) => (
                         <li key={quiz.id}>
                           <button
                             type="button"
-                            onClick={() => { setActiveQuiz(quiz.id); setQuizAnswers({}); setQuizResult(null); setQuizError(""); }}
+                            onClick={() => setActiveQuiz(quiz.id)}
                             className={cn("w-full text-left rounded-lg px-3 py-2 text-sm transition-colors", activeQuiz === quiz.id ? "bg-primary-50 text-primary-800 font-semibold" : "text-neutral-700 hover:bg-neutral-50")}
                           >
-                            {quiz.title}
-                            <span className="block text-xs text-neutral-400">{quiz.questions.length} questions · pass {quiz.passingScore}%</span>
+                            <span className="flex items-center gap-2">
+                              <span aria-hidden="true" className={quiz.passed ? "text-success-dark" : "text-neutral-300"}>{quiz.passed ? "✓" : "○"}</span>
+                              <span className="truncate">{quiz.title.replace(/^Chapter quiz:\s*/, "")}</span>
+                            </span>
+                            <span className="block pl-5 text-xs text-neutral-500">{quizStatus(quiz)}</span>
                           </button>
                         </li>
                       ))}
                     </ul>
                   </section>
                 )}
+                {finalExam && (
+                  <section className="border-t border-neutral-100 p-4" aria-label="Final exam">
+                    <h3 className="text-sm font-semibold text-neutral-900 mb-1">Final exam</h3>
+                    <p className="text-xs text-neutral-500 mb-2">{examStatus(finalExam)}</p>
+                    {finalExam.locked !== "finish_programme" && (
+                      <Link
+                        href={finalExam.locked === "buy_certificate" ? `/checkout?certificate=${encodeURIComponent(slug)}` : finalExam.locked === "passed" ? "/dashboard/certificates" : `/dashboard/courses/${encodeURIComponent(slug)}/exam`}
+                        className="inline-flex min-h-10 items-center rounded-lg bg-accent-700 px-3 text-sm font-semibold text-white hover:bg-accent-800"
+                      >
+                        {finalExam.locked === "buy_certificate" ? "Get my certificate" : finalExam.locked === "passed" ? "See my certificate" : "Take your final exam"}
+                      </Link>
+                    )}
+                  </section>
+                )}
                 {quizzesLoadError && (
                   <p role="alert" className="border-t border-neutral-100 p-4 text-xs text-error">
-                    Could not load course quizzes. Refresh the page to try again.
+                    Could not load your quizzes. Refresh the page to try again.
                   </p>
                 )}
               </div>
@@ -440,4 +490,23 @@ function playableVideoUrl(url: string): string {
     return `/api/media/tutor-video?url=${encodeURIComponent(url)}`;
   }
   return url;
+}
+
+function orderedChapterQuizzes(curriculum: Array<{ id: number }>, quizzes: AssessmentQuiz[]): AssessmentQuiz[] {
+  const order = new Map(curriculum.map((section, index) => [section.id, index]));
+  return [...quizzes].sort((a, b) => (order.get(a.sectionId ?? -1) ?? 999) - (order.get(b.sectionId ?? -1) ?? 999));
+}
+
+function quizStatus(quiz: AssessmentQuiz): string {
+  if (quiz.passed) return `Passed${quiz.bestScore !== null ? ` · best ${quiz.bestScore}%` : ""}`;
+  if (quiz.nextAttemptAt) return `Next try ${lagosTime(quiz.nextAttemptAt)}`;
+  if (quiz.attempts) return `Best ${quiz.bestScore ?? 0}% · pass mark ${quiz.passingScore}%`;
+  return `Pass mark ${quiz.passingScore}%`;
+}
+
+function examStatus(exam: AssessmentQuiz): string {
+  if (exam.locked === "finish_programme") return "Opens when you finish every lesson and chapter quiz.";
+  if (exam.locked === "buy_certificate") return "Get your certificate: pay ₦10,000, then take your final exam.";
+  if (exam.locked === "passed") return "Passed. Your certificate is ready.";
+  return "Your certificate is paid for. Pass the exam to receive it.";
 }

@@ -51,7 +51,7 @@ export const faqs: FaqItem[] = [
     id: "extras",
     question: "What do I get besides the programme?",
     answer:
-      "Free CV & LinkedIn and Freelancing courses. You can access them while your enrolment is active, or after it ends if you were enrolled for at least two months. When you finish, you can also claim a verifiable certificate (optional, paid separately).",
+      "Free CV & LinkedIn and Freelancing courses. You can access them while your enrolment is active, or after it ends if you were enrolled for at least two months. When you finish, you can also get a verifiable certificate by passing the final exam (optional, paid separately).",
   },
   {
     id: "after-deadline",
@@ -89,7 +89,7 @@ export const faqs: FaqItem[] = [
     id: "certificate",
     question: "Do I get a certificate?",
     answer:
-      "Yes. When you finish your programme, you can claim a verifiable certificate. It's optional and paid separately, and you'll see the fee when you claim it. It has a unique link employers can check and you can add to LinkedIn. You need it to access internship openings and to apply for laptop support.",
+      "Yes. When you finish your programme, you can get a verifiable certificate: pay the certificate fee, then take your final exam. The fee covers the exam (retakes included) and your certificate when you pass. It's optional, and it has a unique link employers can check and you can add to LinkedIn. You need it to access internship openings and to apply for laptop support.",
   },
   {
     id: "cohort",

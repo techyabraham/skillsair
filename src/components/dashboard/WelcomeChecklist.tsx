@@ -82,7 +82,7 @@ export function WelcomeChecklist() {
         {completed && main ? (
           <div className="mt-3 flex flex-col gap-3 sm:flex-row">
             <Link href={`/checkout?certificate=${encodeURIComponent(main.slug)}`} className="flex min-h-12 items-center justify-center rounded-xl bg-accent-700 px-5 font-semibold text-white hover:bg-accent-800">
-              Claim your certificate ({naira(site.programme.certificatePrice)})
+              Get your certificate ({naira(site.programme.certificatePrice)})
             </Link>
             <Link href="/dashboard/laptop-support" className="flex min-h-12 items-center justify-center rounded-xl border-2 border-primary-800 px-5 font-semibold text-primary-800">
               Laptop support
@@ -90,7 +90,7 @@ export function WelcomeChecklist() {
           </div>
         ) : (
           <p className="mt-2 text-neutral-700">
-            Claim your verifiable certificate. It unlocks internship access from our partner firms, and certified graduates can apply for laptop support.
+            Get your verifiable certificate: pay, then pass the final exam. It unlocks internship access from our partner firms, and certified graduates can apply for laptop support.
           </p>
         )}
       </div>

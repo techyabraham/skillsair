@@ -97,6 +97,7 @@ function mapLesson(value: unknown): CourseLesson {
     isPreview: Boolean(lesson.isFree),
     isCompleted: Boolean(lesson.isCompleted),
     videoUrl: hasDriveVideo ? `/api/media/lesson/${id}` : "",
+    hasCaptions: Boolean(lesson.hasCaptions),
     content: lessonContent
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -175,9 +176,6 @@ export function mapBackendCourse(value: unknown): Course {
     price,
     regularPrice: price,
     isFree: price <= 0,
-    level: course.level === "beginner" || course.level === "intermediate" || course.level === "advanced"
-      ? course.level
-      : "all",
     status: course.status === "published" ? "publish" : "draft",
     language: "English",
     duration: Math.round(durationSeconds / 3600),

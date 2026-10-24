@@ -8,6 +8,8 @@ export interface ProgrammeSummary {
   title: string;
   shortDescription: string;
   phoneFriendly: boolean;
+  /** Last edit in the CMS (ISO), for the sitemap's lastmod. */
+  updatedAt: string | null;
 }
 
 export interface SchoolSummary {
@@ -31,6 +33,7 @@ interface BackendCourse {
   shortDescription?: string | null;
   price?: number;
   phoneFriendly?: boolean | null;
+  updatedAt?: string | null;
   categories?: Array<number | BackendCategory> | null;
 }
 
@@ -69,6 +72,7 @@ export async function getSchools(): Promise<SchoolSummary[]> {
       title: course.title,
       shortDescription: course.shortDescription ?? "",
       phoneFriendly: Boolean(course.phoneFriendly),
+      updatedAt: course.updatedAt ?? null,
     };
     const schoolIds = new Set((course.categories ?? []).map(relationId).filter((id): id is number => Boolean(id)));
     for (const schoolId of Array.from(schoolIds)) programmesBySchool.set(schoolId, [...(programmesBySchool.get(schoolId) ?? []), programme]);

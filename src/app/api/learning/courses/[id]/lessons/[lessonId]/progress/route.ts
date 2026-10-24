@@ -5,7 +5,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string; lessonId: string } },
 ) {
-  const body = await req.json().catch(() => ({})) as { watchedSeconds?: number; duration?: number };
+  const body = await req.json().catch(() => ({})) as { watchedSeconds?: number; duration?: number; isCompleted?: boolean };
   const response = await backendFetch(
     req,
     `courses/${encodeURIComponent(params.id)}/lessons/${encodeURIComponent(params.lessonId)}/progress`,
@@ -13,7 +13,8 @@ export async function POST(
       method: "POST",
       body: JSON.stringify({
         watchedSeconds: Math.max(0, Number(body.watchedSeconds ?? body.duration ?? 0)),
-        isCompleted: true,
+        // false = a player heartbeat (watch time only); anything else marks the lesson complete.
+        isCompleted: body.isCompleted !== false,
       }),
     },
   );

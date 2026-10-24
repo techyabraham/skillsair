@@ -15,10 +15,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: path === "" ? 1 : 0.7,
   }));
   const schools = await getSchools().catch(() => []);
+  const listed = new Set<string>();
+  const dateOf = (value: string | null) => (value && !Number.isNaN(Date.parse(value)) ? new Date(value) : null);
   for (const school of schools) {
-    entries.push({ url: `${SITE}/schools/${school.slug}`, lastModified: now, changeFrequency: "weekly", priority: 0.8 });
+    // A school page changes when one of its programmes does.
+    const latest = school.programmes.map((programme) => dateOf(programme.updatedAt)).filter((date): date is Date => Boolean(date)).sort((a, b) => b.getTime() - a.getTime())[0];
+    entries.push({ url: `${SITE}/schools/${school.slug}`, lastModified: latest ?? now, changeFrequency: "weekly", priority: 0.8 });
     for (const programme of school.programmes) {
-      entries.push({ url: `${SITE}/programmes/${programme.slug}`, lastModified: now, changeFrequency: "weekly", priority: 0.9 });
+      if (listed.has(programme.slug)) continue;
+      listed.add(programme.slug);
+      entries.push({ url: `${SITE}/programmes/${programme.slug}`, lastModified: dateOf(programme.updatedAt) ?? now, changeFrequency: "weekly", priority: 0.9 });
     }
   }
   return entries;

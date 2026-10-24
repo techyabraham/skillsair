@@ -18,7 +18,6 @@ export const COURSE_FRAGMENT = gql`
       regularPrice
       salePrice
       isFree
-      level
       duration
       totalLessons
       totalStudents
@@ -89,7 +88,6 @@ export const GET_COURSE = gql`
         regularPrice
         salePrice
         isFree
-        level
         duration
         totalLessons
         totalStudents

@@ -31,14 +31,19 @@ export function PaymentCallback() {
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Payment verification failed.");
-        return data as { orderId?: number; paid?: boolean; status?: string; type?: string; amount?: number };
+        return data as { orderId?: number; paid?: boolean; status?: string; type?: string; amount?: number; courseSlug?: string };
       })
-      .then(({ orderId, paid, status, type, amount }) => {
+      .then(({ orderId, paid, status, type, amount, courseSlug }) => {
         if (cancelled) return;
         if (paid) {
           track("payment_success", { value: amount ?? 0, currency: "NGN", type: type ?? "" });
           if (type === "course" || type === "subscription") {
             router.replace(`/dashboard/welcome?order=${orderId ?? ""}`);
+            return;
+          }
+          // Certificate paid: the final exam is next (passing it issues the certificate).
+          if (type === "certificate" && courseSlug) {
+            router.replace(`/dashboard/courses/${encodeURIComponent(courseSlug)}/exam`);
             return;
           }
         }

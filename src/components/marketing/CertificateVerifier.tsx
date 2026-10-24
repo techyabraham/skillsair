@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { formatDate } from "@/lib/utils";
 
 interface Result {
@@ -10,22 +10,32 @@ interface Result {
   issuedAt?: string;
   studentName?: string;
   courseTitle?: string;
+  /** Final exam result band: "Passed" or "Passed with distinction". */
+  result?: string | null;
 }
 
-/** Lets an employer check a SkillsAir certificate code. */
-export function CertificateVerifier() {
+/** Lets an employer check a SkillsAir certificate code (checked straight away when the page opens with one). */
+export function CertificateVerifier({ initialCode = "" }: { initialCode?: string }) {
   const id = useId();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode);
   const [result, setResult] = useState<Result | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const verify = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const check = useCallback(async (value: string) => {
     setLoading(true);
-    const response = await fetch(`/api/certificates/verify/${encodeURIComponent(code.trim())}`).catch(() => null);
+    const response = await fetch(`/api/certificates/verify/${encodeURIComponent(value.trim())}`).catch(() => null);
     const data = ((await response?.json().catch(() => null)) as Result | null) ?? { valid: false, message: "Verification is temporarily unavailable." };
     setResult(data);
     setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (initialCode) void check(initialCode);
+  }, [initialCode, check]);
+
+  const verify = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await check(code);
   };
 
   return (
@@ -43,6 +53,7 @@ export function CertificateVerifier() {
             <p className="rounded-xl bg-success-light p-4 text-success-dark">
               ✓ Valid certificate {result.certificateCode}: {result.studentName} completed {result.courseTitle}
               {result.issuedAt ? ` (issued ${formatDate(result.issuedAt)})` : ""}.
+              {result.result ? ` Final exam: ${result.result}.` : ""}
             </p>
           ) : (
             <p className="rounded-xl bg-error-light p-4 text-error-dark">{result.message ?? "No certificate matches that code."}</p>

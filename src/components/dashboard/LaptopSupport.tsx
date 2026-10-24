@@ -77,7 +77,7 @@ export function LaptopSupport() {
       {data && !data.application && !data.eligible && (
         <div className="mt-6 rounded-2xl border border-neutral-200 bg-neutral-50 p-5 text-neutral-700">
           <p>
-            Laptop support is for learners who hold their SkillsAir certificate from this cohort{data.cohortLabel ? ` (${data.cohortLabel})` : ""}. Finish your programme and claim your certificate, then come back here to apply.
+            Laptop support is for learners who hold their SkillsAir certificate from this cohort{data.cohortLabel ? ` (${data.cohortLabel})` : ""}. Finish your programme and earn your certificate, then come back here to apply.
           </p>
           <Link href="/dashboard/courses" className="mt-4 inline-flex min-h-12 items-center rounded-xl bg-accent-700 px-5 font-semibold text-white hover:bg-accent-800">
             Continue learning

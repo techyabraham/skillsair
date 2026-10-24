@@ -8,7 +8,7 @@ const STEPS = [
   },
   {
     title: "Earn your certificate",
-    body: 'Claim a verifiable certificate when you finish (optional), plus free CV & LinkedIn and Freelancing courses.',
+    body: 'Earn a verifiable certificate by passing the final exam (optional), plus free CV & LinkedIn and Freelancing courses.',
   },
   {
     title: "Unlock internships",

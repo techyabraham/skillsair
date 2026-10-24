@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/lib/utils";
 import { paystackFee, withPaystackFee } from "@/lib/paystack-fee";
+import { assessmentApi } from "@/lib/assessment-client";
 import { track } from "@/lib/analytics";
 import { formatShortDate, type Offer } from "@/lib/offer";
 import { naira, site } from "@/content/site";
@@ -95,6 +96,13 @@ export function CheckoutPage() {
   );
   const plans = planData?.plans || [];
   const isCertificateCheckout = Boolean(certificateCourseSlug);
+  // Programmes with a final exam: the certificate fee unlocks the exam, passing it issues the certificate.
+  const { data: certificateAssessments } = useSWR(
+    isCertificateCheckout && certificateCourse?.id && user ? `assessments-${certificateCourse.id}` : null,
+    () => assessmentApi.courseAssessments(certificateCourse!.id),
+    { revalidateOnFocus: false },
+  );
+  const certificateHasExam = Boolean(certificateAssessments?.quizzes.some((quiz) => quiz.kind === "final_exam"));
   // While a window is open, the Access Scholarship is the course's ₦2,000/month plan.
   const scholarshipMonthly = !isCertificateCheckout && offer?.billing === "monthly" && Boolean(offer?.scholarshipPlanId);
   const scholarshipPlan: CoursePlan | undefined =
@@ -189,7 +197,7 @@ export function CheckoutPage() {
     <div className="min-h-screen bg-neutral-50 py-8 md:py-12">
       <div className="mx-auto max-w-5xl px-4">
         <h1 className="text-2xl font-heading font-extrabold text-neutral-900 md:text-3xl">
-          {isCertificateCheckout ? "Claim your certificate" : "Secure your seat"}
+          {isCertificateCheckout ? "Get your certificate" : "Secure your seat"}
         </h1>
         {user ? (
           <p className="mt-1 text-sm text-neutral-600">
@@ -258,6 +266,13 @@ export function CheckoutPage() {
             </dl>
             {!isCertificateCheckout && (
               <p className="mt-3 text-sm text-neutral-700">Certificate: optional, paid separately when you finish.</p>
+            )}
+            {isCertificateCheckout && (
+              <p className="mt-3 text-sm text-neutral-700">
+                {certificateHasExam
+                  ? `Your ${formatPrice(total)} covers your final exam (retakes included) and your certificate when you pass. After paying, you go straight to the exam.`
+                  : "Your certificate is issued as soon as your payment is confirmed."}
+              </p>
             )}
             {isSubscriptionCheckout && selectedPlan && (
               <p className="mt-2 text-sm text-neutral-700">

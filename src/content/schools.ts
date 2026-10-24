@@ -100,7 +100,7 @@ const COPY: Record<string, SchoolCopy> = {
 
 const FALLBACK_COPY: SchoolCopy = {
   headline: "Learn a tech skill employers pay for",
-  pitch: "Self-paced, beginner-friendly training that ends with a verifiable certificate and access to internship openings.",
+  pitch: "Training that starts from zero and ends with a verifiable certificate and access to internship openings.",
   skills: ["Learn the fundamentals step by step", "Practise on real tasks", "Build a project you can show", "Earn a verifiable certificate"],
   whoFor: ["Beginners", "Students and graduates", "Career switchers"],
 };

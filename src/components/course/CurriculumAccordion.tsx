@@ -142,6 +142,11 @@ export function CurriculumAccordion({
                             {lesson.title}
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
+                            {lesson.hasCaptions && (
+                              <span className="rounded border border-neutral-300 px-1 text-[10px] font-semibold leading-4 text-neutral-600" title="Captions available" aria-label="Captions available">
+                                CC
+                              </span>
+                            )}
                             {lesson.isPreview && (
                               <span className="text-xs font-medium text-success-dark bg-success-light px-2 py-0.5 rounded-full">
                                 Preview

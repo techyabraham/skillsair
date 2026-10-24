@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { useEnrolledCourses, useCertificates } from "@/hooks/useStudent";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { LevelBadge } from "@/components/ui/Badge";
 import { DashboardCourseSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { cn, formatDuration } from "@/lib/utils";
@@ -147,7 +146,6 @@ function CourseCard({
 
       <div className="p-5 flex flex-col flex-1">
         <div className="flex items-center gap-2 mb-2">
-          <LevelBadge level={course.level} size="sm" />
           <span className="text-xs text-neutral-400">
             {course.totalLessons} lessons • {formatDuration(course.duration)}
           </span>

@@ -100,7 +100,7 @@ const WHY = [
   },
   {
     title: "A certificate employers can check",
-    body: "When you finish, claim a verifiable certificate with its own link for your CV and LinkedIn.",
+    body: "When you finish, pass the final exam to earn a verifiable certificate with its own link for your CV and LinkedIn.",
     icon: <><circle cx="12" cy="9" r="5.5" /><path d="m9 13.6-1.5 7.4L12 18.6l4.5 2.4-1.5-7.4" /></>,
   },
   {
@@ -149,7 +149,7 @@ export function HowItWorks({ applyHref }: { applyHref: string }) {
     { title: "Apply in 60 seconds", body: "Pick your programme and tell us where to send your offer. It's free." },
     { title: "See your price", body: "Your personal offer shows exactly what you'll pay. No hidden fees." },
     { title: "Learn at your own pace", body: "Start today, on the device your programme supports, about 8 hours a week." },
-    { title: "Get certified", body: "Finish, claim your verifiable certificate, and unlock internship openings." },
+    { title: "Get certified", body: "Finish, pass the final exam for your verifiable certificate, and unlock internship openings." },
   ];
   return (
     <section className="bg-white py-16 md:py-24">

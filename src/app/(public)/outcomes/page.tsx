@@ -32,7 +32,7 @@ export default function OutcomesPage() {
         <ol className="grid gap-4 md:grid-cols-3">
           {[
             { title: "Finish your programme", body: `Self-paced, ${site.programme.durationMonths} months, about ${site.programme.weeklyHours} hours a week.` },
-            { title: "Claim your certificate", body: 'A verifiable certificate with a unique link employers can check. It’s optional and paid separately when you finish.' },
+            { title: "Earn your certificate", body: 'Pass the final exam to earn a verifiable certificate with a unique link employers can check. It’s optional and paid separately when you finish; the fee covers the exam and any retakes.' },
             { title: "Unlock internship access", body: "Openings from our partner firms, and sometimes direct job opportunities." },
           ].map((step, index) => (
             <li key={step.title} className="rounded-2xl border border-neutral-200 bg-white p-5">

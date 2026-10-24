@@ -349,7 +349,6 @@ export function mapProductToCourse(product: WcProduct, tutorCourse?: TutorCourse
     regularPrice: parseFloat(product.regular_price) || 0,
     salePrice: product.sale_price ? parseFloat(product.sale_price) : undefined,
     isFree: parseFloat(product.price) === 0,
-    level: "all",
     status: "publish",
     language: "English",
     duration: 0,

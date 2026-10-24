@@ -3,7 +3,7 @@ import { backendFetch, backendPayload, backendToken } from "@/lib/backend-api";
 
 interface VerifyResult {
   status: string;
-  order?: { id: number; type?: string; amount?: number };
+  order?: { id: number; type?: string; amount?: number; course?: number | { id?: number; slug?: string } | null };
 }
 
 export async function GET(req: NextRequest) {
@@ -16,7 +16,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ paid: false, status: "error", message: body?.error?.message || "Payment verification failed." }, { status: response.status });
   }
   const result = await backendPayload<VerifyResult>(response);
+  // Certificate payments go straight on to the final exam intro, which needs the programme slug.
+  let courseSlug: string | undefined;
+  const course = result.order?.course;
+  if (result.status === "success" && result.order?.type === "certificate" && course) {
+    if (typeof course === "object" && course.slug) courseSlug = course.slug;
+    else {
+      const id = typeof course === "object" ? course.id : course;
+      const lookup = id ? await backendFetch(req, `courses/${id}?depth=0`).catch(() => null) : null;
+      const doc = lookup?.ok ? await lookup.json().catch(() => null) as { slug?: string } | null : null;
+      courseSlug = doc?.slug;
+    }
+  }
   return NextResponse.json({
+    courseSlug,
     paid: result.status === "success",
     status: result.status,
     orderId: result.order?.id,

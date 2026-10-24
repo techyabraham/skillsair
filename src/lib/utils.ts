@@ -100,16 +100,3 @@ export function getRatingLabel(rating: number): string {
   if (rating >= 3.0) return "Good";
   return "Fair";
 }
-
-export function getLevelColor(level: string): string {
-  switch (level) {
-    case "beginner":
-      return "bg-success-light text-success-dark";
-    case "intermediate":
-      return "bg-warning-light text-warning-dark";
-    case "advanced":
-      return "bg-error-light text-error-dark";
-    default:
-      return "bg-neutral-100 text-neutral-600";
-  }
-}

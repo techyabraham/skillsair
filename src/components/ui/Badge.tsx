@@ -41,25 +41,3 @@ export function Badge({ variant = "neutral", size = "md", children, className }:
     </span>
   );
 }
-
-interface LevelBadgeProps {
-  level: string;
-  size?: "sm" | "md";
-  className?: string;
-}
-
-const levelConfig: Record<string, { label: string; variant: BadgeVariant }> = {
-  beginner: { label: "All Levels", variant: "neutral" },
-  intermediate: { label: "Intermediate", variant: "warning" },
-  advanced: { label: "Advanced", variant: "error" },
-  all: { label: "All Levels", variant: "neutral" },
-};
-
-export function LevelBadge({ level, size, className }: LevelBadgeProps) {
-  const config = levelConfig[level] ?? { label: level, variant: "neutral" };
-  return (
-    <Badge variant={config.variant} size={size} className={className}>
-      {config.label}
-    </Badge>
-  );
-}

@@ -13,7 +13,7 @@ import { schoolCopy } from "@/content/schools";
 export const metadata: Metadata = {
   title: "Tech schools: AI, data, design, engineering, security and more",
   description:
-    "Ten schools, one goal: get you working in tech. Beginner-friendly, self-paced programmes that end with a verifiable certificate and internship access. Apply in 60 seconds.",
+    "Ten schools, one goal: get you working in tech. Programmes that start from zero and end with a verifiable certificate and internship access. Apply in 60 seconds.",
   alternates: { canonical: "/schools" },
 };
 
@@ -38,7 +38,7 @@ export default async function SchoolsPage() {
         }
         intro={
           <p>
-            Pick the career you want to build. Every programme is beginner-friendly and self-paced, and ends with a certificate employers can verify and access to internship openings.
+            Pick the career you want to build. Every programme starts from zero and ends with a certificate employers can verify and access to internship openings.
           </p>
         }
         primary={{ href: "/apply", label: "Apply for a scholarship seat →" }}

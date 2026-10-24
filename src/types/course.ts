@@ -27,6 +27,8 @@ export interface CourseLesson {
   isPreview: boolean;
   isCompleted?: boolean;
   videoUrl?: string;
+  /** Captions exist (served at /api/media/lesson/:id/captions/en.vtt). */
+  hasCaptions?: boolean;
   content?: string;
   attachments?: Array<{
     id: number | string;
@@ -61,7 +63,6 @@ export interface CourseTag {
   slug: string;
 }
 
-export type CourseLevel = "beginner" | "intermediate" | "advanced" | "all";
 export type CourseStatus = "publish" | "draft" | "pending";
 
 export interface Course {
@@ -77,7 +78,6 @@ export interface Course {
   salePrice?: number;
   isFree: boolean;
   isEnrolled?: boolean;
-  level: CourseLevel;
   status: CourseStatus;
   language: string;
   duration: number;
@@ -112,7 +112,6 @@ export interface Course {
 
 export interface CourseFilters {
   category?: string;
-  level?: CourseLevel;
   priceMin?: number;
   priceMax?: number;
   duration?: string;

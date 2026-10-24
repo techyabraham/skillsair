@@ -11,7 +11,7 @@ import { AdirePattern } from "@/components/marketing/AdirePattern";
 import { getProgramme } from "@/lib/programme";
 import { getScholarshipWindow } from "@/lib/scholarship";
 import { formatShortDate } from "@/lib/offer";
-import { faqs } from "@/content/faq";
+import { faqs, type FaqItem } from "@/content/faq";
 import { site } from "@/content/site";
 import { schoolCopy } from "@/content/schools";
 import { getSchools, type SchoolSummary } from "@/lib/catalog";
@@ -21,16 +21,21 @@ import { AtAGlance, HowItWorks, ScholarshipBand, WhySkillsAir } from "@/componen
 // Cached and refreshed every 5 minutes (ISR); enrolment state loads client-side.
 export const revalidate = 300;
 
-const LEVELS: Record<string, string> = { beginner: "Beginner-friendly", all: "All levels", intermediate: "Intermediate", advanced: "Advanced" };
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const result = await getProgramme(params.slug);
   if (result.status !== "ok") return { title: "Programme" };
-  const { course } = result.programme;
+  const { course, metaTitle, metaDescription } = result.programme;
+  const title = metaTitle || `${course.title} course in Nigeria: self-paced, with a verifiable certificate`;
+  const description = metaDescription || course.excerpt.slice(0, 155) || `Learn ${course.title} at your own pace and earn a verifiable certificate. Apply in 60 seconds.`;
+  // The share image comes from ./opengraph-image.tsx (generated per programme).
   return {
-    title: `${course.title} course in Nigeria: self-paced, with a verifiable certificate`,
-    description: course.excerpt.slice(0, 155) || `Learn ${course.title} at your own pace and earn a verifiable certificate. Apply in 60 seconds.`,
+    // Programme SEO titles already end "· SkillsAir": skip the layout's " | SkillsAir" suffix for them.
+    title: /SkillsAir\s*$/.test(title) ? { absolute: title } : title,
+    description,
     alternates: { canonical: `/programmes/${course.slug}` },
+    openGraph: { type: "website", url: `/programmes/${course.slug}`, title, description, siteName: "SkillsAir", locale: "en_NG" },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
@@ -51,31 +56,60 @@ export default async function ProgrammePage({ params }: { params: { slug: string
   const schools = await getSchools().catch((): SchoolSummary[] => []);
   const siblings = (schools.find((school) => school.slug === programme.school?.slug)?.programmes ?? []).filter((item) => item.slug !== course.slug).slice(0, 3);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://skillsair.com";
-  const programmeFaqs = faqs.filter((faq) => ["beginner", "phone", "start", "how-long", "certificate", "refunds"].includes(faq.id));
+  // Programme-specific questions first, then the general ones that apply to every programme.
+  const ownFaqs: FaqItem[] = programme.faq.map((item, index) => ({ id: `programme-${index}`, ...item }));
+  const generalFaqs = faqs.filter((faq) => ["beginner", "phone", "start", "how-long", "certificate", "refunds"].includes(faq.id));
+  const programmeFaqs = [...ownFaqs, ...generalFaqs.filter((faq) => !ownFaqs.some((own) => own.question.toLowerCase() === faq.question.toLowerCase()))].slice(0, 10);
+  const pageUrl = `${siteUrl}/programmes/${course.slug}`;
+  const firstHeading = programme.about.findIndex((block, index) => index > 0 && block.type === "heading");
+  const aboutIntro = firstHeading > 0 ? programme.about.slice(0, firstHeading) : programme.about.slice(0, 2);
+  const aboutRest = programme.about.slice(aboutIntro.length);
+  const renderAbout = (block: (typeof programme.about)[number], index: number) =>
+    block.type === "heading" ? (
+      <h2 key={index} className="pt-4 text-[1.5rem] font-bold leading-[1.2] text-navy first:pt-0 md:text-[2rem]">{block.text}</h2>
+    ) : block.type === "list" ? (
+      <ul key={index} className="list-disc space-y-1.5 pl-6">
+        {block.items.map((item) => <li key={item}>{item}</li>)}
+      </ul>
+    ) : (
+      <p key={index}>{block.text}</p>
+    );
   const showSlots = process.env.NODE_ENV !== "production";
 
   const courseJsonLd = {
     "@context": "https://schema.org",
     "@type": "Course",
     name: course.title,
-    description: course.excerpt || course.description.slice(0, 300),
+    description: programme.metaDescription || course.excerpt || course.description.slice(0, 300),
+    url: pageUrl,
     provider: { "@type": "Organization", name: site.brand, legalName: site.legalName, sameAs: siteUrl },
-    inLanguage: "en",
+    inLanguage: "en-GB",
+    ...(course.outcomes.length ? { teaches: course.outcomes } : {}),
+    ...(course.requirements.length ? { coursePrerequisites: course.requirements } : {}),
+    ...(programme.tools.length ? { about: programme.tools.map((tool) => ({ "@type": "Thing", name: tool })) } : {}),
+    educationalCredentialAwarded: { "@type": "EducationalOccupationalCredential", name: `${course.title} certificate`, credentialCategory: "Certificate" },
     hasCourseInstance: { "@type": "CourseInstance", courseMode: "online", courseWorkload: `PT${programme.weeklyHours}H` },
   };
+  const faqJsonLd = programmeFaqs.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: programmeFaqs.map((item) => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })),
+      }
+    : null;
   const breadcrumbs = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Schools", item: `${siteUrl}/schools` },
       ...(programme.school ? [{ "@type": "ListItem", position: 2, name: programme.school.name, item: `${siteUrl}/schools/${programme.school.slug}` }] : []),
-      { "@type": "ListItem", position: programme.school ? 3 : 2, name: course.title },
+      { "@type": "ListItem", position: programme.school ? 3 : 2, name: course.title, item: pageUrl },
     ],
   };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([courseJsonLd, breadcrumbs]) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([courseJsonLd, breadcrumbs, ...(faqJsonLd ? [faqJsonLd] : [])]).replace(/</g, "\\u003c") }} />
       <TrackEvent event="view_programme" params={{ programme: course.slug }} />
 
       {/* Hero: the promise, the facts and the two actions, on navy over the adire pattern. */}
@@ -118,7 +152,7 @@ export default async function ProgrammePage({ params }: { params: { slug: string
           <AtAGlance
             items={[
               { label: "Format", value: "Online, self-paced" },
-              { label: "Level", value: LEVELS[course.level] ?? "Beginner-friendly" },
+              { label: "Starting point", value: "Start from zero" },
               { label: "Time", value: `About ${programme.weeklyHours} hrs a week` },
               { label: "Designed to take", value: `About ${programme.durationMonths} months` },
               { label: "Device", value: programme.phoneFriendly ? "Phone or laptop" : "Laptop for some lessons" },
@@ -135,6 +169,29 @@ export default async function ProgrammePage({ params }: { params: { slug: string
         </div>
       </section>
 
+      {programme.about.length > 1 && (
+        <section className="bg-white pt-16 md:pt-24">
+          <div className="container-wide">
+            <div className="max-w-3xl">
+              <p className="eyebrow">About this programme</p>
+              {/* The opening paragraphs show; the rest (it repeats the sections below in prose) folds away. */}
+              <div className="mt-3 space-y-4 text-neutral-800 md:text-lg">
+                {aboutIntro.map(renderAbout)}
+              </div>
+              {aboutRest.length > 0 && (
+                <details className="group mt-4">
+                  <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 font-semibold text-accent-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800 [&::-webkit-details-marker]:hidden">
+                    <span className="group-open:hidden">Read the full description</span>
+                    <span className="hidden group-open:inline">Show less</span>
+                  </summary>
+                  <div className="mt-4 space-y-4 text-neutral-800 md:text-lg">{aboutRest.map(renderAbout)}</div>
+                </details>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {course.outcomes.length > 0 && (
         <section className="bg-white py-16 md:py-24">
           <div className="container-wide">
@@ -148,6 +205,36 @@ export default async function ProgrammePage({ params }: { params: { slug: string
                 </li>
               ))}
             </ul>
+          </div>
+        </section>
+      )}
+
+      {(programme.tools.length > 0 || programme.careerPaths.length > 0) && (
+        <section className="bg-white pb-16 md:pb-24">
+          <div className="container-wide grid gap-10 lg:grid-cols-2">
+            {programme.tools.length > 0 && (
+              <div>
+                <p className="eyebrow">Tools</p>
+                <h2 className="mt-3 text-[1.5rem] font-bold leading-[1.15] text-navy md:text-[2rem]">Tools you&apos;ll use</h2>
+                <ul className="mt-6 flex flex-wrap gap-2">
+                  {programme.tools.map((tool) => (
+                    <li key={tool} className="rounded-full border border-neutral-200 bg-neutral-50 px-3.5 py-1.5 text-sm font-medium text-neutral-800">{tool}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {programme.careerPaths.length > 0 && (
+              <div>
+                <p className="eyebrow">Where it can lead</p>
+                <h2 className="mt-3 text-[1.5rem] font-bold leading-[1.15] text-navy md:text-[2rem]">Roles this prepares you for</h2>
+                <ul className="mt-6 grid gap-2">
+                  {programme.careerPaths.map((role) => (
+                    <li key={role} className="flex gap-2 text-neutral-800"><span className="text-accent-700" aria-hidden="true">→</span>{role}</li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-sm text-neutral-600">A certificate shows what you&apos;ve learned; it isn&apos;t a job guarantee. Your projects and practice do the persuading.</p>
+              </div>
+            )}
           </div>
         </section>
       )}

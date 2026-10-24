@@ -7,6 +7,7 @@ interface Verification {
   issuedAt: string;
   studentName?: string;
   courseTitle?: string;
+  result?: string | null;
 }
 
 /** Public certificate check for employers. */

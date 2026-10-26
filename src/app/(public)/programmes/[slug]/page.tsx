@@ -12,7 +12,7 @@ import { getProgramme } from "@/lib/programme";
 import { getScholarshipWindow } from "@/lib/scholarship";
 import { formatShortDate } from "@/lib/offer";
 import { faqs, type FaqItem } from "@/content/faq";
-import { site } from "@/content/site";
+import { guidedPlanOn, site } from "@/content/site";
 import { schoolCopy } from "@/content/schools";
 import { getSchools, type SchoolSummary } from "@/lib/catalog";
 import { SchoolIcon } from "@/components/marketing/SchoolIcon";
@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const result = await getProgramme(params.slug);
   if (result.status !== "ok") return { title: "Programme" };
   const { course, metaTitle, metaDescription } = result.programme;
-  const title = metaTitle || `${course.title} course in Nigeria: self-paced, with a verifiable certificate`;
-  const description = metaDescription || course.excerpt.slice(0, 155) || `Learn ${course.title} at your own pace and earn a verifiable certificate. Apply in 60 seconds.`;
+  const title = metaTitle || (guidedPlanOn ? `${course.title} course in Nigeria: guided ${site.programme.planWeeks}-week plan and certificate` : `${course.title} course in Nigeria, with a verifiable certificate`);
+  const description = metaDescription || course.excerpt.slice(0, 155) || `Learn ${course.title}${guidedPlanOn ? ` with a guided ${site.programme.planWeeks}-week plan` : ""} and earn a verifiable certificate. Apply in 60 seconds.`;
   // The share image comes from ./opengraph-image.tsx (generated per programme).
   return {
     // Programme SEO titles already end "· SkillsAir": skip the layout's " | SkillsAir" suffix for them.
@@ -88,7 +88,12 @@ export default async function ProgrammePage({ params }: { params: { slug: string
     ...(course.requirements.length ? { coursePrerequisites: course.requirements } : {}),
     ...(programme.tools.length ? { about: programme.tools.map((tool) => ({ "@type": "Thing", name: tool })) } : {}),
     educationalCredentialAwarded: { "@type": "EducationalOccupationalCredential", name: `${course.title} certificate`, credentialCategory: "Certificate" },
-    hasCourseInstance: { "@type": "CourseInstance", courseMode: "online", courseWorkload: `PT${programme.weeklyHours}H` },
+    hasCourseInstance: {
+      "@type": "CourseInstance",
+      courseMode: "online",
+      courseWorkload: `PT${programme.weeklyHours}H`,
+      ...(guidedPlanOn ? { courseSchedule: { "@type": "Schedule", repeatFrequency: "P1W", duration: `P${site.programme.planWeeks}W` } } : {}),
+    },
   };
   const faqJsonLd = programmeFaqs.length
     ? {
@@ -134,8 +139,8 @@ export default async function ProgrammePage({ params }: { params: { slug: string
             <p className="max-w-2xl text-lg text-neutral-300 md:text-xl">{course.excerpt || copy.pitch}</p>
             <ul className="flex flex-wrap gap-2 text-sm">
               {[
-                "Self-paced",
-                `Designed to take about ${programme.durationMonths} months`,
+                site.programme.format,
+                ...(guidedPlanOn ? ["Weekly goals and reminders"] : []),
                 `~${programme.weeklyHours} hrs/week`,
                 "Verifiable certificate",
                 ...(programme.phoneFriendly ? ["📱 Phone-friendly"] : []),
@@ -151,7 +156,7 @@ export default async function ProgrammePage({ params }: { params: { slug: string
           </div>
           <AtAGlance
             items={[
-              { label: "Format", value: "Online, self-paced" },
+              { label: "Format", value: `Online, ${site.programme.format[0].toLowerCase()}${site.programme.format.slice(1)}` },
               { label: "Starting point", value: "Start from zero" },
               { label: "Time", value: `About ${programme.weeklyHours} hrs a week` },
               { label: "Designed to take", value: `About ${programme.durationMonths} months` },
@@ -245,7 +250,10 @@ export default async function ProgrammePage({ params }: { params: { slug: string
             <p className="eyebrow">Curriculum</p>
             <h2 className="mt-3 text-[1.75rem] font-bold leading-[1.15] text-navy md:text-[2.5rem]">Step by step, from the basics</h2>
             <p className="mt-4 text-neutral-700">
-              Short lessons you can take in any order that suits you, about {programme.weeklyHours} hours a week. Open the free preview to see how the lessons work before you apply.
+              {guidedPlanOn
+                ? `Short lessons grouped into weekly goals, about ${programme.weeklyHours} hours a week. Prefer no weekly schedule? You can turn the plan off in your plan settings.`
+                : `Short lessons, about ${programme.weeklyHours} hours a week.`}{" "}
+              Open the free preview to see how the lessons work before you apply.
             </p>
             {projectsList.length > 0 && (
               <div className="mt-8 rounded-2xl bg-white p-6 ring-1 ring-neutral-200">

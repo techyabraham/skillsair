@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { fetchOffer, hasAccountSession, recordOfferView } from "@/lib/server-session";
 import { formatShortDate, priceLockLine } from "@/lib/offer";
-import { naira, site } from "@/content/site";
+import { guidedPlanOn, naira, site } from "@/content/site";
 import { paystackFee } from "@/lib/paystack-fee";
 import { OfferPriceBlock } from "@/components/marketing/OfferPriceBlock";
 import { GuaranteeBox } from "@/components/marketing/GuaranteeBox";
@@ -54,7 +54,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
       ? {
           id: "monthly",
           question: `How does ${naira(offer.price)} a month work?`,
-          answer: `You pay ${naira(offer.price)} a month until you finish, plus Paystack's ${naira(paystackFee(offer.price))} payment fee. Pay by bank transfer or OPay and each payment covers a month (we remind you a few days before the next is due), or by card through Paystack, which renews automatically. Your access continues as long as your plan is paid up. The programme is designed to take about ${offer.durationMonths} months at about ${offer.weeklyHours} hours a week. ${locked ? priceLockLine(offer, naira) : `Joining during this scholarship window keeps your ${naira(offer.price)} rate until you finish.`} Cancel anytime from your dashboard. The certificate is optional and paid separately when you finish.`,
+          answer: `You pay ${naira(offer.price)} a month until you finish, plus Paystack's ${naira(paystackFee(offer.price))} payment fee. Pay by bank transfer or OPay and each payment covers a month (we remind you a few days before the next is due), or by card through Paystack, which renews automatically. Your access continues as long as your plan is paid up. The programme follows ${guidedPlanOn ? `a guided ${site.programme.planWeeks}-week plan` : `a ${site.programme.planWeeks}-week design`} at about ${offer.weeklyHours} hours a week. ${locked ? priceLockLine(offer, naira) : `Joining during this scholarship window keeps your ${naira(offer.price)} rate until you finish.`} Cancel anytime from your dashboard. The certificate is optional and paid separately when you finish.`,
         }
       : {
           id: "one-time",
@@ -66,7 +66,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
       question: "What if I'm debited and it fails?",
       answer: `Banks normally reverse failed payments automatically. If yours hasn't, send your payment reference to ${site.advisor.name} on WhatsApp (${site.whatsapp.display}) and we'll resolve it within 24 hours.`,
     },
-    { id: "start", question: "When can I start?", answer: "Immediately. It's self-paced." },
+    { id: "start", question: "When can I start?", answer: guidedPlanOn ? `Immediately. Your ${site.programme.planWeeks}-week plan starts the day you join.` : "Immediately, the day you join." },
   ];
 
   return (
@@ -95,7 +95,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
         <p className="text-sm font-semibold uppercase tracking-wide text-primary-800">{offer.school || "SkillsAir"}</p>
         <h2 className="mt-1 text-xl font-heading font-bold text-neutral-900">{offer.programme}</h2>
         <p className="mt-2 text-neutral-700">
-          Self-paced · designed to take about {offer.durationMonths} months at about {offer.weeklyHours} hours a week · Optional certificate when you finish.
+          {guidedPlanOn ? `Guided ${site.programme.planWeeks}-week plan` : `Designed to take ${site.programme.planWeeks} weeks`} · about {offer.weeklyHours} hours a week · Optional certificate when you finish.
         </p>
         {outcomes.length > 0 && (
           <ul className="mt-4 space-y-2">
@@ -125,7 +125,7 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
       <section className="mt-8">
         <h2 className="text-xl font-heading font-bold text-neutral-900">What you get</h2>
         <ul className="mt-4 space-y-3 text-neutral-700">
-          <li>✓ The full {offer.programme} programme, at your own pace, for as long as you study.</li>
+          <li>✓ The full {offer.programme} programme{guidedPlanOn ? `, with a guided ${site.programme.planWeeks}-week plan and weekly goals,` : ","} for as long as you study.</li>
           <li>✓ When you finish: a verifiable certificate employers can check online (optional, paid separately).</li>
           <li>✓ <strong>Free bonus courses:</strong> CV &amp; LinkedIn, and Freelancing.</li>
           <li>✓ Access to internship openings from SkillsAir partner firms once you&apos;re certified.</li>
@@ -151,7 +151,9 @@ export default async function OfferPage({ searchParams }: { searchParams: { prog
         </div>
         {offer.applicantWeeklyHours === "under_5" && (
           <p className="mt-4 rounded-xl bg-neutral-100 p-4 text-neutral-700">
-            You said you have under 5 hours a week. That&apos;s okay: it&apos;s self-paced. It&apos;s designed for about {offer.weeklyHours} hours a week, so plan a little extra time on weekends.
+            {guidedPlanOn
+              ? "You said you have under 5 hours a week. That's okay: your plan shows exactly what to do each week, and if you fall behind you can move it to fit."
+              : `You said you have under 5 hours a week. That's okay. It's designed for about ${offer.weeklyHours} hours a week, so plan a little extra time on weekends.`}
           </p>
         )}
       </section>

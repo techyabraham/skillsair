@@ -103,12 +103,12 @@ export default async function SchoolPage({ params }: { params: { school: string 
         intro={<p>{copy.pitch}</p>}
         primary={hasProgrammes ? { href: applyHref, label: "Apply for a scholarship seat →" } : { href: "#waitlist", label: "Join the waitlist →" }}
         secondary={hasProgrammes ? { href: "#programmes", label: school.programmes.length === 1 ? "See the programme" : `See the ${school.programmes.length} programmes` } : undefined}
-        note={hasProgrammes ? "Free to apply · Takes 60 seconds · Beginners welcome" : "Programmes for this school are being finalised."}
+        note={hasProgrammes ? "Free to apply · Takes 60 seconds · No experience needed" : "Programmes for this school are being finalised."}
         aside={
           <AtAGlance
             items={[
               { label: "Programmes", value: hasProgrammes ? `${school.programmes.length} open now` : "Opening soon" },
-              { label: "Format", value: "Online, self-paced" },
+              { label: "Format", value: `Online, ${site.programme.format[0].toLowerCase()}${site.programme.format.slice(1)}` },
               { label: "Time", value: `About ${site.programme.weeklyHours} hrs a week` },
               { label: "Designed to take", value: `About ${site.programme.durationMonths} months` },
               { label: "On your phone", value: phoneFriendly ? `${phoneFriendly} programme${phoneFriendly === 1 ? "" : "s"}` : "Some lessons need a laptop" },
@@ -134,7 +134,7 @@ export default async function SchoolPage({ params }: { params: { school: string 
               {school.programmes.map((programme) => (
                 <li key={programme.slug} className="flex flex-col rounded-2xl border border-neutral-200 bg-white p-6 transition-colors hover:border-navy md:p-7">
                   <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-neutral-700">Self-paced</span>
+                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-neutral-700">{site.programme.format}</span>
                     <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-neutral-700">~{site.programme.weeklyHours} hrs/week</span>
                     {programme.phoneFriendly && <span className="rounded-full bg-success-light px-2.5 py-1 text-success-dark">📱 Phone-friendly</span>}
                   </div>

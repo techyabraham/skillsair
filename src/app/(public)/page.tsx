@@ -14,7 +14,7 @@ import { TrackEvent } from "@/components/analytics/TrackEvent";
 import { images, unsplashUrl } from "@/content/images";
 import { faqs, homeFaqIds } from "@/content/faq";
 import { proof, verifiedOnly } from "@/content/proof";
-import { site, whatsappLink } from "@/content/site";
+import { guidedPlanOn, planSentence, site, whatsappLink } from "@/content/site";
 import { getSchools, type SchoolSummary } from "@/lib/catalog";
 import { getScholarshipWindow } from "@/lib/scholarship";
 import { formatShortDate } from "@/lib/offer";
@@ -66,8 +66,8 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
   // Message match: an ad for a specific school swaps in that school's promise.
   const adSchool = typeof searchParams.utm_content === "string" ? schools.find((school) => school.slug === searchParams.utm_content) : undefined;
   const subLine = adSchool?.oneLiner
-    ? `${adSchool.name}: ${adSchool.oneLiner} Self-paced, about ${site.programme.weeklyHours} hours a week for ${site.programme.durationMonths} months, ending with a verifiable certificate and internship access.`
-    : `Job-ready training in Cyber Security, AI, data, design, engineering, ethical hacking, marketing and more. Finish in ${site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week, earn a verifiable certificate, and unlock internship openings from our partner firms.`;
+    ? `${adSchool.name}: ${adSchool.oneLiner} ${planSentence()}, ending with a verifiable certificate and internship access.`
+    : `Job-ready training in Cyber Security, AI, data, design, engineering, ethical hacking, marketing and more. ${guidedPlanOn ? `Follow a guided ${site.programme.planWeeks}-week plan` : `Finish in about ${site.programme.planWeeks} weeks`} at about ${site.programme.weeklyHours} hours a week, earn a verifiable certificate, and unlock internship openings from our partner firms.`;
 
   const organisationJsonLd = {
     "@context": "https://schema.org",

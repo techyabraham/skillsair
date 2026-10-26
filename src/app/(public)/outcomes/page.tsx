@@ -6,7 +6,7 @@ import { ContactForm } from "@/components/marketing/ContactForm";
 import { CertificateVerifier } from "@/components/marketing/CertificateVerifier";
 import { StoryCard } from "@/components/marketing/StoryCard";
 import { proof, verifiedOnly } from "@/content/proof";
-import { site } from "@/content/site";
+import { guidedPlanOn, site } from "@/content/site";
 
 export const metadata: Metadata = {
   title: "Certificate and internship access",
@@ -31,7 +31,7 @@ export default function OutcomesPage() {
       >
         <ol className="grid gap-4 md:grid-cols-3">
           {[
-            { title: "Finish your programme", body: `Self-paced, ${site.programme.durationMonths} months, about ${site.programme.weeklyHours} hours a week.` },
+            { title: "Finish your programme", body: guidedPlanOn ? `Follow your guided ${site.programme.planWeeks}-week plan, about ${site.programme.weeklyHours} hours a week.` : `Designed to take ${site.programme.planWeeks} weeks, about ${site.programme.weeklyHours} hours a week.` },
             { title: "Earn your certificate", body: 'Pass the final exam to earn a verifiable certificate with a unique link employers can check. It’s optional and paid separately when you finish; the fee covers the exam and any retakes.' },
             { title: "Unlock internship access", body: "Openings from our partner firms, and sometimes direct job opportunities." },
           ].map((step, index) => (

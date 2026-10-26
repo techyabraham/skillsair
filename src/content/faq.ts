@@ -1,3 +1,5 @@
+import { guidedPlanOn } from "@/content/site";
+
 /** Grouped objections for /faq and the FAQ teasers (Section 8.9 of the rebuild brief). */
 
 export interface FaqItem {
@@ -16,19 +18,21 @@ export const faqs: FaqItem[] = [
   },
   {
     id: "beginner",
-    question: "I'm a complete beginner. Can I do this?",
-    answer: "Yes. Programmes start from the basics, and you can watch a free preview lesson before you apply.",
+    question: "Do I need any experience?",
+    answer: "No. Every programme starts from zero, and you can watch a free preview lesson before you apply.",
   },
   {
     id: "phone",
     question: "Can I learn with only my phone?",
     answer:
-      "It depends on the programme. These work fully on a phone: Smartphone Videography, Mobile Graphics Design, Data Analysis and Product Management (look for the 📱 badge). Others need a laptop for some of the work. Each programme lists exactly what you'll need.",
+      "It depends on the programme. These work fully on a phone: Smartphone Videography, Mobile Graphics Design and Product Management (look for the 📱 badge). Data Analysis needs desktop Excel for its statistics chapter. Others need a laptop for some of the work. Each programme lists exactly what you'll need.",
   },
   {
     id: "how-long",
     question: "How long does it take?",
-    answer: "It's self-paced. Each programme is designed to take about 3 months at about 8 hours a week. On a monthly plan your access continues for as long as your subscription is active, so you can take longer if you need to.",
+    answer: guidedPlanOn
+      ? "Each programme follows a guided 12-week plan at about 8 hours a week, with weekly goals and a reminder every Monday. If you fall behind, you can move your plan to fit. On a monthly plan your access continues while your subscription is active, so you can take longer if you need to. Prefer no schedule? You can switch to self-paced in your plan settings."
+      : "Each programme is designed to take 12 weeks at about 8 hours a week. On a monthly plan your access continues while your subscription is active, so you can take longer if you need to.",
   },
   {
     id: "start",

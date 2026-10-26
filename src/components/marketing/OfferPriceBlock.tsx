@@ -50,7 +50,7 @@ export function OfferPriceBlock({ offer }: { offer: PriceFacts }) {
       {/*
       {scholarship && (
         <p className="mt-4 text-neutral-700">
-          Billed monthly by Paystack until you finish. Designed to take about {site.programme.durationMonths} months at about {site.programme.weeklyHours} hours a week. Cancel anytime from your dashboard. That&apos;s {site.priceComparison.toLowerCase()}.
+          Billed monthly by Paystack until you finish. A guided {site.programme.planWeeks}-week plan at about {site.programme.weeklyHours} hours a week. Cancel anytime from your dashboard. That&apos;s {site.priceComparison.toLowerCase()}.
         </p>
       )}
       */}

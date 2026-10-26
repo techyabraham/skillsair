@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getProgramme } from "@/lib/programme";
+import { site } from "@/content/site";
 
 // Generated share image for each programme page (1200 × 630), refreshed with the page. Edge runtime:
 // next/og on the Node runtime cannot load its bundled font on Windows dev machines (Next 14).
@@ -13,7 +14,7 @@ export default async function ProgrammeOgImage({ params }: { params: { slug: str
   const result = await getProgramme(params.slug);
   const title = result.status === "ok" ? result.programme.course.title : "SkillsAir";
   const school = result.status === "ok" ? result.programme.school?.name ?? "" : "";
-  const facts = result.status === "ok" ? ["Self-paced", `~${result.programme.weeklyHours} hrs a week`, "Verifiable certificate"] : ["Job-ready tech skills"];
+  const facts = result.status === "ok" ? [site.programme.format, `~${result.programme.weeklyHours} hrs a week`, "Verifiable certificate"] : ["Job-ready tech skills"];
 
   return new ImageResponse(
     (

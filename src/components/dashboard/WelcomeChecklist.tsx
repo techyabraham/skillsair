@@ -3,7 +3,7 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { useAuth } from "@/hooks/useAuth";
-import { naira, site } from "@/content/site";
+import { guidedPlanOn, naira, site } from "@/content/site";
 import type { EnrolledCourse } from "@/types/course";
 
 const fetcher = (url: string) =>
@@ -50,7 +50,9 @@ export function WelcomeChecklist() {
     <div className="mx-auto max-w-2xl px-4 py-8 md:py-12">
       <h1 className="text-2xl font-heading font-extrabold text-neutral-900 md:text-3xl">Welcome to SkillsAir{user?.firstName ? `, ${user.firstName}` : ""}</h1>
       <p className="mt-2 text-neutral-600">
-        Your programme is designed to take about {site.programme.durationMonths} months at about {site.programme.weeklyHours} hours a week. Go at your own pace.
+        {guidedPlanOn
+          ? `Your guided ${site.programme.planWeeks}-week plan starts today: about ${site.programme.weeklyHours} hours a week. Check This week on your dashboard for your goals.`
+          : `Your programme is designed to take ${site.programme.planWeeks} weeks at about ${site.programme.weeklyHours} hours a week.`}
       </p>
       <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">
         <p className="text-sm font-semibold text-neutral-700" aria-live="polite">

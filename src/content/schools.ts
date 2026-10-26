@@ -62,7 +62,7 @@ const COPY: Record<string, SchoolCopy> = {
   },
   schoolofengineering: {
     headline: "Build the software businesses run on",
-    pitch: "From websites to mobile apps to the cloud, software runs modern business. Start from the basics and build real projects, one skill at a time, at your own pace.",
+    pitch: "From websites to mobile apps to the cloud, software runs modern business. Start from the basics and build real projects, one skill at a time, one week at a time.",
     skills: ["Build websites people can use", "Write back-end code and APIs", "Create mobile apps", "Deploy to the cloud"],
     whoFor: ["Problem-solvers who like building things", "Students who want practical coding skills", "Career switchers ready to put in steady weekly hours"],
   },

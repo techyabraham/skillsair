@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { guidedPlanOn } from "@/content/site";
 import { Analytics } from "@/components/analytics/Analytics";
 import { AttributionCapture } from "@/components/analytics/AttributionCapture";
 
@@ -21,7 +22,7 @@ export const viewport: Viewport = {
 
 const TITLE = "SkillsAir: Affordable, job-ready tech training for young Africans";
 const DESCRIPTION =
-  "Learn AI, data, design, engineering, security or marketing at your own pace. Earn a verifiable certificate in 3 months and unlock internship opportunities. Apply in 60 seconds.";
+  `Learn AI, data, design, engineering, security or marketing ${guidedPlanOn ? "with a guided 12-week plan" : "in about 12 weeks"}. Earn a verifiable certificate and unlock internship opportunities. Apply in 60 seconds.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://skillsair.com"),

@@ -1,10 +1,10 @@
-import { site } from "@/content/site";
+import { planPhrase, site } from "@/content/site";
 
 const STEPS = [
   { title: "Apply in 60 seconds", body: "Pick a school and see your scholarship price instantly." },
   {
     title: "Learn at your pace",
-    body: `Start immediately. About ${site.programme.weeklyHours} hours a week, designed to take about ${site.programme.durationMonths} months, on the device your programme supports.`,
+    body: `Start immediately: ${planPhrase()} at about ${site.programme.weeklyHours} hours a week, on the device your programme supports.`,
   },
   {
     title: "Earn your certificate",

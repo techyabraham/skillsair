@@ -11,7 +11,7 @@ import { formatPrice } from "@/lib/utils";
 import { paystackFee } from "@/lib/paystack-fee";
 import { track } from "@/lib/analytics";
 import { formatShortDate, type Offer } from "@/lib/offer";
-import { naira, site } from "@/content/site";
+import { naira, planPhrase, site } from "@/content/site";
 import type { Course } from "@/types/course";
 
 /**
@@ -270,7 +270,7 @@ export function CheckoutPage() {
                 {monthByMonth
                   ? `This pays for one ${selectedPlan.interval === "monthly" ? "month" : "year"}. Pay ${formatPrice(withPaystackFee(selectedPlan.price))} (including the Paystack fee) each ${selectedPlan.interval === "monthly" ? "month" : "year"} the same way until you finish; we'll remind you a few days before it's due`
                   : `Then ${formatPrice(withPaystackFee(selectedPlan.price))} (including the Paystack fee) each ${selectedPlan.interval === "monthly" ? "month" : "year"} from your card until you finish`}
-                {scholarshipMonthly ? ` (designed to take about ${offer?.durationMonths ?? site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week)` : ""}. Cancel anytime from your dashboard. Covers this programme only.
+                {scholarshipMonthly ? ` (${planPhrase()} at about ${site.programme.weeklyHours} hours a week)` : ""}. Cancel anytime from your dashboard. Covers this programme only.
               </p>
             )}
             */}
@@ -300,7 +300,7 @@ export function CheckoutPage() {
                     <input type="radio" name="purchaseType" value="course" checked={purchaseType === "course"} onChange={() => setPurchaseType("course")} className="mt-1 h-4 w-4 text-primary-800" />
                     <span>
                       <span className="block font-semibold text-neutral-900">One-time payment</span>
-                      <span className="mt-1 block text-sm text-neutral-600">{formatPrice(offer?.effectivePrice ?? 0)} · designed to take about {offer?.durationMonths ?? site.programme.durationMonths} months</span>
+                      <span className="mt-1 block text-sm text-neutral-600">{formatPrice(offer?.effectivePrice ?? 0)} · {planPhrase()}</span>
                     </span>
                   </label>
                   {plans.map((plan) => (

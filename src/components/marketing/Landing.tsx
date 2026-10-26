@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { AdirePattern } from "@/components/marketing/AdirePattern";
 import { PrimaryCTA } from "@/components/marketing/PrimaryCTA";
 import { formatShortDate } from "@/lib/offer";
-import { site, whatsappLink } from "@/content/site";
+import { guidedPlanOn, planPhrase, site, whatsappLink } from "@/content/site";
 import { cn } from "@/lib/utils";
 
 /**
@@ -94,8 +94,10 @@ const WHY = [
     icon: <><path d="M7 19V5l10 14V5" /><path d="M4.5 10h15M4.5 14h15" /></>,
   },
   {
-    title: "Learn at your own pace",
-    body: "Each programme is designed to take about 3 months at about 8 hours a week. Study around school, work or family.",
+    title: guidedPlanOn ? "A plan for every week" : "Fits around your life",
+    body: guidedPlanOn
+      ? `Each programme follows ${planPhrase()} at about ${site.programme.weeklyHours} hours a week, with weekly goals and a Monday reminder. Study around school, work or family.`
+      : `Each programme is ${planPhrase()} at about ${site.programme.weeklyHours} hours a week. Study around school, work or family.`,
     icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
   },
   {
@@ -148,7 +150,7 @@ export function HowItWorks({ applyHref }: { applyHref: string }) {
   const steps = [
     { title: "Apply in 60 seconds", body: "Pick your programme and tell us where to send your offer. It's free." },
     { title: "See your price", body: "Your personal offer shows exactly what you'll pay. No hidden fees." },
-    { title: "Learn at your own pace", body: "Start today, on the device your programme supports, about 8 hours a week." },
+    { title: guidedPlanOn ? "Follow your weekly plan" : "Start learning", body: `Start today, on the device your programme supports, about ${site.programme.weeklyHours} hours a week${guidedPlanOn ? ", with clear goals each week" : ""}.` },
     { title: "Get certified", body: "Finish, pass the final exam for your verifiable certificate, and unlock internship openings." },
   ];
   return (

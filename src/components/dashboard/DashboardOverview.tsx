@@ -1,6 +1,7 @@
 "use client";
 
 import { ExamReadyCards } from "@/components/dashboard/ExamReadyCards";
+import { ThisWeekCards } from "@/components/dashboard/ThisWeekCards";
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -65,6 +66,10 @@ export function DashboardOverview() {
       {/* Paid certificates waiting for their final exam */}
       <div className="mb-6">
         <ExamReadyCards />
+      </div>
+      {/* Guided 12-week plan: this week's goals per programme */}
+      <div className="mb-8">
+        <ThisWeekCards />
       </div>
       {/* Welcome */}
       <motion.div

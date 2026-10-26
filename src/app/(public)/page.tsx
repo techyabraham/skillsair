@@ -67,7 +67,7 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
   const adSchool = typeof searchParams.utm_content === "string" ? schools.find((school) => school.slug === searchParams.utm_content) : undefined;
   const subLine = adSchool?.oneLiner
     ? `${adSchool.name}: ${adSchool.oneLiner} Self-paced, about ${site.programme.weeklyHours} hours a week for ${site.programme.durationMonths} months, ending with a verifiable certificate and internship access.`
-    : `Self-paced training in AI, data, design, engineering, security, marketing and more. Finish in ${site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week, earn a verifiable certificate, and unlock internship openings from our partner firms.`;
+    : `Job-ready training in Cyber Security, AI, data, design, engineering, ethical hacking, marketing and more. Finish in ${site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week, earn a verifiable certificate, and unlock internship openings from our partner firms.`;
 
   const organisationJsonLd = {
     "@context": "https://schema.org",

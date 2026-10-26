@@ -4,14 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 
 export type CaptionSize = "s" | "m" | "l";
 
+export type CurriculumView = "week" | "chapter";
+
 export interface PlayerPreferences {
   captions: boolean;
   captionSize: CaptionSize;
   playbackRate: number;
+  /** Guided-plan learners: the sidebar grouped by plan week (default) or by chapter. */
+  curriculumView: CurriculumView;
 }
 
 const STORAGE_KEY = "sa_player_prefs";
-const DEFAULTS: PlayerPreferences = { captions: false, captionSize: "m", playbackRate: 1 };
+const DEFAULTS: PlayerPreferences = { captions: false, captionSize: "m", playbackRate: 1, curriculumView: "week" };
 
 function readLocal(): Partial<PlayerPreferences> {
   try {
@@ -27,11 +31,12 @@ function clean(value: Partial<PlayerPreferences>): Partial<PlayerPreferences> {
   if (typeof value.captions === "boolean") out.captions = value.captions;
   if (value.captionSize === "s" || value.captionSize === "m" || value.captionSize === "l") out.captionSize = value.captionSize;
   if (typeof value.playbackRate === "number" && value.playbackRate >= 0.5 && value.playbackRate <= 2) out.playbackRate = value.playbackRate;
+  if (value.curriculumView === "week" || value.curriculumView === "chapter") out.curriculumView = value.curriculumView;
   return out;
 }
 
 /**
- * Captions on/off, caption size and speed: remembered in this browser straight away and saved to
+ * Captions on/off, caption size, speed and the sidebar view (by week or by chapter): remembered in this browser straight away and saved to
  * the learner's account (PATCH /api/profile/preferences) so they follow them to other devices.
  */
 export function usePlayerPreferences() {

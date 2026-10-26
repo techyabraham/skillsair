@@ -19,6 +19,12 @@ import { TranscriptPanel } from "@/components/dashboard/player/TranscriptPanel";
 import { QuizRunner } from "@/components/assessment/QuizRunner";
 import { assessmentApi, lagosTime } from "@/lib/assessment-client";
 import type { AssessmentQuiz } from "@/types/assessment";
+import { guidedPlanOn, naira, site } from "@/content/site";
+import { WeekCurriculum } from "@/components/dashboard/player/WeekCurriculum";
+import { usePlayerPreferences } from "@/components/dashboard/player/player-preferences";
+import { planApi, planKeys, weekCompletedOnce } from "@/lib/plan-client";
+import { track } from "@/lib/analytics";
+import type { CoursePlan, PlanItem } from "@/types/plan";
 
 interface CoursePlayerProps {
   slug: string;
@@ -49,6 +55,15 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
     () => assessmentApi.courseAssessments(course!.id),
     { revalidateOnFocus: false },
   );
+  // Guided 12-week plan: one call powers the week view, the marks and the "N of M this week" toast.
+  const { data: plan, mutate: refreshPlan } = useSWR(
+    guidedPlanOn && course?.id && enrolledCourse ? planKeys.course(course.id) : null,
+    () => planApi.course(course!.id),
+    { revalidateOnFocus: false, shouldRetryOnError: false },
+  );
+  const guided = plan?.pace === "guided";
+  const { preferences, update: updatePreferences } = usePlayerPreferences();
+  const byWeek = guided && preferences.curriculumView === "week";
   const quizzes: AssessmentQuiz[] = assessments?.quizzes ?? [];
   const chapterQuizzes = quizzes.filter((quiz) => quiz.kind === "chapter");
   const finalExam = quizzes.find((quiz) => quiz.kind === "final_exam");
@@ -120,8 +135,14 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
   // ?lesson=<id> opens that lesson (links from the exam result and emails).
   useEffect(() => {
     if (!allLessons.length) return;
-    const id = Number(new URLSearchParams(window.location.search).get("lesson"));
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get("lesson"));
     if (id) reviewLesson(id, null);
+    const quizId = Number(params.get("quiz"));
+    if (quizId) {
+      setCheckForLesson(null);
+      setActiveQuiz(quizId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allLessons.length]);
 
@@ -134,7 +155,7 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
       await tutorApi.markLessonComplete(course.id, activeLesson.id, watchedSeconds);
       setCompletedLessons((prev) => new Set(Array.from(prev).concat(activeLesson.id)));
       await refreshEnrollments();
-      addToast({ type: "success", title: "Lesson completed!", message: "Great job! Keep going." });
+      addToast({ type: "success", title: "Lesson completed!", message: (await planProgressMessage()) ?? "Great job! Keep going." });
 
       // Auto-advance to next lesson
       const allLessons = curriculum.flatMap((s: { lessons: CourseLesson[] }) => s.lessons);
@@ -169,6 +190,25 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
     const next = direction === "prev" ? allLessons[idx - 1] : allLessons[idx + 1];
     if (next) setActiveLesson(next);
   };
+
+  /** After a lesson or quiz: "3 of 7 done this week" or "Week 3 complete. Nice work." (guided learners). */
+  const planProgressMessage = async (): Promise<string | null> => {
+    if (!guided || !plan) return null;
+    const next = (await refreshPlan().catch(() => undefined)) as CoursePlan | undefined;
+    const week = (next ?? plan).thisWeek;
+    const total = week.items.filter((item) => item.type !== "final_exam").length;
+    if (!total) return null;
+    if (week.doneCount >= total) {
+      if (weekCompletedOnce((next ?? plan).courseId, week.week)) track("plan_week_completed", { week: week.week, course: slug });
+      return `Week ${week.week} complete. Nice work.`;
+    }
+    return `${week.doneCount} of ${total} done this week`;
+  };
+
+  const thisWeekIds = new Set((plan?.thisWeek.items ?? []).filter((item) => item.type === "lesson").map((item) => item.id));
+  const overdueIds = new Set((plan?.overdue ?? []).filter((item) => item.type === "lesson").map((item) => item.id));
+  const planItemDone = (item: PlanItem) =>
+    item.type === "lesson" ? item.done || completedLessons.has(item.id) : item.done || Boolean(quizzes.find((quiz) => quiz.id === item.id)?.passed);
 
   const currentIdx = activeLesson
     ? allLessons.findIndex((l: CourseLesson) => l.id === activeLesson.id)
@@ -393,7 +433,14 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                   key={selectedQuiz.id}
                   quizId={selectedQuiz.id}
                   onClose={() => { setActiveQuiz(null); void refreshAssessments(); }}
-                  onFinished={async (result) => { await refreshAssessments(); if (result.passed) await refreshEnrollments(); }}
+                  onFinished={async (result) => {
+                    await refreshAssessments();
+                    if (result.passed) {
+                      await refreshEnrollments();
+                      const message = await planProgressMessage();
+                      if (message) addToast({ type: "success", title: "Quiz passed", message });
+                    }
+                  }}
                   onReviewLesson={reviewLesson}
                 />
               </div>
@@ -418,8 +465,47 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                 <p className="text-xs text-neutral-400 mt-1">
                   {completedLessons.size}/{totalLessons} lessons completed
                 </p>
+                {guided && plan && (
+                  <p className="mt-1 text-xs text-neutral-600">
+                    Week {plan.currentWeek} of {plan.weeks} ·{" "}
+                    <Link href={`/dashboard/courses/${encodeURIComponent(slug)}/plan`} className="font-medium text-primary-800 hover:underline">
+                      See my plan
+                    </Link>
+                  </p>
+                )}
               </div>
+              {guided && (
+                <div role="group" aria-label="Show lessons" className="flex gap-1 border-b border-neutral-100 p-2">
+                  {(["week", "chapter"] as const).map((view) => (
+                    <button
+                      key={view}
+                      type="button"
+                      aria-pressed={preferences.curriculumView === view}
+                      onClick={() => updatePreferences({ curriculumView: view })}
+                      className={cn("min-h-11 flex-1 rounded-lg px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800", preferences.curriculumView === view ? "bg-primary-50 text-primary-800" : "text-neutral-600 hover:bg-neutral-50")}
+                    >
+                      {view === "week" ? "By week" : "By chapter"}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex-1 overflow-y-auto">
+                {byWeek && plan ? (
+                  <WeekCurriculum
+                    plan={plan}
+                    activeLessonId={activeLesson?.id}
+                    activeQuizId={activeQuiz}
+                    isDone={planItemDone}
+                    onLesson={(lessonId) => {
+                      const lesson = allLessons.find((item: CourseLesson) => item.id === lessonId);
+                      if (lesson) handleLessonClick(lesson);
+                    }}
+                    onQuiz={(quizId) => {
+                      setCheckForLesson(null);
+                      setActiveQuiz(quizId);
+                    }}
+                  />
+                ) : (
                 <CurriculumAccordion
                   sections={curriculum.map((section) => ({
                     ...section,
@@ -430,8 +516,10 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                   }))}
                   activeLesson={activeLesson?.id}
                   onLessonClick={handleLessonClick}
+                  weekMarks={guided ? { thisWeek: thisWeekIds, overdue: overdueIds } : undefined}
                 />
-                {chapterQuizzes.length > 0 && (
+                )}
+                {!byWeek && chapterQuizzes.length > 0 && (
                   <section className="border-t border-neutral-100 p-4" aria-label="Chapter quizzes">
                     <h3 className="text-sm font-semibold text-neutral-900 mb-2">Chapter quizzes</h3>
                     <ul className="space-y-1">
@@ -506,7 +594,7 @@ function quizStatus(quiz: AssessmentQuiz): string {
 
 function examStatus(exam: AssessmentQuiz): string {
   if (exam.locked === "finish_programme") return "Opens when you finish every lesson and chapter quiz.";
-  if (exam.locked === "buy_certificate") return "Get your certificate: pay ₦10,000, then take your final exam.";
+  if (exam.locked === "buy_certificate") return `Get your certificate: pay ${naira(site.programme.certificatePrice)}, then take your final exam.`;
   if (exam.locked === "passed") return "Passed. Your certificate is ready.";
   return "Your certificate is paid for. Pass the exam to receive it.";
 }

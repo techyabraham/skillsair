@@ -8,6 +8,9 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
 import { assessmentApi, lagosTime } from "@/lib/assessment-client";
 import { QuizRunner } from "./QuizRunner";
+import { naira, site } from "@/content/site";
+
+const certificateFee = naira(site.programme.certificatePrice);
 
 /** The final exam: intro (shown right after the certificate is paid for, and from the dashboard card), then the exam. */
 export function FinalExamPage({ slug }: { slug: string }) {
@@ -59,8 +62,8 @@ export function FinalExamPage({ slug }: { slug: string }) {
         <p className="mt-3 text-neutral-700">Finish every lesson and chapter quiz first. The final exam opens after that, once your certificate is paid for.</p>
       ) : exam.locked === "buy_certificate" ? (
         <>
-          <p className="mt-3 text-neutral-700">You&apos;ve finished the programme. Get your certificate: pay ₦10,000, then take your final exam.</p>
-          <p className="mt-2 text-sm text-neutral-600">Your ₦10,000 covers your final exam (retakes included) and your certificate when you pass.</p>
+          <p className="mt-3 text-neutral-700">You&apos;ve finished the programme. Get your certificate: pay {certificateFee}, then take your final exam.</p>
+          <p className="mt-2 text-sm text-neutral-600">Your {certificateFee} covers your final exam (retakes included) and your certificate when you pass.</p>
           <a href={checkoutHref} className="mt-5 inline-flex min-h-12 items-center rounded-xl bg-accent-700 px-6 font-semibold text-white hover:bg-accent-800">Get my certificate</a>
         </>
       ) : exam.locked === "passed" ? (

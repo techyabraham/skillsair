@@ -26,13 +26,11 @@ const PAYMENT_METHODS = [
     id: "bank_transfer",
     label: "Bank transfer",
     description: "Pay from any Nigerian bank app. Paystack gives you an account number to send the money to.",
-    monthly: "Each payment covers one month. We'll remind you a few days before the next one is due.",
   },
   {
     id: "opay",
     label: "OPay",
     description: "Pay from your OPay account. On the next screen, choose OPay, then confirm in your OPay app.",
-    monthly: "Each payment covers one month. We'll remind you a few days before the next one is due.",
   },
   {
     id: "paystack",
@@ -264,6 +262,7 @@ export function CheckoutPage() {
                 <dd>{loadingPrice ? "…" : formatPrice(total)}</dd>
               </div>
             </dl>
+            {/*
             {!isCertificateCheckout && (
               <p className="mt-3 text-sm text-neutral-700">Certificate: optional, paid separately when you finish.</p>
             )}
@@ -273,7 +272,7 @@ export function CheckoutPage() {
                   ? `Your ${formatPrice(total)} covers your final exam (retakes included) and your certificate when you pass. After paying, you go straight to the exam.`
                   : "Your certificate is issued as soon as your payment is confirmed."}
               </p>
-            )}
+            )}            
             {isSubscriptionCheckout && selectedPlan && (
               <p className="mt-2 text-sm text-neutral-700">
                 {monthByMonth
@@ -282,6 +281,7 @@ export function CheckoutPage() {
                 {scholarshipMonthly ? ` (designed to take about ${offer?.durationMonths ?? site.programme.durationMonths} months at about ${site.programme.weeklyHours} hours a week)` : ""}. Cancel anytime from your dashboard. Covers this programme only.
               </p>
             )}
+            */}
 
             <Button
               variant="accent"
@@ -364,9 +364,11 @@ export function CheckoutPage() {
                   <a href="/refunds" className="font-medium text-primary-800 underline">Refund policy</a>
                 </p>
               )}
+              {/*
               <p>
                 <strong className="text-neutral-900">Debited but it failed?</strong> Banks normally reverse failed payments automatically. If yours hasn&apos;t, send your reference to {site.advisor.name} on WhatsApp ({site.whatsapp.display}) and we&apos;ll resolve it within {site.failedPaymentResolutionHours} hours.
               </p>
+              */}
               <p>
                 <strong className="text-neutral-900">Someone paying for you?</strong>{" "}
                 {paymentMethod === "paystack" && isSubscriptionCheckout

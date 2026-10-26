@@ -47,11 +47,13 @@ export function OfferPriceBlock({ offer }: { offer: PriceFacts }) {
           <dd className="text-right">Optional, paid separately; needed for internship access</dd>
         </div>
       </dl>
+      {/*
       {scholarship && (
         <p className="mt-4 text-neutral-700">
           Billed monthly by Paystack until you finish. Designed to take about {site.programme.durationMonths} months at about {site.programme.weeklyHours} hours a week. Cancel anytime from your dashboard. That&apos;s {site.priceComparison.toLowerCase()}.
         </p>
       )}
+      */}
       {locked && <p className="mt-4 rounded-xl bg-success-light p-4 font-semibold text-success-dark">{priceLockLine(offer, naira)}</p>}
       {!locked && offer.windowOpen && offer.closesAt && (
         <div className="mt-4 rounded-xl bg-accent-50 p-4 text-accent-800">

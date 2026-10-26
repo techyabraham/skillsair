@@ -42,6 +42,13 @@ export interface SchoolInfo {
   programmes: PlannedProgramme[];
 }
 
+/**
+ * Guided 12-week plan (weekly goals, a "This week" view, Monday reminders). One switch:
+ * NEXT_PUBLIC_GUIDED_PLAN=false hides every plan surface and returns the copy to neutral wording.
+ */
+export const guidedPlanOn = process.env.NEXT_PUBLIC_GUIDED_PLAN !== "false";
+const PLAN_WEEKS = 12;
+
 export const site = {
   brand: "SkillsAir",
   legalName: "SKILLS AIR LIMITED",
@@ -80,9 +87,11 @@ export const site = {
     hoursShort: "Mon–Sat, 9am–6pm",
   },
   programme: {
-    format: "Self-paced",
+    format: guidedPlanOn ? `Guided ${PLAN_WEEKS}-week plan` : `Designed to take ${PLAN_WEEKS} weeks`,
     durationMonths: 3,
     weeklyHours: 8,
+    /** Weeks in a programme's guided plan (small programmes have fewer; the dashboard shows the real count). */
+    planWeeks: PLAN_WEEKS,
     standardFee: 100000,
     standardMonthlyFee: 40000,
     /** Access Scholarship price per month (billed monthly by Paystack while learning). */
@@ -199,6 +208,17 @@ export function whatsappLink(text: string = site.whatsapp.prefill): string {
 }
 
 export const naira = (amount: number) => `₦${amount.toLocaleString("en-NG")}`;
+
+/** "a guided 12-week plan" (or, with the plan switched off, "designed to take 12 weeks"), used mid-sentence. */
+export function planPhrase(): string {
+  return guidedPlanOn ? `a guided ${site.programme.planWeeks}-week plan` : `designed to take ${site.programme.planWeeks} weeks`;
+}
+
+/** "A guided 12-week plan at about 8 hours a week" / "Designed to take 12 weeks at about 8 hours a week". */
+export function planSentence(): string {
+  const phrase = `${planPhrase()} at about ${site.programme.weeklyHours} hours a week`;
+  return phrase[0].toUpperCase() + phrase.slice(1);
+}
 
 /** Exact consent wording shown under Apply step 2. The backend stores this text with the consent. */
 export const MARKETING_CONSENT_TEXT =

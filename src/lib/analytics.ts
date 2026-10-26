@@ -24,7 +24,12 @@ export type FunnelEvent =
   | "payment_success"
   | "whatsapp_click"
   | "quiz_complete"
-  | "experiment_variant";
+  | "experiment_variant"
+  | "plan_viewed"
+  | "plan_continue_clicked"
+  | "plan_reset"
+  | "plan_pace_changed"
+  | "plan_week_completed";
 
 const META_EVENTS: Partial<Record<FunnelEvent, string>> = {
   lead_captured: "Lead",

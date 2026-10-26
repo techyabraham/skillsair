@@ -8,8 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/lib/utils";
-import { paystackFee, withPaystackFee } from "@/lib/paystack-fee";
-import { assessmentApi } from "@/lib/assessment-client";
+import { paystackFee } from "@/lib/paystack-fee";
 import { track } from "@/lib/analytics";
 import { formatShortDate, type Offer } from "@/lib/offer";
 import { naira, site } from "@/content/site";
@@ -94,13 +93,6 @@ export function CheckoutPage() {
   );
   const plans = planData?.plans || [];
   const isCertificateCheckout = Boolean(certificateCourseSlug);
-  // Programmes with a final exam: the certificate fee unlocks the exam, passing it issues the certificate.
-  const { data: certificateAssessments } = useSWR(
-    isCertificateCheckout && certificateCourse?.id && user ? `assessments-${certificateCourse.id}` : null,
-    () => assessmentApi.courseAssessments(certificateCourse!.id),
-    { revalidateOnFocus: false },
-  );
-  const certificateHasExam = Boolean(certificateAssessments?.quizzes.some((quiz) => quiz.kind === "final_exam"));
   // While a window is open, the Access Scholarship is the course's ₦2,000/month plan.
   const scholarshipMonthly = !isCertificateCheckout && offer?.billing === "monthly" && Boolean(offer?.scholarshipPlanId);
   const scholarshipPlan: CoursePlan | undefined =
@@ -350,7 +342,7 @@ export function CheckoutPage() {
                       </span>
                       {/* Monthly plans: a renewing Paystack plan is card-only, so the "every option" line would mislead. */}
                       {!isSubscriptionCheckout || method.id !== "paystack" ? <span className="mt-1 block text-sm text-neutral-600">{method.description}</span> : null}
-                      {isSubscriptionCheckout ? <span className="mt-1 block text-sm font-medium text-neutral-800">{method.monthly}</span> : null}
+                      {isSubscriptionCheckout && "monthly" in method ? <span className="mt-1 block text-sm font-medium text-neutral-800">{method.monthly}</span> : null}
                     </span>
                   </label>
                 ))}

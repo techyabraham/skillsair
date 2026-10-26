@@ -46,12 +46,11 @@ export const site = {
   brand: "SkillsAir",
   legalName: "SKILLS AIR LIMITED",
   cacNumber: "RC 9272398",
-  address: "Osifila Street, Anifowose, Ikeja, Lagos",
   supportEmail: "hello@skillsair.com",
   whatsapp: {
-    display: "+234 818 212 6524",
-    e164: "+2348182126524",
-    waMe: "https://wa.me/2348182126524",
+    display: "+234 704 236 9143",
+    e164: "+2347042369143",
+    waMe: "https://wa.me/2347042369143",
     prefill: "Hi Imisi, I'm interested in a SkillsAir programme. Can you tell me more?",
   },
   social: [

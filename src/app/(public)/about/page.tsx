@@ -47,7 +47,7 @@ export default function AboutPage() {
       )}
 
       <Section tone="muted" title="A registered Nigerian company">
-        <dl className="grid gap-4 sm:grid-cols-3">
+        <dl className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl bg-white p-5">
             <dt className="text-sm text-neutral-500">Registered name</dt>
             <dd className="mt-1 font-semibold text-neutral-900">{site.legalName}</dd>
@@ -55,10 +55,6 @@ export default function AboutPage() {
           <div className="rounded-2xl bg-white p-5">
             <dt className="text-sm text-neutral-500">Corporate Affairs Commission</dt>
             <dd className="mt-1 font-semibold text-neutral-900">{site.cacNumber}</dd>
-          </div>
-          <div className="rounded-2xl bg-white p-5">
-            <dt className="text-sm text-neutral-500">Address</dt>
-            <dd className="mt-1 font-semibold text-neutral-900">{site.address}</dd>
           </div>
         </dl>
       </Section>

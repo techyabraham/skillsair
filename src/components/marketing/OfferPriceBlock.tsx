@@ -1,4 +1,4 @@
-import { naira, site } from "@/content/site";
+import { naira } from "@/content/site";
 import { formatClosingDate, formatClosingTime, priceLockLine, type Offer } from "@/lib/offer";
 import { DeadlineCountdown } from "@/components/marketing/DeadlineCountdown";
 

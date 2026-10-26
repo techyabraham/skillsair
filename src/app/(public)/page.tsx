@@ -77,7 +77,6 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
     url: process.env.NEXT_PUBLIC_SITE_URL || "https://skillsair.com",
     email: site.supportEmail,
     telephone: site.whatsapp.e164,
-    address: { "@type": "PostalAddress", streetAddress: "Osifila Street, Anifowose", addressLocality: "Ikeja", addressRegion: "Lagos", addressCountry: "NG" },
     sameAs: site.social.map((link) => link.href),
   };
 

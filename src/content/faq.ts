@@ -39,7 +39,7 @@ export const faqs: FaqItem[] = [
     id: "legit",
     question: "Is SkillsAir legit?",
     answer:
-      "Yes. SkillsAir is run by SKILLS AIR LIMITED, registered with the Corporate Affairs Commission (RC 9272398), at Osifila Street, Anifowose, Ikeja, Lagos. Payments go through Paystack. You can WhatsApp us on +234 818 212 6524 or email hello@skillsair.com.",
+      "Yes. SkillsAir is run by SKILLS AIR LIMITED, registered with the Corporate Affairs Commission (RC 9272398). Payments go through Paystack. You can WhatsApp us on +234 704 236 9143 or email hello@skillsair.com.",
   },
   {
     id: "job",

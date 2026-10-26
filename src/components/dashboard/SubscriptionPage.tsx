@@ -57,7 +57,7 @@ export function SubscriptionPage() {
       <p className="text-sm text-neutral-500 mb-8">Each subscription gives access to its selected course only.</p>
       {cardUnavailable && (
         <p role="alert" className="mb-6 rounded-xl border border-warning/40 bg-warning-light p-4 text-sm text-neutral-800">
-          We couldn&apos;t open the card update page just now. Please try again in a few minutes, or WhatsApp us on +234 818 212 6524 and we&apos;ll help.
+          We couldn&apos;t open the card update page just now. Please try again in a few minutes, or WhatsApp us on +234 704 236 9143 and we&apos;ll help.
         </p>
       )}
 

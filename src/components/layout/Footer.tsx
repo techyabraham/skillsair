@@ -66,7 +66,7 @@ export function Footer() {
         </div>
         <div className="flex flex-wrap justify-between gap-3 border-t border-primary-800 pt-6 text-[13px]">
           <span>
-            {site.legalName} · {site.cacNumber} · {site.address} · Payments secured by Paystack
+            {site.legalName} · {site.cacNumber} · Payments secured by Paystack
           </span>
           <span className="flex flex-wrap items-center gap-x-1">
             {site.social.map((link, index) => (

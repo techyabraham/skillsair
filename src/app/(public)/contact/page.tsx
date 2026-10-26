@@ -7,7 +7,7 @@ import { site, whatsappLink } from "@/content/site";
 
 export const metadata: Metadata = {
   title: "Contact SkillsAir",
-  description: "WhatsApp, email or visit SkillsAir. SKILLS AIR LIMITED, Osifila Street, Anifowose, Ikeja, Lagos.",
+  description: "WhatsApp or email SkillsAir. SKILLS AIR LIMITED, RC 9272398.",
   alternates: { canonical: "/contact" },
 };
 
@@ -32,11 +32,9 @@ export default function ContactPage() {
             </dd>
           </div>
           <div>
-            <dt className="text-sm font-semibold uppercase tracking-wider text-neutral-500">Address</dt>
+            <dt className="text-sm font-semibold uppercase tracking-wider text-neutral-500">Company</dt>
             <dd className="mt-1 text-lg text-neutral-800">
               {site.legalName}
-              <br />
-              {site.address}
               <br />
               <span className="text-base text-neutral-600">{site.cacNumber}</span>
             </dd>

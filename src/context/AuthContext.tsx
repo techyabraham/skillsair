@@ -18,13 +18,20 @@ export interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Our auth routes always answer in JSON; anything else is a page from in front of the site. */
+const UNREACHABLE_MESSAGE = "We couldn't reach SkillsAir just now. Please try again in a minute.";
+
+/**
+ * Parses an auth route's JSON. A non-JSON answer (a Cloudflare block, challenge or "site down"
+ * page, a proxy error) throws a plain message instead, so learners never see raw HTML.
+ */
 async function safeJson(res: Response): Promise<Record<string, unknown>> {
   const text = await res.text();
   if (!text) return {};
   try {
     return JSON.parse(text) as Record<string, unknown>;
   } catch {
-    return { message: text.slice(0, 300) };
+    throw new Error(UNREACHABLE_MESSAGE);
   }
 }
 

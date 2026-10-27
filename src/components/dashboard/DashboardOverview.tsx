@@ -1,7 +1,8 @@
 "use client";
 
 import { ExamReadyCards } from "@/components/dashboard/ExamReadyCards";
-import { ThisWeekCards } from "@/components/dashboard/ThisWeekCards";
+import { TodayPlans } from "@/components/dashboard/TodayPlans";
+import { guidedPlanOn } from "@/content/site";
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -67,10 +68,6 @@ export function DashboardOverview() {
       <div className="mb-6">
         <ExamReadyCards />
       </div>
-      {/* Guided 12-week plan: this week's goals per programme */}
-      <div className="mb-8">
-        <ThisWeekCards />
-      </div>
       {/* Welcome */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -78,6 +75,11 @@ export function DashboardOverview() {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
+        {guidedPlanOn && (
+          <p className="text-[15px] text-neutral-600">
+            {new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Lagos" }).format(new Date())}
+          </p>
+        )}
         <h1 className="text-2xl md:text-3xl font-heading font-bold text-neutral-900">
           {timeOfDay()}, {user?.firstName || "Learner"} 👋
         </h1>
@@ -89,6 +91,11 @@ export function DashboardOverview() {
             : "Start your learning journey today."}
         </p>
       </motion.div>
+
+      {/* Today: the guided plan, Monday to Friday */}
+      <div className="mb-10 empty:hidden">
+        <TodayPlans />
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { guidedPlanOn } from "@/content/site";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar } from "@/components/ui/Avatar";
 import { Logo } from "@/components/ui/Logo";
@@ -23,7 +24,7 @@ const NAV_LINKS = [
 ];
 
 const ACCOUNT_LINKS = [
-  { label: "Dashboard", href: "/dashboard" },
+  { label: guidedPlanOn ? "Today" : "Dashboard", href: "/dashboard" },
   { label: "My Courses", href: "/dashboard/courses" },
   { label: "Certificates", href: "/dashboard/certificates" },
   { label: "Profile", href: "/dashboard/profile" },

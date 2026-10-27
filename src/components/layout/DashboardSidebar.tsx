@@ -4,13 +4,14 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { guidedPlanOn } from "@/content/site";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar } from "@/components/ui/Avatar";
 import { Logo } from "@/components/ui/Logo";
 
 const sidebarLinks = [
   {
-    label: "Dashboard",
+    label: guidedPlanOn ? "Today" : "Dashboard",
     href: "/dashboard",
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

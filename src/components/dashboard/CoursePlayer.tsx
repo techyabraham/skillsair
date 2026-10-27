@@ -20,9 +20,8 @@ import { QuizRunner } from "@/components/assessment/QuizRunner";
 import { assessmentApi, lagosTime } from "@/lib/assessment-client";
 import type { AssessmentQuiz } from "@/types/assessment";
 import { guidedPlanOn, naira, site } from "@/content/site";
-import { WeekCurriculum } from "@/components/dashboard/player/WeekCurriculum";
-import { usePlayerPreferences } from "@/components/dashboard/player/player-preferences";
-import { planApi, planKeys, weekCompletedOnce } from "@/lib/plan-client";
+import { DayCurriculum } from "@/components/dashboard/player/DayCurriculum";
+import { DAY_NAME, dayGap, once, planApi, planKeys, STATUS_CHIP, statusLabel } from "@/lib/plan-client";
 import { track } from "@/lib/analytics";
 import type { CoursePlan, PlanItem } from "@/types/plan";
 
@@ -55,15 +54,14 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
     () => assessmentApi.courseAssessments(course!.id),
     { revalidateOnFocus: false },
   );
-  // Guided 12-week plan: one call powers the week view, the marks and the "N of M this week" toast.
+  // Guided plan: one call powers the day-by-day sidebar, the header and the "2 of 3 done today" toast.
   const { data: plan, mutate: refreshPlan } = useSWR(
     guidedPlanOn && course?.id && enrolledCourse ? planKeys.course(course.id) : null,
     () => planApi.course(course!.id),
     { revalidateOnFocus: false, shouldRetryOnError: false },
   );
+  // Chapter-view learners see the existing chapter list, unchanged.
   const guided = plan?.pace === "guided";
-  const { preferences, update: updatePreferences } = usePlayerPreferences();
-  const byWeek = guided && preferences.curriculumView === "week";
   const quizzes: AssessmentQuiz[] = assessments?.quizzes ?? [];
   const chapterQuizzes = quizzes.filter((quiz) => quiz.kind === "chapter");
   const finalExam = quizzes.find((quiz) => quiz.kind === "final_exam");
@@ -155,7 +153,7 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
       await tutorApi.markLessonComplete(course.id, activeLesson.id, watchedSeconds);
       setCompletedLessons((prev) => new Set(Array.from(prev).concat(activeLesson.id)));
       await refreshEnrollments();
-      addToast({ type: "success", title: "Lesson completed!", message: (await planProgressMessage()) ?? "Great job! Keep going." });
+      addToast({ type: "success", title: "Lesson completed!", message: (await planProgressMessage({ type: "lesson", id: activeLesson.id })) ?? "Great job! Keep going." });
 
       // Auto-advance to next lesson
       const allLessons = curriculum.flatMap((s: { lessons: CourseLesson[] }) => s.lessons);
@@ -191,24 +189,37 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
     if (next) setActiveLesson(next);
   };
 
-  /** After a lesson or quiz: "3 of 7 done this week" or "Week 3 complete. Nice work." (guided learners). */
-  const planProgressMessage = async (): Promise<string | null> => {
+  /**
+   * After a lesson or quiz (guided learners): "2 of 3 done today", "Wednesday done early. You're
+   * 1 day ahead of the class." or "Week 5 complete. Week 6 is open."
+   */
+  const planProgressMessage = async (done: { type: "lesson" | "chapter_quiz"; id: number }): Promise<string | null> => {
     if (!guided || !plan) return null;
-    const next = (await refreshPlan().catch(() => undefined)) as CoursePlan | undefined;
-    const week = (next ?? plan).thisWeek;
-    const total = week.items.filter((item) => item.type !== "final_exam").length;
-    if (!total) return null;
-    if (week.doneCount >= total) {
-      if (weekCompletedOnce((next ?? plan).courseId, week.week)) track("plan_week_completed", { week: week.week, course: slug });
-      return `Week ${week.week} complete. Nice work.`;
+    const fresh = ((await refreshPlan().catch(() => undefined)) as CoursePlan | undefined) ?? plan;
+    const week = fresh.week;
+    const lessons = week.days.flatMap((day) => day.items).filter((item) => item.type !== "final_exam");
+    if (!lessons.length) return null;
+    if (lessons.every((item) => item.done)) {
+      if (once(`sa_plan_week_done:${fresh.courseId}:${week.week}`)) track("plan_week_completed", { week: week.week, course: slug });
+      return week.week < fresh.weeks ? `Week ${week.week} complete. Week ${week.week + 1} is open.` : `Week ${week.week} complete. Nice work.`;
     }
-    return `${week.doneCount} of ${total} done this week`;
+    const day = week.days.find((candidate) => candidate.items.some((item) => item.type === done.type && item.id === done.id));
+    if (day && (day.state === "done_early" || (day.state === "upcoming" && fresh.status === "ahead"))) {
+      if (once(`sa_plan_ahead:${fresh.courseId}:${new Date().toDateString()}`)) track("plan_ahead", { daysAhead: fresh.daysAhead ?? 0, course: slug });
+      if (day.state === "done_early" && fresh.daysAhead) return `${DAY_NAME[day.day]} done early. You're ${dayGap(fresh.daysAhead)} ahead of the class.`;
+    }
+    const today = week.days.find((candidate) => candidate.state === "today");
+    const todayLessons = today?.items.filter((item) => item.type !== "final_exam") ?? [];
+    if (todayLessons.length) return `${todayLessons.filter((item) => item.done).length} of ${todayLessons.length} done today`;
+    return `${lessons.filter((item) => item.done).length} of ${lessons.length} done this week`;
   };
 
-  const thisWeekIds = new Set((plan?.thisWeek.items ?? []).filter((item) => item.type === "lesson").map((item) => item.id));
-  const overdueIds = new Set((plan?.overdue ?? []).filter((item) => item.type === "lesson").map((item) => item.id));
   const planItemDone = (item: PlanItem) =>
     item.type === "lesson" ? item.done || completedLessons.has(item.id) : item.done || Boolean(quizzes.find((quiz) => quiz.id === item.id)?.passed);
+  // "Week 5 · Thursday's lesson": the open lesson's planned day (this week, or a catch-up item).
+  const plannedForActive = plan && activeLesson
+    ? [...plan.week.days.flatMap((day) => day.items), ...(plan.overdue ?? [])].find((item) => item.type === "lesson" && item.id === activeLesson.id)
+    : undefined;
 
   const currentIdx = activeLesson
     ? allLessons.findIndex((l: CourseLesson) => l.id === activeLesson.id)
@@ -227,21 +238,29 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
       {/* Top Bar */}
       <div className="bg-neutral-900 border-b border-white/10 px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/dashboard/courses" className="text-white/60 hover:text-white transition-colors shrink-0" aria-label="Back to My Courses">
+          <Link href={guided ? `/dashboard/courses/${encodeURIComponent(slug)}/plan` : "/dashboard/courses"} className="text-white/60 hover:text-white transition-colors shrink-0" aria-label={guided ? "Back to this week's plan" : "Back to My Courses"}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </Link>
           <div className="min-w-0">
             <p className="text-white font-medium text-sm truncate">{course?.title || "Loading..."}</p>
-            {activeLesson && (
+            {guided && plan ? (
+              <p className="text-white/60 text-xs truncate">
+                Week {plannedForActive?.plannedWeek ?? plan.currentWeek}
+                {plannedForActive ? ` · ${DAY_NAME[plannedForActive.plannedDay]}'s lesson` : ""}
+              </p>
+            ) : activeLesson && (
               <p className="text-white/40 text-xs truncate">{activeLesson.title}</p>
             )}
           </div>
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
-          <div className="hidden sm:flex items-center gap-2 w-40">
+          {guided && plan?.status && (
+            <span className={cn("hidden sm:inline-flex rounded-full px-3 py-1 text-[13px] font-semibold", STATUS_CHIP[plan.status])}>{statusLabel(plan.status, plan.daysAhead, plan.daysBehind)}</span>
+          )}
+          <div className={cn("hidden items-center gap-2 w-40", guided ? "lg:flex" : "sm:flex")}>
             <ProgressBar value={progress} size="xs" color="success" />
             <span className="text-white/50 text-xs">{progress}%</span>
           </div>
@@ -437,7 +456,7 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                     await refreshAssessments();
                     if (result.passed) {
                       await refreshEnrollments();
-                      const message = await planProgressMessage();
+                      const message = await planProgressMessage({ type: "chapter_quiz", id: selectedQuiz.id });
                       if (message) addToast({ type: "success", title: "Quiz passed", message });
                     }
                   }}
@@ -469,29 +488,14 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                   <p className="mt-1 text-xs text-neutral-600">
                     Week {plan.currentWeek} of {plan.weeks} ·{" "}
                     <Link href={`/dashboard/courses/${encodeURIComponent(slug)}/plan`} className="font-medium text-primary-800 hover:underline">
-                      See my plan
+                      See this week
                     </Link>
                   </p>
                 )}
               </div>
-              {guided && (
-                <div role="group" aria-label="Show lessons" className="flex gap-1 border-b border-neutral-100 p-2">
-                  {(["week", "chapter"] as const).map((view) => (
-                    <button
-                      key={view}
-                      type="button"
-                      aria-pressed={preferences.curriculumView === view}
-                      onClick={() => updatePreferences({ curriculumView: view })}
-                      className={cn("min-h-11 flex-1 rounded-lg px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-800", preferences.curriculumView === view ? "bg-primary-50 text-primary-800" : "text-neutral-600 hover:bg-neutral-50")}
-                    >
-                      {view === "week" ? "By week" : "By chapter"}
-                    </button>
-                  ))}
-                </div>
-              )}
               <div className="flex-1 overflow-y-auto">
-                {byWeek && plan ? (
-                  <WeekCurriculum
+                {guided && plan ? (
+                  <DayCurriculum
                     plan={plan}
                     activeLessonId={activeLesson?.id}
                     activeQuizId={activeQuiz}
@@ -516,10 +520,9 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                   }))}
                   activeLesson={activeLesson?.id}
                   onLessonClick={handleLessonClick}
-                  weekMarks={guided ? { thisWeek: thisWeekIds, overdue: overdueIds } : undefined}
                 />
                 )}
-                {!byWeek && chapterQuizzes.length > 0 && (
+                {!guided && chapterQuizzes.length > 0 && (
                   <section className="border-t border-neutral-100 p-4" aria-label="Chapter quizzes">
                     <h3 className="text-sm font-semibold text-neutral-900 mb-2">Chapter quizzes</h3>
                     <ul className="space-y-1">

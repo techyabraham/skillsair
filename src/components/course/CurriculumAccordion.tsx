@@ -32,8 +32,6 @@ interface CurriculumAccordionProps {
   activeLesson?: number;
   onLessonClick?: (lesson: CourseLesson, sectionId: number) => void;
   showPreviewOnly?: boolean;
-  /** Guided plan: lesson ids in this week's goals and lessons overdue from earlier weeks. */
-  weekMarks?: { thisWeek: Set<number>; overdue: Set<number> };
 }
 
 export function CurriculumAccordion({
@@ -41,7 +39,6 @@ export function CurriculumAccordion({
   activeLesson,
   onLessonClick,
   showPreviewOnly = false,
-  weekMarks,
 }: CurriculumAccordionProps) {
   const [openSections, setOpenSections] = useState<Set<number>>(
     new Set([sections[0]?.id])
@@ -145,12 +142,6 @@ export function CurriculumAccordion({
                             {lesson.title}
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
-                            {weekMarks?.overdue.has(lesson.id) && !lesson.isCompleted && (
-                              <span className="h-2 w-2 rounded-full bg-warning" title="From an earlier week" aria-label="From an earlier week" />
-                            )}
-                            {weekMarks?.thisWeek.has(lesson.id) && (
-                              <span className="rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-semibold text-primary-800">This week</span>
-                            )}
                             {lesson.hasCaptions && (
                               <span className="rounded border border-neutral-300 px-1 text-[10px] font-semibold leading-4 text-neutral-600" title="Captions available" aria-label="Captions available">
                                 CC

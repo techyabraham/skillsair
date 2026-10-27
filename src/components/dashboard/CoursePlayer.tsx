@@ -155,7 +155,17 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
       await refreshEnrollments();
       addToast({ type: "success", title: "Lesson completed!", message: (await planProgressMessage({ type: "lesson", id: activeLesson.id })) ?? "Great job! Keep going." });
 
-      // Auto-advance to next lesson
+      // The last lesson of a chapter leads to that chapter's quiz (if not passed yet); otherwise
+      // auto-advance to the next lesson. Nothing is locked: any lesson can still be opened.
+      const section = curriculum.find((s: { id: number; lessons: CourseLesson[] }) => s.lessons.some((l) => l.id === activeLesson.id));
+      const lastInChapter = section && section.lessons[section.lessons.length - 1]?.id === activeLesson.id;
+      const chapterQuiz = lastInChapter ? chapterQuizzes.find((quiz) => quiz.sectionId === section.id && !quiz.passed) : undefined;
+      if (chapterQuiz) {
+        setCheckForLesson(null);
+        setActiveQuiz(chapterQuiz.id);
+        addToast({ type: "info", title: "Chapter finished", message: "Take the chapter quiz to check what you've learned." });
+        return;
+      }
       const allLessons = curriculum.flatMap((s: { lessons: CourseLesson[] }) => s.lessons);
       const idx = allLessons.findIndex((l: CourseLesson) => l.id === activeLesson.id);
       if (idx < allLessons.length - 1) {
@@ -520,29 +530,13 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
                   }))}
                   activeLesson={activeLesson?.id}
                   onLessonClick={handleLessonClick}
+                  quizzes={chapterQuizzes.map((quiz) => ({ id: quiz.id, sectionId: quiz.sectionId ?? null, title: quiz.title, passed: Boolean(quiz.passed), status: quizStatus(quiz) }))}
+                  activeQuizId={activeQuiz}
+                  onQuizClick={(quizId) => {
+                    setCheckForLesson(null);
+                    setActiveQuiz(quizId);
+                  }}
                 />
-                )}
-                {!guided && chapterQuizzes.length > 0 && (
-                  <section className="border-t border-neutral-100 p-4" aria-label="Chapter quizzes">
-                    <h3 className="text-sm font-semibold text-neutral-900 mb-2">Chapter quizzes</h3>
-                    <ul className="space-y-1">
-                      {orderedChapterQuizzes(curriculum, chapterQuizzes).map((quiz) => (
-                        <li key={quiz.id}>
-                          <button
-                            type="button"
-                            onClick={() => setActiveQuiz(quiz.id)}
-                            className={cn("w-full text-left rounded-lg px-3 py-2 text-sm transition-colors", activeQuiz === quiz.id ? "bg-primary-50 text-primary-800 font-semibold" : "text-neutral-700 hover:bg-neutral-50")}
-                          >
-                            <span className="flex items-center gap-2">
-                              <span aria-hidden="true" className={quiz.passed ? "text-success-dark" : "text-neutral-300"}>{quiz.passed ? "✓" : "○"}</span>
-                              <span className="truncate">{quiz.title.replace(/^Chapter quiz:\s*/, "")}</span>
-                            </span>
-                            <span className="block pl-5 text-xs text-neutral-500">{quizStatus(quiz)}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
                 )}
                 {finalExam && (
                   <section className="border-t border-neutral-100 p-4" aria-label="Final exam">
@@ -581,11 +575,6 @@ function playableVideoUrl(url: string): string {
     return `/api/media/tutor-video?url=${encodeURIComponent(url)}`;
   }
   return url;
-}
-
-function orderedChapterQuizzes(curriculum: Array<{ id: number }>, quizzes: AssessmentQuiz[]): AssessmentQuiz[] {
-  const order = new Map(curriculum.map((section, index) => [section.id, index]));
-  return [...quizzes].sort((a, b) => (order.get(a.sectionId ?? -1) ?? 999) - (order.get(b.sectionId ?? -1) ?? 999));
 }
 
 function quizStatus(quiz: AssessmentQuiz): string {

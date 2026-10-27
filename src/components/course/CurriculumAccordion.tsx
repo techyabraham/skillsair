@@ -27,11 +27,23 @@ const lessonTypeIcons: Record<string, React.ReactNode> = {
   ),
 };
 
+/** A chapter quiz, shown at the end of its chapter (course player only). */
+export interface ChapterQuizRow {
+  id: number;
+  sectionId: number | null;
+  title: string;
+  passed: boolean;
+  status: string;
+}
+
 interface CurriculumAccordionProps {
   sections: CourseSection[];
   activeLesson?: number;
   onLessonClick?: (lesson: CourseLesson, sectionId: number) => void;
   showPreviewOnly?: boolean;
+  quizzes?: ChapterQuizRow[];
+  activeQuizId?: number | null;
+  onQuizClick?: (quizId: number) => void;
 }
 
 export function CurriculumAccordion({
@@ -39,6 +51,9 @@ export function CurriculumAccordion({
   activeLesson,
   onLessonClick,
   showPreviewOnly = false,
+  quizzes = [],
+  activeQuizId = null,
+  onQuizClick,
 }: CurriculumAccordionProps) {
   const [openSections, setOpenSections] = useState<Set<number>>(
     new Set([sections[0]?.id])
@@ -83,6 +98,7 @@ export function CurriculumAccordion({
       <div className="border border-neutral-200 rounded-xl overflow-hidden divide-y divide-neutral-200">
         {sections.map((section) => {
           const isOpen = openSections.has(section.id);
+          const quiz = quizzes.find((item) => item.sectionId === section.id);
           return (
             <div key={section.id}>
               <button
@@ -93,7 +109,7 @@ export function CurriculumAccordion({
                 <div>
                   <p className="font-semibold text-sm text-neutral-900">{section.title}</p>
                   <p className="text-xs text-neutral-600 mt-0.5">
-                    {section.lessons.length} lessons • {formatDuration(section.totalDuration)}
+                    {section.lessons.length} lessons{quiz ? " + quiz" : ""} • {formatDuration(section.totalDuration)}
                   </p>
                 </div>
                 <svg
@@ -160,6 +176,35 @@ export function CurriculumAccordion({
                       </li>
                     );
                   })}
+                  {quiz && (
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => onQuizClick?.(quiz.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-800",
+                          quiz.id === activeQuizId ? "bg-primary-50" : "hover:bg-neutral-50"
+                        )}
+                      >
+                        <span className={cn("shrink-0", quiz.passed ? "text-success" : quiz.id === activeQuizId ? "text-primary-800" : "text-neutral-400")}>
+                          {quiz.passed ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ) : (
+                            lessonTypeIcons.quiz
+                          )}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className={cn("block text-sm truncate", quiz.id === activeQuizId ? "font-semibold text-primary-800" : "font-medium text-neutral-800")}>
+                            Chapter quiz
+                            <span className="sr-only">{quiz.passed ? ": passed" : ": not passed yet"}</span>
+                          </span>
+                          <span className="block text-xs text-neutral-600">{quiz.status}</span>
+                        </span>
+                      </button>
+                    </li>
+                  )}
                 </ul>
               )}
             </div>

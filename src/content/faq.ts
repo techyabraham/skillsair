@@ -31,7 +31,7 @@ export const faqs: FaqItem[] = [
     id: "how-long",
     question: "How long does it take?",
     answer: guidedPlanOn
-      ? "Each programme follows a guided 12-week plan at about 8 hours a week, with weekly goals and a reminder every Monday. If you fall behind, you can move your plan to fit. On a monthly plan your access continues while your subscription is active, so you can take longer if you need to. Prefer no schedule? You can switch to self-paced in your plan settings."
+      ? "Each programme follows a guided 12-week plan at about 8 hours a week, with weekly goals and a reminder every Monday. If you fall behind, you can move your plan to fit. On a monthly plan your access continues while your subscription is active, so you can take longer if you need to. You can always go ahead of the plan, or switch to chapter view in your plan settings."
       : "Each programme is designed to take 12 weeks at about 8 hours a week. On a monthly plan your access continues while your subscription is active, so you can take longer if you need to.",
   },
   {

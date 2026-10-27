@@ -251,7 +251,7 @@ export default async function ProgrammePage({ params }: { params: { slug: string
             <h2 className="mt-3 text-[1.75rem] font-bold leading-[1.15] text-navy md:text-[2.5rem]">Step by step, from the basics</h2>
             <p className="mt-4 text-neutral-700">
               {guidedPlanOn
-                ? `Short lessons grouped into weekly goals, about ${programme.weeklyHours} hours a week. Prefer no weekly schedule? You can turn the plan off in your plan settings.`
+                ? `Short lessons planned for each weekday, Monday to Friday, about ${programme.weeklyHours} hours a week. A lesson or two each weekday, and you can always go ahead.`
                 : `Short lessons, about ${programme.weeklyHours} hours a week.`}{" "}
               Open the free preview to see how the lessons work before you apply.
             </p>

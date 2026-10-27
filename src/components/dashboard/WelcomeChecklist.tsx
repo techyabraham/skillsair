@@ -51,7 +51,7 @@ export function WelcomeChecklist() {
       <h1 className="text-2xl font-heading font-extrabold text-neutral-900 md:text-3xl">Welcome to SkillsAir{user?.firstName ? `, ${user.firstName}` : ""}</h1>
       <p className="mt-2 text-neutral-600">
         {guidedPlanOn
-          ? `Your guided ${site.programme.planWeeks}-week plan starts today: about ${site.programme.weeklyHours} hours a week. Check This week on your dashboard for your goals.`
+          ? `Your guided ${site.programme.planWeeks}-week plan starts today: a lesson or two each weekday. Check Today on your dashboard for what to do.`
           : `Your programme is designed to take ${site.programme.planWeeks} weeks at about ${site.programme.weeklyHours} hours a week.`}
       </p>
       <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-5 md:p-6">

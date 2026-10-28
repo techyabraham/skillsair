@@ -1,7 +1,7 @@
 /**
- * Ambassador referral links (AMBASSADORS.md R6, R7): `?ref=<CODE>` on any page. The middleware
- * records the click with the backend, keeps the attribution in the httpOnly `sa_ref` cookie and
- * redirects to the same URL without `ref`. Pure helpers here so they can be unit-tested.
+ * Ambassador referral links (AMBASSADORS.md R6, R7): `?skr=<CODE>` on any page. Legacy `?ref=`
+ * links are also accepted. The middleware records the click with the backend, keeps the attribution
+ * in the httpOnly `sa_ref` cookie and redirects without either referral parameter.
  */
 
 export const REF_COOKIE = "sa_ref";
@@ -15,13 +15,16 @@ const BOT_UA = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|preview|head
 /** Fallback when the backend could not be reached: the code alone, kept for 30 days. */
 export const FALLBACK_MAX_AGE = 30 * 24 * 60 * 60;
 
-/** The value of the first `ref` query parameter, whatever the key's case; null when absent. */
+/** Prefer the first `skr` query parameter; accept legacy `ref` links as a fallback. */
 export function findRef(url: URL): string | null {
-  let result: string | null = null;
+  let skr: string | null = null;
+  let legacyRef: string | null = null;
   url.searchParams.forEach((value, key) => {
-    if (result === null && key.toLowerCase() === "ref") result = value;
+    const normalizedKey = key.toLowerCase();
+    if (skr === null && normalizedKey === "skr") skr = value;
+    if (legacyRef === null && normalizedKey === "ref") legacyRef = value;
   });
-  return result;
+  return skr ?? legacyRef;
 }
 
 export function isValidRef(value: string): boolean {
@@ -36,12 +39,13 @@ export function isBot(userAgent: string | null): boolean {
   return !userAgent || BOT_UA.test(userAgent);
 }
 
-/** The same URL without any `ref` parameter (any case); every other parameter is kept in order. */
+/** The same URL without `skr` or legacy `ref` parameters (any case); other parameters are kept. */
 export function stripRef(url: URL): URL {
   const out = new URL(url.toString());
   const keys: string[] = [];
   out.searchParams.forEach((_value, key) => {
-    if (key.toLowerCase() === "ref") keys.push(key);
+    const normalizedKey = key.toLowerCase();
+    if (normalizedKey === "skr" || normalizedKey === "ref") keys.push(key);
   });
   for (const key of keys) out.searchParams.delete(key);
   return out;

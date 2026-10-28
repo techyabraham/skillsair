@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { findRef, isBot, isValidRef, isValidVisitorId, parseTrackResponse, refCookieDecision, stripRef, utmFrom } from "./referral";
 
 describe("referral capture", () => {
-  it("strips every case of ref while retaining other parameters and fragments", () => {
-    const url = new URL("https://skillsair.com/courses/design?utm_source=x&REF=ABCDEFGH&tab=one&ref=123#fees");
+  it("prefers skr, accepts legacy ref and strips both while retaining other parameters", () => {
+    const url = new URL("https://skillsair.com/courses/design?utm_source=x&REF=123&tab=one&SkR=ABCDEFGH&ref=456#fees");
     expect(findRef(url)).toBe("ABCDEFGH");
     expect(stripRef(url).href).toBe("https://skillsair.com/courses/design?utm_source=x&tab=one#fees");
-    expect(url.searchParams.get("REF")).toBe("ABCDEFGH");
+    expect(url.searchParams.get("REF")).toBe("123");
+    expect(findRef(new URL("https://skillsair.com/?ref=123"))).toBe("123");
     expect(findRef(new URL("https://skillsair.com/"))).toBeNull();
   });
 

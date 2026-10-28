@@ -62,7 +62,7 @@ async function track(req: NextRequest, ref: string, visitorId: string, existing:
   }
 }
 
-/** ?ref=<CODE> on any page: record the click, keep the referral in sa_ref, redirect without ref. */
+/** ?skr=<CODE> on any page (legacy ?ref= links too): track the click and clean the URL. */
 async function handleReferral(req: NextRequest, ref: string): Promise<NextResponse> {
   const cleaned = stripRef(req.nextUrl);
   const target = new URL(`${cleaned.pathname}${cleaned.search}`, `${siteOrigin(req)}/`);
@@ -92,7 +92,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Every page, so ?ref= works anywhere. Pages without ?ref= pass straight through (the home page
-  // also gets its A/B cookie); /_next, /api and static files never reach the middleware.
+  // Every page, so ?skr= works anywhere. Legacy ?ref= links remain supported. Pages without a
+  // referral parameter pass through (the home page also gets its A/B cookie); static paths skip it.
   matcher: ["/((?!_next/|api/|favicon\\.ico|.*\\.[A-Za-z0-9]+$).*)"],
 };

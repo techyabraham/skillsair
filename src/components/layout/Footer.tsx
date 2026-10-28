@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { site, whatsappLink } from "@/content/site";
 
-const columns: Array<{ title: string; links: Array<{ label: string; href: string }> }> = [
+const columns: Array<{ title: string; links: Array<{ label: string; href: string; external?: boolean }> }> = [
   {
     title: "Schools",
     links: [
@@ -19,6 +19,7 @@ const columns: Array<{ title: string; links: Array<{ label: string; href: string
       { label: "Outcomes", href: "/outcomes" },
       { label: "FAQ", href: "/faq" },
       { label: "Contact", href: "/contact" },
+      { label: "Become an Ambassador", href: "https://ambassador.skillsair.com/apply", external: true },
     ],
   },
   {
@@ -56,7 +57,11 @@ export function Footer() {
           {columns.map((column) => (
             <div key={column.title} className="flex flex-col gap-2.5">
               <h2 className="text-sm font-bold text-white">{column.title}</h2>
-              {column.links.map((link) => (
+              {column.links.map((link) => link.external ? (
+                <a key={link.href} href={link.href} className="text-neutral-300 underline-offset-4 hover:text-white hover:underline">
+                  {link.label}
+                </a>
+              ) : (
                 <Link key={link.href} href={link.href} className="text-neutral-300 underline-offset-4 hover:text-white hover:underline">
                   {link.label}
                 </Link>

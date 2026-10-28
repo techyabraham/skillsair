@@ -1,3 +1,4 @@
+import { REF_COOKIE } from "@/lib/referral";
 import { NextRequest, NextResponse } from "next/server";
 import { backendAuthCookieOptions, backendFetch, backendPayload } from "@/lib/backend-api";
 import { LEAD_COOKIE } from "@/lib/lead-session";
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   try {
     const upstream = await backendFetch(req, "auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, firstName, lastName, phone: normalizedPhone, marketingConsent, marketingConsentText, leadToken }),
+      body: JSON.stringify({ email, password, firstName, lastName, phone: normalizedPhone, marketingConsent, marketingConsentText, leadToken, attribution: req.cookies.get(REF_COOKIE)?.value }),
     });
     if (!upstream.ok) {
       const payload = await upstream.json().catch(() => null) as { error?: { message?: string; fields?: Record<string, string> } } | null;
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
     response.cookies.set("sa_backend_refresh", result.refreshToken, backendAuthCookieOptions(secure));
     response.cookies.set("sa_user_id", String(result.user.id), backendAuthCookieOptions(secure));
     response.cookies.delete("sa_persistent");
+    response.cookies.delete(REF_COOKIE);
     return response;
   } catch (error) {
     return NextResponse.json({ message: error instanceof Error ? error.message : "Backend registration service is unavailable" }, { status: 502 });

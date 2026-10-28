@@ -1,3 +1,4 @@
+import { REF_COOKIE } from "@/lib/referral";
 import { NextRequest, NextResponse } from "next/server";
 import { backendFetch, backendPayload, backendToken } from "@/lib/backend-api";
 
@@ -14,7 +15,7 @@ async function findCourse(req: NextRequest, slug: string): Promise<CourseRecord 
 }
 
 async function beginPayment(req: NextRequest, path: string, body: Record<string, unknown>, paymentMethod: string, replacesOrderId?: string) {
-  const paymentBody = { ...body, paymentMethod, ...(replacesOrderId ? { replacesOrderId } : {}) };
+  const paymentBody = { ...body, attribution: req.cookies.get(REF_COOKIE)?.value, paymentMethod, ...(replacesOrderId ? { replacesOrderId } : {}) };
   const response = await backendFetch(req, path, { method: "POST", body: JSON.stringify(paymentBody) });
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { error?: { message?: string } } | null;

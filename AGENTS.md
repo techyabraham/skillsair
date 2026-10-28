@@ -6,6 +6,8 @@ This repository is the SkillsAir customer-facing web application. It replaces th
 
 Use this file as the frontend repository's operating guide. Before changing backend behavior, read `C:\src\skillsair-backend\AGENTS.md` and implement the change in that repository. The frontend's API routes are mostly a same-origin backend-for-frontend (BFF), not the authoritative business/data layer.
 
+Read AMBASSADORS.md before any ambassador work.
+
 ## Collaboration Rules
 
 - Inspect `git status --short` before editing. Preserve existing user changes; do not reset, checkout, or overwrite unrelated work.

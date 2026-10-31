@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { ConsentCheckbox, PrivacyNote } from "@/components/marketing/ConsentCheckbox";
+import { ConsentNotice, PrivacyNote } from "@/components/marketing/ConsentCheckbox";
 import { EMAIL_ERROR, PHONE_ERROR, isValidEmail, normalizePhone } from "@/lib/phone";
 import { suggestEmail } from "@/lib/email-typos";
 import { MARKETING_CONSENT_TEXT, site } from "@/content/site";
@@ -238,7 +238,7 @@ export function LeadDetailsForm({
         <label htmlFor={`${id}-website`}>Website</label>
         <input id={`${id}-website`} tabIndex={-1} autoComplete="off" value={website} onChange={(event) => setWebsite(event.target.value)} />
       </div>
-      <ConsentCheckbox id={`${id}-consent`} checked={details.marketingConsent} onChange={(marketingConsent) => update({ marketingConsent })} />
+      <ConsentNotice />
       <button
         type="submit"
         disabled={submitting}

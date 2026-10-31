@@ -33,7 +33,6 @@ export function SoftCapture({ programme, programmeTitle }: { programme: string; 
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [firstName, setFirstName] = useState("");
   const [phone, setPhone] = useState("");
-  const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "done">("idle");
 
@@ -75,8 +74,6 @@ export function SoftCapture({ programme, programmeTitle }: { programme: string; 
         phone: e164,
         programme,
         source: "curriculum_request",
-        marketingConsent: consent,
-        marketingConsentText: consent ? MARKETING_CONSENT_TEXT : undefined,
       }),
     }).catch(() => null);
     if (!response?.ok) {
@@ -115,10 +112,7 @@ export function SoftCapture({ programme, programmeTitle }: { programme: string; 
               <label htmlFor={`${id}-phone`} className="label">WhatsApp number</label>
               <input id={`${id}-phone`} value={phone} onChange={(event) => setPhone(event.target.value)} type="tel" inputMode="tel" autoComplete="tel" placeholder="0818 000 0000" className="input-field min-h-12 text-base" />
             </div>
-            <label className="flex items-start gap-3 text-sm text-neutral-700">
-              <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-neutral-300" />
-              <span>{MARKETING_CONSENT_TEXT}</span>
-            </label>
+            <p className="text-sm text-neutral-700">{MARKETING_CONSENT_TEXT}</p>
             <button type="submit" disabled={status === "saving"} className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-700 font-semibold text-white hover:bg-accent-800 disabled:opacity-60">
               {status === "saving" ? "Sending…" : "Send it to my WhatsApp"}
             </button>

@@ -220,6 +220,6 @@ export function planSentence(): string {
   return phrase[0].toUpperCase() + phrase.slice(1);
 }
 
-/** Exact consent wording shown under Apply step 2. The backend stores this text with the consent. */
+/** Shown wherever someone gives their email or number: everyone is on the list until they opt out. */
 export const MARKETING_CONSENT_TEXT =
-  "Yes, send me updates, scholarship deadlines and offers by WhatsApp and email. I can reply STOP or unsubscribe anytime.";
+  "We'll send you updates, scholarship deadlines and offers by email and WhatsApp. Unsubscribe or reply STOP anytime.";

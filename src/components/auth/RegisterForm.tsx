@@ -10,11 +10,10 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { ConsentCheckbox } from "@/components/marketing/ConsentCheckbox";
+import { ConsentNotice } from "@/components/marketing/ConsentCheckbox";
 import { normalizePhone, PHONE_ERROR } from "@/lib/phone";
 import { safeNextPath } from "@/lib/lead-session";
 import { track } from "@/lib/analytics";
-import { MARKETING_CONSENT_TEXT } from "@/content/site";
 
 const PASSWORD_RULES: Array<{ label: string; test: (value: string) => boolean }> = [
   { label: "8+ characters", test: (value) => value.length >= 8 },
@@ -40,7 +39,6 @@ export function RegisterForm() {
   const searchParams = useSearchParams();
   const { register: registerUser, error: authError, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [marketingConsent, setMarketingConsent] = useState(false);
 
   const {
     register,
@@ -63,8 +61,6 @@ export function RegisterForm() {
         phone: normalizePhone(data.phone) ?? data.phone,
         password: data.password,
         acceptTerms: data.acceptTerms,
-        marketingConsent,
-        marketingConsentText: marketingConsent ? MARKETING_CONSENT_TEXT : undefined,
       });
       track("account_created", { source: "register" });
       router.push(safeNextPath(searchParams.get("next")));
@@ -134,7 +130,7 @@ export function RegisterForm() {
         </ul>
       </div>
 
-      <ConsentCheckbox checked={marketingConsent} onChange={setMarketingConsent} id="register-consent" />
+      <ConsentNotice />
 
       <div>
         <label className="flex items-start gap-2.5 cursor-pointer">

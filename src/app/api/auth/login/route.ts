@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
   if (!email || !password) return NextResponse.json({ message: "Email and password are required" }, { status: 400 });
 
   try {
-    const upstream = await backendFetch(req, "auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+    // Never leave the sign-in button spinning: if the API doesn't answer, say so.
+    const upstream = await backendFetch(req, "auth/login", { method: "POST", body: JSON.stringify({ email, password }), signal: AbortSignal.timeout(25_000) });
     if (!upstream.ok) {
       const payload = await upstream.json().catch(() => null) as { error?: { message?: string } } | null;
       return NextResponse.json({ message: payload?.error?.message || "Login failed" }, { status: upstream.status });
@@ -42,6 +43,9 @@ export async function POST(req: NextRequest) {
     else response.cookies.delete("sa_persistent");
     return response;
   } catch (error) {
+    if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+      return NextResponse.json({ message: "Sign-in is taking too long. Please try again in a minute." }, { status: 504 });
+    }
     return NextResponse.json({ message: error instanceof Error ? error.message : "Backend login service is unavailable" }, { status: 502 });
   }
 }

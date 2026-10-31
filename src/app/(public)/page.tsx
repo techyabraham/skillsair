@@ -25,24 +25,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-const HERO_HEADLINES = {
-  A: (
-    <>
-      Learn a tech skill employers pay for. <span className="text-accent">Then get access to internships.</span>
-    </>
-  ),
-  B: (
-    <>
-      From zero to job-ready in 3 months, <span className="text-accent">for less than your data subscription.</span>
-    </>
-  ),
-  C: (
-    <>
-      Learn a tech skill employers pay for. <span className="text-accent">Then get access to internships.</span>
-    </>
-  ),
-} as const;
-
 const PATHWAY = ["1 · Learn", "2 · Certify", "3 · Get internship access"];
 
 const laptopSupportOn = process.env.NEXT_PUBLIC_FEATURE_LAPTOP_SUPPORT !== "false";
@@ -83,14 +65,16 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organisationJsonLd) }} />
-      <TrackEvent event="experiment_variant" params={{ hero: experiments.hero, cta: experiments.cta }} />
+      <TrackEvent event="experiment_variant" params={{ cta: experiments.cta }} />
 
       {/* Hero: centred on navy over the adire pattern. */}
       <section className="relative overflow-hidden border-t border-primary-800 bg-navy">
         <AdirePattern />
         <div className="container-wide relative flex max-w-[920px] flex-col items-center gap-6 pb-20 pt-20 text-center md:gap-[26px] md:pb-[104px] md:pt-28">
           <p className="eyebrow text-accent-300">For young Africans ready to start a tech career</p>
-          <h1 className="text-[2.125rem] font-bold leading-[1.06] tracking-[-0.025em] text-white md:text-[4rem]">{HERO_HEADLINES[experiments.hero]}</h1>
+          <h1 className="text-[2.125rem] font-bold leading-[1.06] tracking-[-0.025em] text-white md:text-[4rem]">
+            Learn a tech skill employers pay for. <span className="text-accent">Then get access to internships.</span>
+          </h1>
           <p className="max-w-[660px] text-lg text-neutral-300 md:text-xl">{subLine}</p>
           <div className="mt-2 flex w-full flex-col items-center justify-center gap-6 sm:w-auto sm:flex-row sm:flex-wrap">
             <PrimaryCTA href="/apply" size="lg" block>
@@ -127,7 +111,21 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
             Bootcamps cost hundreds of thousands. Free tutorials leave you with half-skills and nobody to vouch for you. Meanwhile, companies are short of the tech talent they need. SkillsAir exists to close that gap: quality, job-ready training at a price you can afford, ending with a certificate employers can verify.
           </p>
         }
-      />
+      >
+        {/* The answer to the problem above. The price half is only true at the scholarship price. */}
+        <div className="flex flex-col items-center gap-5">
+          <span aria-hidden="true" className="h-1 w-12 rounded-full bg-accent" />
+          <p className="max-w-[720px] text-[1.5rem] font-bold leading-[1.2] tracking-[-0.015em] text-navy md:text-[2rem]">
+            {scholarship.isOpen ? (
+              <>
+                From zero to job-ready in {site.programme.durationMonths} months, <span className="text-accent-700">for less than your data subscription.</span>
+              </>
+            ) : (
+              <>From zero to job-ready in {site.programme.durationMonths} months.</>
+            )}
+          </p>
+        </div>
+      </Section>
 
       <Section id="how-it-works" tone="muted" eyebrow="How it works" title="Four steps from where you are to where you want to be">
         <StepPathway />

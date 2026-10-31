@@ -59,7 +59,7 @@ export const faqs: FaqItem[] = [
   },
   {
     id: "after-deadline",
-    question: "What happens after 31 October?",
+    question: "What happens when the scholarship window closes?",
     answer:
       "The scholarship window closes and the standard fee (₦100,000, or ₦40,000 a month) applies to new learners until the next window opens. If you joined during the window, you keep paying ₦2,000 a month.",
   },

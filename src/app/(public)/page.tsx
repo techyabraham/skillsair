@@ -4,7 +4,6 @@ import Image from "next/image";
 import { cookies } from "next/headers";
 import { Section } from "@/components/marketing/Section";
 import { GhostLink, PrimaryCTA } from "@/components/marketing/PrimaryCTA";
-import { TrustStrip } from "@/components/marketing/TrustStrip";
 import { StepPathway } from "@/components/marketing/StepPathway";
 import { SchoolCard } from "@/components/marketing/SchoolCard";
 import { FAQAccordion } from "@/components/marketing/FAQAccordion";
@@ -99,8 +98,6 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
           </ol>
         </div>
       </section>
-
-      <TrustStrip />
 
       <Section
         align="center"

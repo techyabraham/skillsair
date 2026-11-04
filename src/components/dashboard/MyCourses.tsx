@@ -147,7 +147,7 @@ function CourseCard({
       <div className="p-5 flex flex-col flex-1">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-neutral-400">
-            {course.totalLessons} lessons • {formatDuration(course.duration)}
+            {course.totalLessons} lessons{course.duration > 0 ? ` • ${formatDuration(course.duration * 60)}` : ""}
           </span>
         </div>
 

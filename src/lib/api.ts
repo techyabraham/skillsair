@@ -80,15 +80,20 @@ export const tutorApi = {
     return res.json() as Promise<Certificate[]>;
   },
 
+  /**
+   * Saves lesson progress. watchedDelta is the seconds watched since the last report; the backend
+   * adds it to the learner's total for the lesson, so watching on several visits counts.
+   */
   async markLessonComplete(
     courseId: number,
     lessonId: number,
-    watchedSeconds = 0,
+    watchedDelta = 0,
     isCompleted = true
   ): Promise<{ success: boolean }> {
     return apiFetch(`/api/learning/courses/${courseId}/lessons/${lessonId}/progress`, {
       method: "POST",
-      body: JSON.stringify({ watchedSeconds, isCompleted }),
+      body: JSON.stringify({ watchedDelta, isCompleted }),
+      keepalive: !isCompleted,
     });
   },
 

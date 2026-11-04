@@ -82,27 +82,38 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
 
   useEffect(() => {
     setWatchedSeconds(0);
+    reportedRef.current = 0;
     setPosition(0);
     setContentTab("notes");
     lastVideoTime.current = null;
   }, [activeLesson?.id]);
 
-  // Progress heartbeat: every 30 s, send the watch time so far (not a completion). Skipped when
-  // nothing new was watched, so a paused or hidden player sends nothing.
+  // Progress heartbeat: every 30 s, send the seconds watched since the last report (not a
+  // completion); the backend adds them to the lesson's total, so time watched on an earlier visit
+  // still counts. Leaving the lesson or the page sends what's left. Nothing new watched, nothing sent.
   const watchedRef = useRef(0);
   watchedRef.current = watchedSeconds;
+  const reportedRef = useRef(0);
+  const unreported = () => Math.max(0, Math.floor(watchedRef.current) - reportedRef.current);
   useEffect(() => {
     if (!course?.id || !activeLesson?.id) return;
     const courseId = course.id;
     const lessonId = activeLesson.id;
-    let sent = 0;
-    const timer = window.setInterval(() => {
-      const seconds = Math.floor(watchedRef.current);
-      if (seconds - sent < 5 || document.visibilityState === "hidden") return;
-      sent = seconds;
-      tutorApi.markLessonComplete(courseId, lessonId, seconds, false).catch(() => undefined);
-    }, 30_000);
-    return () => window.clearInterval(timer);
+    const report = (minimum: number) => {
+      const delta = unreported();
+      if (delta < minimum) return;
+      reportedRef.current += delta;
+      tutorApi.markLessonComplete(courseId, lessonId, delta, false).catch(() => undefined);
+    };
+    const timer = window.setInterval(() => { if (document.visibilityState !== "hidden") report(5); }, 30_000);
+    const onHide = () => { if (document.visibilityState === "hidden") report(1); };
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onHide);
+      report(1);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course?.id, activeLesson?.id]);
 
   useEffect(() => {
@@ -149,8 +160,11 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
   const handleMarkComplete = async () => {
     if (!activeLesson || !course?.id) return;
     setMarkingComplete(true);
+    const delta = unreported();
+    // Counted as reported even if the lesson isn't accepted yet: the backend saves the time first.
+    reportedRef.current += delta;
     try {
-      await tutorApi.markLessonComplete(course.id, activeLesson.id, watchedSeconds);
+      await tutorApi.markLessonComplete(course.id, activeLesson.id, delta);
       setCompletedLessons((prev) => new Set(Array.from(prev).concat(activeLesson.id)));
       await refreshEnrollments();
       addToast({ type: "success", title: "Lesson completed!", message: (await planProgressMessage({ type: "lesson", id: activeLesson.id })) ?? "Great job! Keep going." });
@@ -171,8 +185,11 @@ export function CoursePlayer({ slug }: CoursePlayerProps) {
       if (idx < allLessons.length - 1) {
         setActiveLesson(allLessons[idx + 1]);
       }
-    } catch {
-      addToast({ type: "error", title: "Could not save progress", message: "Please try again." });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      // "Watch the rest of this video first (about 2 minutes left)…" from the backend.
+      if (/^Watch the rest/.test(message)) addToast({ type: "info", title: "Not finished yet", message });
+      else addToast({ type: "error", title: "Could not save progress", message: "Check your connection and try again." });
     } finally {
       setMarkingComplete(false);
     }

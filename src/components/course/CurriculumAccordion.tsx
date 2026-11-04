@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { cn, formatDuration } from "@/lib/utils";
+import { cn, formatTotalLength, formatVideoLength } from "@/lib/utils";
 import type { CourseSection, CourseLesson } from "@/types/course";
 
 const lessonTypeIcons: Record<string, React.ReactNode> = {
@@ -78,7 +78,7 @@ export function CurriculumAccordion({
     <div>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-neutral-500">
-          {sections.length} sections • {totalLessons} lessons • {formatDuration(totalDuration)} total
+          {sections.length} sections • {totalLessons} lessons{totalDuration > 0 ? ` • ${formatTotalLength(totalDuration)} total` : ""}
         </p>
         <button
           onClick={() => {
@@ -109,7 +109,7 @@ export function CurriculumAccordion({
                 <div>
                   <p className="font-semibold text-sm text-neutral-900">{section.title}</p>
                   <p className="text-xs text-neutral-600 mt-0.5">
-                    {section.lessons.length} lessons{quiz ? " + quiz" : ""} • {formatDuration(section.totalDuration)}
+                    {section.lessons.length} lessons{quiz ? " + quiz" : ""}{section.totalDuration > 0 ? ` • ${formatTotalLength(section.totalDuration)}` : ""}
                   </p>
                 </div>
                 <svg
@@ -169,7 +169,7 @@ export function CurriculumAccordion({
                               </span>
                             )}
                             {lesson.duration > 0 && (
-                              <span className="text-xs text-neutral-600">{formatDuration(lesson.duration)}</span>
+                              <span className="text-xs text-neutral-600">{formatVideoLength(lesson.duration)}</span>
                             )}
                           </div>
                         </button>

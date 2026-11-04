@@ -15,6 +15,21 @@ export function formatPrice(price: number, currency = "NGN"): string {
   }).format(price);
 }
 
+/** A video's length from seconds, as a player shows it: "2:30", "12:05", "1:02:05". */
+export function formatVideoLength(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = String(total % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
+}
+
+/** A total running time from seconds: "45 min", "3h 20m". Under a minute counts as 1 min. */
+export function formatTotalLength(seconds: number): string {
+  return formatDuration(Math.max(1, Math.round(seconds / 60)));
+}
+
+/** Minutes as "45m" or "3h 20m". Lesson and programme lengths from the backend are in seconds: use formatVideoLength or formatTotalLength. */
 export function formatDuration(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);

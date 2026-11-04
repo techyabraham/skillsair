@@ -22,6 +22,7 @@ export interface CourseLesson {
   id: number;
   title: string;
   slug: string;
+  /** Video length in seconds (0 when unknown or not a video). */
   duration: number;
   type: "video" | "text" | "quiz" | "assignment";
   isPreview: boolean;
@@ -42,6 +43,7 @@ export interface CourseSection {
   id: number;
   title: string;
   lessons: CourseLesson[];
+  /** Sum of the lessons' lengths, in seconds. */
   totalDuration: number;
 }
 
@@ -80,6 +82,7 @@ export interface Course {
   isEnrolled?: boolean;
   status: CourseStatus;
   language: string;
+  /** Whole hours of video. */
   duration: number;
   totalLessons: number;
   totalStudents: number;

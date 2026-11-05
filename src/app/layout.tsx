@@ -5,6 +5,7 @@ import { Providers } from "./providers";
 import { guidedPlanOn } from "@/content/site";
 import { Analytics } from "@/components/analytics/Analytics";
 import { AttributionCapture } from "@/components/analytics/AttributionCapture";
+import { PwaRegister } from "@/components/pwa/PwaRegister";
 
 // The design system uses Space Grotesk for both headings and body text.
 const spaceGrotesk = Space_Grotesk({
@@ -18,6 +19,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#1e3a8a",
+  // The installed app draws under the iPhone notch and home bar; layouts pad with env(safe-area-inset-*).
+  viewportFit: "cover",
 };
 
 const TITLE = "SkillsAir: Affordable, job-ready tech training for young Africans";
@@ -56,6 +59,8 @@ export const metadata: Metadata = {
     creator: "@skillsair",
   },
   robots: { index: true, follow: true },
+  // Installed on an iPhone home screen: full screen, with the app's name under the icon.
+  appleWebApp: { capable: true, title: "SkillsAir", statusBarStyle: "default" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -65,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>{children}</Providers>
         <AttributionCapture />
         <Analytics />
+        <PwaRegister />
       </body>
     </html>
   );

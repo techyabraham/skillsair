@@ -2,6 +2,7 @@
 
 import { ExamReadyCards } from "@/components/dashboard/ExamReadyCards";
 import { TodayPlans } from "@/components/dashboard/TodayPlans";
+import { ContinueCard } from "@/components/dashboard/ContinueCard";
 import { guidedPlanOn } from "@/content/site";
 import React from "react";
 import Link from "next/link";
@@ -62,10 +63,15 @@ export function DashboardOverview() {
     return "Good evening";
   };
 
+  // With the guided plan switched off, the most recent programme gets the big Continue card.
+  const fallback = guidedPlanOn ? undefined : coursesToShow[0];
+
+  // Phones and the installed app read top to bottom: what to do now first (Continue, today's
+  // lessons, programmes), the figures and shortcuts last. Wider screens keep the figures higher.
   return (
-    <div className="p-6 md:p-10 max-w-6xl mx-auto">
+    <div className="flex flex-col p-4 sm:p-6 md:p-10 max-w-6xl mx-auto">
       {/* Paid certificates waiting for their final exam */}
-      <div className="mb-6">
+      <div className="order-1 mb-6 empty:mb-0">
         <ExamReadyCards />
       </div>
       {/* Welcome */}
@@ -73,7 +79,7 @@ export function DashboardOverview() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-8"
+        className="order-2 mb-6 sm:mb-8"
       >
         {guidedPlanOn && (
           <p className="text-[15px] text-neutral-600">
@@ -92,34 +98,25 @@ export function DashboardOverview() {
         </p>
       </motion.div>
 
+      {fallback && (
+        <div className="order-3 mb-8">
+          <ContinueCard
+            eyebrow={fallback.progress > 0 ? "Continue where you stopped" : "Ready to start"}
+            title={fallback.title}
+            meta={fallback.progress > 0 ? `${fallback.progress}% complete` : undefined}
+            href={`/dashboard/courses/${fallback.slug}/learn`}
+            cta={fallback.progress > 0 ? "Continue" : "Start"}
+          />
+        </div>
+      )}
+
       {/* Today: the guided plan, Monday to Friday */}
-      <div className="mb-10 empty:hidden">
+      <div className="order-4 mb-8 sm:mb-10 empty:hidden">
         <TodayPlans />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        {STAT_CARDS.map((card, i) => (
-          <motion.div
-            key={card.key}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="bg-white rounded-2xl border border-neutral-100 p-5 shadow-card"
-          >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 ${card.iconBg}`}>
-              {card.icon}
-            </div>
-            <p className="text-2xl font-bold text-neutral-900">
-              {statsLoading ? "—" : formatNumber(stats[card.key])}
-            </p>
-            <p className="text-xs text-neutral-500 mt-0.5">{card.label}</p>
-          </motion.div>
-        ))}
-      </div>
-
       {/* Enrolled Courses */}
-      <section className="mb-10" aria-labelledby="in-progress-heading">
+      <section className="order-5 lg:order-6 mb-10" aria-labelledby="in-progress-heading">
         <div className="flex items-center justify-between mb-5">
           <h2 id="in-progress-heading" className="text-lg font-heading font-semibold text-neutral-900">
             {inProgress.length > 0 ? "Continue Learning" : enrolledCourses.length > 0 ? "My Enrolled Courses" : "Continue Learning"}
@@ -187,8 +184,29 @@ export function DashboardOverview() {
         )}
       </section>
 
+      {/* Stats */}
+      <div className="order-6 lg:order-5 grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        {STAT_CARDS.map((card, i) => (
+          <motion.div
+            key={card.key}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.08 }}
+            className="bg-white rounded-2xl border border-neutral-100 p-5 shadow-card"
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 ${card.iconBg}`}>
+              {card.icon}
+            </div>
+            <p className="text-2xl font-bold text-neutral-900">
+              {statsLoading ? "—" : formatNumber(stats[card.key])}
+            </p>
+            <p className="text-xs text-neutral-500 mt-0.5">{card.label}</p>
+          </motion.div>
+        ))}
+      </div>
+
       {/* Quick actions */}
-      <section aria-labelledby="quick-actions-heading">
+      <section className="order-7" aria-labelledby="quick-actions-heading">
         <h2 id="quick-actions-heading" className="text-lg font-heading font-semibold text-neutral-900 mb-5">
           Quick Actions
         </h2>

@@ -3,6 +3,8 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
 import { Header } from "@/components/layout/Header";
 import { PastDueBanner } from "@/components/dashboard/PastDueBanner";
+import { LearnerTabBar, TabBarSpacer } from "@/components/layout/LearnerTabBar";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,8 +18,11 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           </div>
           <main className="flex-1 min-w-0 overflow-auto">
             {children}
+            <TabBarSpacer />
           </main>
         </div>
+        <InstallPrompt />
+        <LearnerTabBar />
       </div>
     </AuthGuard>
   );

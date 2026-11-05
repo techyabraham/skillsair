@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
@@ -38,6 +40,12 @@ const passwordSchema = z
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
+
+const ACCOUNT_LINKS = [
+  { href: "/dashboard/subscription", label: "Subscription" },
+  { href: "/dashboard/orders", label: "Order history" },
+  { href: "/dashboard/laptop-support", label: "Laptop support" },
+];
 
 export function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -132,8 +140,22 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-8">My Profile</h1>
+    <div className="p-4 sm:p-6 md:p-10 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-6 sm:mb-8">My Profile</h1>
+
+      {/* Phones and the installed app have four bottom tabs; the rest of the account lives here. */}
+      <nav aria-label="Account" className="mb-6 overflow-hidden rounded-2xl border border-neutral-100 bg-white lg:hidden">
+        <ul className="divide-y divide-neutral-100">
+          {ACCOUNT_LINKS.map((link) => (
+            <li key={link.href}>
+              <Link href={link.href} className="flex min-h-14 items-center justify-between px-5 font-medium text-neutral-800 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-navy">
+                {link.label}
+                <ChevronRight aria-hidden="true" className="size-5 text-neutral-400" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       {/* Avatar Section */}
       <div className="bg-white rounded-2xl border border-neutral-100 p-6 mb-6 flex items-center gap-6">

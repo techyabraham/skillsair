@@ -5,6 +5,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { guidedPlanOn } from "@/content/site";
 import { track } from "@/lib/analytics";
+import { ContinueCard } from "@/components/dashboard/ContinueCard";
 import { DAY_NAME, DAY_SHORT, lagosDay, planApi, planDate, planKeys, PlanError, STATUS_CHIP, statusLabel } from "@/lib/plan-client";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
@@ -36,20 +37,31 @@ export function TodayPlans() {
   }
   const plans = data?.plans ?? [];
   const guided = plans.filter((plan) => plan.pace === "guided").sort((a, b) => attention(b) - attention(a) || activity(b) - activity(a));
-  const chapters = plans.filter((plan) => plan.pace === "chapters");
+  const chapters = plans.filter((plan) => plan.pace === "chapters").sort((a, b) => activity(b) - activity(a));
   if (!plans.length) return null;
   const [first, ...rest] = guided;
+  // With no guided plan, the chapter-view programme used last gets the big Continue card.
+  const featured = first ? undefined : chapters.find((plan) => plan.nextItem);
   const refresh = () => void mutate();
 
   return (
     <div className="space-y-5">
       {first && <TodayCard plan={first} onChanged={refresh} />}
+      {featured?.nextItem && (
+        <ContinueCard
+          eyebrow={`${featured.title} · Continue where you stopped`}
+          title={featured.nextItem.title}
+          meta={[featured.nextItem.sectionTitle, featured.nextItem.minutes ? `${featured.nextItem.minutes} min` : ""].filter(Boolean).join(" · ")}
+          href={featured.nextItem.href}
+          onClick={() => track("plan_continue_clicked", { course: featured.slug, from: "dashboard" })}
+        />
+      )}
       {rest.length > 0 && (
         <div className="grid gap-5 md:grid-cols-2">
           {rest.map((plan) => <SmallCard key={plan.courseId} plan={plan} onChanged={refresh} />)}
         </div>
       )}
-      {chapters.map((plan) => <ChapterViewCard key={plan.courseId} plan={plan} />)}
+      {chapters.filter((plan) => plan !== featured).map((plan) => <ChapterViewCard key={plan.courseId} plan={plan} />)}
     </div>
   );
 }

@@ -31,7 +31,12 @@ export type FunnelEvent =
   | "plan_pace_changed"
   | "plan_week_completed"
   | "plan_chapter_view_cancelled"
-  | "plan_ahead";
+  | "plan_ahead"
+  | "pwa_launch"
+  | "pwa_install_prompt_shown"
+  | "pwa_install_clicked"
+  | "pwa_installed"
+  | "pwa_install_dismissed";
 
 const META_EVENTS: Partial<Record<FunnelEvent, string>> = {
   lead_captured: "Lead",

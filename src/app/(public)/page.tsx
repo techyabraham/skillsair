@@ -80,7 +80,7 @@ export default async function HomePage({ searchParams }: { searchParams: { utm_c
               {ctaLabel}
             </PrimaryCTA>
             <GhostLink href="/quiz" onDark>
-              Not sure? Take the 2-minute quiz
+              Not sure? Take the 3-minute quiz
             </GhostLink>
           </div>
           <p className="text-sm text-neutral-300">Free to apply · Takes 60 seconds · Beginners welcome</p>

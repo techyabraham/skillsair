@@ -17,6 +17,8 @@ export interface LeadDetails {
 export interface LeadCaptureResult {
   leadId: number;
   hasAccount: boolean;
+  /** Set for quiz leads: the saved result's public id (/quiz/result/<id>). */
+  resultId?: string;
 }
 
 interface LeadDetailsFormProps {
@@ -31,6 +33,8 @@ interface LeadDetailsFormProps {
   onChange?: (details: LeadDetails) => void;
   /** Put the cursor in the email field (after "use a different email"). */
   focusEmail?: boolean;
+  /** Extra fields sent with the lead (the Career Match quiz sends its answer ids). */
+  extra?: Record<string, unknown>;
 }
 
 const SERVER_ERROR = `Something went wrong on our side. Your details are safe. Tap Continue again, or WhatsApp ${site.advisor.name} on ${site.whatsapp.display}.`;
@@ -47,6 +51,7 @@ export function LeadDetailsForm({
   onSuccess,
   onChange,
   focusEmail = false,
+  extra,
 }: LeadDetailsFormProps) {
   const id = useId();
   const [details, setDetails] = useState<LeadDetails>({
@@ -113,15 +118,27 @@ export function LeadDetailsForm({
           school,
           programme,
           website,
+          ...extra,
         }),
       });
       const result = (await response.json().catch(() => ({}))) as Partial<LeadCaptureResult> & { message?: string; fields?: Record<string, string> };
       if (!response.ok) {
         if (result.fields?.phone) setErrors((current) => ({ ...current, phone: PHONE_ERROR }));
-        setFormError(response.status === 429 ? "Too many attempts. Please wait a few minutes and try again." : result.fields?.phone ? "" : SERVER_ERROR);
+        setFormError(
+          response.status === 429
+            ? "Too many attempts. Please wait a few minutes and try again."
+            : result.fields?.phone
+              ? ""
+              : result.fields?.quiz
+                ? "Some quiz answers weren't recognised. Please retake the quiz."
+                : SERVER_ERROR,
+        );
         return;
       }
-      onSuccess({ leadId: Number(result.leadId ?? 0), hasAccount: Boolean(result.hasAccount) }, details);
+      onSuccess(
+        { leadId: Number(result.leadId ?? 0), hasAccount: Boolean(result.hasAccount), ...(typeof result.resultId === "string" ? { resultId: result.resultId } : {}) },
+        details,
+      );
     } catch {
       setFormError(SERVER_ERROR);
     } finally {

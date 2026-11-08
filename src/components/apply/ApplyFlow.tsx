@@ -84,9 +84,11 @@ interface ApplyFlowProps {
   schools: SchoolSummary[];
   initialSchool: string;
   initialProgramme: string;
+  /** "quiz" when coming from a Career Match result: details and the 3 questions are already saved. */
+  from?: string;
 }
 
-export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlowProps) {
+export function ApplyFlow({ schools, initialSchool, initialProgramme, from = "" }: ApplyFlowProps) {
   const router = useRouter();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<ApplyState>({ step: 1, school: "", programme: "", details: {} });
@@ -132,6 +134,34 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
   useEffect(() => {
     if (ready) saveState(state);
   }, [state, ready]);
+
+  // From a quiz result: the quiz gate already saved name, WhatsApp, email and the 3 quick
+  // questions on this browser's applicant session, so point it at the programme and skip ahead.
+  const quizHandoff = useRef(false);
+  const [fromQuiz, setFromQuiz] = useState(from === "quiz" && Boolean(programmeSchool));
+  useEffect(() => {
+    if (!ready || quizHandoff.current || from !== "quiz" || !programmeSchool) return;
+    quizHandoff.current = true;
+    void (async () => {
+      try {
+        const response = await fetch("/api/leads/me", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ programme: initialProgramme }),
+        });
+        if (!response.ok) return; // no applicant session (other device, cookies cleared): normal flow
+        const saved = (await response.json().catch(() => ({}))) as { currentStatus?: string | null; device?: string | null; weeklyHours?: string | null };
+        track("apply_step_complete", { step: 2 });
+        if (saved.currentStatus && saved.device && saved.weeklyHours) {
+          router.push(`/apply/offer?programme=${encodeURIComponent(initialProgramme)}`);
+          return;
+        }
+        setState((current) => ({ ...current, leadSaved: true, step: 3 }));
+      } finally {
+        setFromQuiz(false);
+      }
+    })();
+  }, [ready, from, programmeSchool, initialProgramme, router]);
 
   useEffect(() => {
     if (ready) headingRef.current?.focus();
@@ -251,7 +281,7 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
     if (next.currentStatus && next.device && next.weeklyHours) void finish(next);
   };
 
-  if (!ready) {
+  if (!ready || fromQuiz) {
     return <div className="mx-auto max-w-xl px-4 py-16" aria-busy="true"><div className="h-64 animate-pulse rounded-2xl bg-neutral-200" /></div>;
   }
 
@@ -403,7 +433,7 @@ export function ApplyFlow({ schools, initialSchool, initialProgramme }: ApplyFlo
           <p className="mt-4 text-center text-sm text-neutral-600">
             Not sure?{" "}
             <Link href="/quiz" className="font-medium text-primary-800 underline underline-offset-2">
-              Take the 2-minute quiz →
+              Take the 3-minute quiz →
             </Link>
           </p>
         </section>

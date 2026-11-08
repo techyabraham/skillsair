@@ -42,7 +42,7 @@ export default async function SchoolsPage() {
           </p>
         }
         primary={{ href: "/apply", label: "Apply for a scholarship seat →" }}
-        secondary={{ href: "/quiz", label: "Not sure? Take the 2-minute quiz" }}
+        secondary={{ href: "/quiz", label: "Not sure? Take the 3-minute quiz" }}
         note={
           scholarship.isOpen
             ? `Access Scholarship open until ${formatShortDate(scholarship.closesAt)} · Free to apply · Takes 60 seconds`
@@ -127,7 +127,7 @@ export default async function SchoolsPage() {
         <div className="container-wide flex flex-col items-start gap-5 rounded-2xl bg-white p-6 ring-1 ring-neutral-200 md:flex-row md:items-center md:justify-between md:p-8">
           <div>
             <h2 className="text-xl font-bold text-navy md:text-2xl">Not sure which school fits you?</h2>
-            <p className="mt-1 text-neutral-700">Answer 8 quick questions and we&apos;ll suggest where to start. It takes about 2 minutes.</p>
+            <p className="mt-1 text-neutral-700">15 quick taps and we&apos;ll show your top career matches and where to start. It takes about 3 minutes.</p>
           </div>
           <Link href="/quiz" className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl border-2 border-navy px-6 font-semibold text-navy hover:bg-navy hover:text-white">
             Take the Career Match quiz →

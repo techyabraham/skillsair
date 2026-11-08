@@ -31,5 +31,5 @@ export default async function ApplyPage({ searchParams }: { searchParams: Record
     );
   }
 
-  return <ApplyFlow schools={schools} initialSchool={param("school")} initialProgramme={param("programme")} />;
+  return <ApplyFlow schools={schools} initialSchool={param("school")} initialProgramme={param("programme")} from={param("from")} />;
 }

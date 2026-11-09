@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { backendFetch } from "@/lib/backend-api";
 import { ATTRIBUTION_COOKIE, LEAD_COOKIE, leadCookieOptions, parseAttribution } from "@/lib/lead-session";
+import { REF_COOKIE } from "@/lib/referral";
 
 interface LeadResult {
   leadId: number;
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
   }
 
   const attribution = parseAttribution(req.cookies.get(ATTRIBUTION_COOKIE)?.value);
+  const referral = req.cookies.get(REF_COOKIE)?.value?.slice(0, 1000);
   const source = typeof body.source === "string" && SOURCES.has(body.source) ? body.source : "apply";
 
   const upstream = await backendFetch(req, "leads", {
@@ -64,6 +66,8 @@ export async function POST(req: NextRequest) {
       website: text(body.website, 200) || undefined,
       quiz: source === "quiz" ? quizPayload(body.quiz) : undefined,
       ...attribution,
+      // Ambassador referral link (sa_ref): the application counts for the ambassador. Kept until sign-up.
+      ...(referral ? { attribution: referral } : {}),
     }),
   }).catch(() => null);
 
